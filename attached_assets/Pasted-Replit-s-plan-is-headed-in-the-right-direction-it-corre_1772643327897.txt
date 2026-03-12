@@ -1,0 +1,145 @@
+Replit’s plan is headed in the right direction (it correctly calls out the four symptoms), but the root-cause guesses are off in a couple places, and one of the suggested fixes (“turn up volumetric nebula”) is the exact kind of thing that will tank phones.
+
+Here’s how I’d approach it (and what I’d tell Replit to change).
+
+What Replit got right
+
+Phantom center “system star” is real and confusing. Your brain reads it as “a person star,” and it blocks the “James + Lisa are the center” mental model.
+
+Box/rect clipping is almost always “sprite/plane alpha never reaches 0 at the texture edge.”
+
+Hard-to-click stars is real UX pain.
+
+Nebula doesn’t feel like you’re inside it (it reads like a background layer, not an environment).
+
+Where the plan likely misses the real causes (based on your current GalaxyView style)
+1) “Hard to click stars” is often caused by a big invisible household hitbox eating clicks
+
+In your current architecture, you typically have:
+
+A large invisible sphere used to make household selection easy
+
+Smaller star hitboxes inside the household/system
+
+If the large sphere is active even in system view, raycasting will hit it first and you’ll never reach James/Lisa’s star hitboxes reliably.
+
+Fix is not only “increase star hitbox.”
+Fix is: disable the household hitbox when you’re zoomed into system view, then optionally enlarge star hitboxes.
+
+2) The “box” is probably from the nebula texture itself, not a shader math issue
+
+If you’re using sprites with generated textures, a “box” shows up when the alpha at the edges is not guaranteed to be 0.
+
+So instead of adding UV edge fades to random shaders everywhere, do the robust fix:
+
+Guarantee alpha = 0 near the outer edge in the nebula texture generation (or use a circular falloff mask).
+
+That kills the box everywhere at once.
+
+3) “Make nebula more immersive” should not mean “increase volumetric volume”
+
+On phones, volumetrics are the first thing to die.
+
+You can get “in the cloud” feel with cheap tricks:
+
+brighter fog color
+
+more/larger translucent sprites
+
+a slow moving screen-space gradient/noise overlay
+
+slight camera-relative parallax
+
+Those feel immersive and stay fast.
+
+The plan I’d give Replit (corrected and mobile-safe)
+T001 — Remove the “phantom system star” without losing system identity
+
+Instead of rendering a 3rd star at the household center:
+
+keep James + Lisa as the only “center stars”
+
+show system classification via HUD label + subtle ring/halo (not a star)
+
+Why: you still communicate “system class” without confusing people selection.
+
+T002 — Fix the box edge at the source (texture/sprite fade)
+
+If you generate nebula textures, add a guaranteed outer-edge fade:
+
+// after you compute dist in 0..sqrt(2) space:
+const edgeStart = 0.85;
+const edgeEnd = 1.0;
+const t = Math.min(1, Math.max(0, (edgeEnd - dist) / (edgeEnd - edgeStart)));
+const edge = t * t * (3 - 2 * t); // smoothstep
+alpha *= edge;
+
+If you’re not generating textures, use a circular alpha mask texture for star/nebula sprites.
+
+Acceptance: no visible square edges at any zoom level.
+
+T003 — Fix clickability the correct way (hitbox priority + mobile picking)
+
+Disable household hitbox raycast in system view
+
+Increase star hitbox minimum radius (not just proportional)
+
+Optionally implement screen-space nearest-star selection on tap (this is gold on mobile)
+
+If you want the simple immediate fix:
+
+household hitbox off in system view
+
+stars hitbox min radius
+
+Example idea in JSX:
+
+<mesh
+  visible={false}
+  raycast={isSystemView ? () => null : undefined}
+  onClick={isSystemView ? undefined : onClick}
+/>
+
+Acceptance: James/Lisa are easy to tap/click every time.
+
+T004 — “In the cloud” feel using cheap layers (no heavy volumetrics)
+
+Do this in galaxy view:
+
+raise fog brightness slightly (don’t keep it near-black)
+
+add 1–2 huge soft sprites/gradients behind everything
+
+increase nebula sprite opacity a bit, but keep it subtle per layer
+
+add slow UV drift (feels alive)
+
+Avoid: “turn volumetric up to 0.9 opacity.” That will murder phones.
+
+T005 — Make the “light trail” fade naturally
+
+If you have spikes/trails that look too defined:
+
+make alpha falloff exponential and clamp hard to 0 at outer radius
+
+reduce core brightness so it doesn’t look like a flashlight beam
+
+Acceptance: trails fade out smoothly, no hard edges.
+
+T006 — Add a Quality Tier gate (so it stays fast on bad devices)
+
+Low tier: no postprocessing, fewer sprites, DPR clamp to 1.0
+
+Medium: modest sprites, limited effects on hover only
+
+High: optional extra polish
+
+Acceptance: stable FPS on phones + weak laptops.
+
+The single biggest “aha” to tell Replit
+
+If you can only send them one thing:
+
+“Don’t just enlarge star hitboxes—disable the household hitbox when zoomed into a system, because it’s probably intercepting all clicks.”
+
+That one change usually fixes the “can’t click James/Lisa” problem immediately.

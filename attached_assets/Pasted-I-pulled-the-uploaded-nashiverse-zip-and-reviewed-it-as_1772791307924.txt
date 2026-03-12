@@ -1,0 +1,174 @@
+I pulled the uploaded nashiverse.zip and reviewed it as the “latest iteration.” Here’s what matters:
+
+1) Replit’s plan is fine, but it is missing the real blockers
+
+In the zip you uploaded, several “it keeps saving” and “UI is broken” issues are not just UI bugs. They come from frontend and database mismatch and missing backend routes.
+
+Critical blockers I can confirm in this codebase
+
+A) Person saving is very likely failing because the DB schema does not match the form
+src/components/family/PersonForm.jsx submits fields like birth_year, death_date, guardian_ids, medical_notes, about, star_pattern, star_intensity, star_flare_count, star_profile.
+But server/db/schema.sql for people does not include those columns. That will cause SQL errors on insert/update, and your UI currently does not catch them cleanly, so you see “Saving…” forever.
+
+B) Settings page is mismatched with the DB schema
+src/pages/Settings.jsx expects:
+
+family_settings.tagline and family_settings.admin_emails
+
+join_requests.requester_name, requester_email, notes, reviewed_by_email
+
+But server/db/schema.sql has:
+
+family_settings without tagline or admin_emails
+
+join_requests with only email and message
+
+So Settings will fail even after the UI fixes.
+
+C) Calendar is broken in this repo
+src/pages/Calendar.jsx calls base44.entities.CalendarEvent, but src/api/base44Client.js does not define CalendarEvent, and there is no calendar_events table in schema.sql.
+
+D) /api/functions/* does not exist in the backend
+Home and Settings call base44.functions.invoke(...) (export, makeAdmin, cleanupTestData, getFamilyInsights).
+Your Express server has only /api/auth, /api/entities, /api/upload. No /api/functions.
+
+E) Security issue
+server/routes/entities.js builds SQL using unsanitized table and column names, and it exposes the users table via generic CRUD. That is a real risk once this is live.
+
+Because of A-D, a “full app evaluation” will mostly just generate errors until the foundation is aligned.
+
+2) The specific issues you reported and what the code says
+Upload Photo button unreadable
+
+Confirmed in PersonForm.jsx line ~281 in your zip:
+
+It uses variant="outline" and custom text color.
+
+Shadcn outline variant applies bg-background, which can conflict with your dark modal.
+
+Fix: either use variant="ghost" or explicitly set a dark background class.
+
+“Saving…” stuck on Update Person
+
+Confirmed in PersonForm.jsx:
+
+handleSubmit sets loading true and has no try/catch/finally.
+
+saveRelationships has a return early for invalid parent without clearing loading.
+
+If the backend throws (and it will if schema is missing columns), the UI never clears loading.
+
+Fix: add try/catch/finally and surface the real backend error.
+
+System view child lines going into the parent circle
+
+Confirmed in GalaxyView.jsx in your zip:
+
+ConstellationLines currently draws child lines from parentCenter to child position.
+
+That guarantees lines will go into the ring, because they start at center.
+
+Fix: start each child line at a point on the ring perimeter, not the center. Compute ringPoint = center + normalize(child-center) * ringRadius.
+
+If you want the “endpoint floats around the ring as the camera rotates” feel, then the ring should be camera-facing (billboard), and the ringPoint needs to be computed in the ring’s local plane. Right now the ring is in world XZ.
+
+Minimap overlap
+
+Important: in the zip you uploaded, I do not see a minimap component in GalaxyView.jsx. The Replit plan references line numbers around 4000+, but your file is ~2455 lines and has only zoom controls in the bottom right.
+That tells me Replit is either on a different version, or you uploaded an older one.
+
+Before they fix anything, you should make sure Replit is working off the exact same commit or zip.
+
+3) The phase plan I would send Replit (copy/paste)
+Phase 1: Make the app actually save data (schema + API contract)
+
+P1-T001: Align DB schema to match UI payloads
+
+Add missing columns to people used by PersonForm:
+
+about TEXT, medical_notes TEXT, birth_year INT, death_date DATE, guardian_ids UUID[]
+
+star_pattern TEXT, star_intensity INT, star_flare_count INT, star_profile JSONB
+
+Add missing columns to family_settings used by Settings:
+
+tagline TEXT, admin_emails TEXT[], planner_emails TEXT[] (if needed)
+
+Fix join_requests schema to match UI:
+
+add requester_name TEXT, requester_email TEXT, notes TEXT, reviewed_by_email TEXT, reviewed_at TIMESTAMPTZ
+
+Create calendar_events table and add CalendarEvent entity mapping
+Acceptance: Person edit, Settings save, Join Requests approve, Calendar create all work without 500 errors.
+
+P1-T002: Implement /api/functions/:name or remove the calls
+Implement at least:
+
+exportFamilyData
+
+makeAdmin (choose either user.role column or admin_emails list, but be consistent)
+
+cleanupTestData (dev-only, admin-only)
+Stub getFamilyInsights as “Coming soon” until real.
+Acceptance: Home and Settings quick actions do not throw.
+
+P1-T003: Add CalendarEvent entity
+
+Add CalendarEvent to base44Client.js entityTypes
+
+Map to calendar_events in server/routes/entities.js
+Acceptance: Calendar page loads and CRUD works.
+
+Phase 2: Fix the UI bugs you listed (now that saving works)
+
+P2-T001: Upload Photo button readability
+Change button variant or background to guarantee contrast.
+
+P2-T002: Fix stuck “Saving…”
+Wrap submit flow in try/catch/finally, show toast on error, ensure early returns reset loading.
+
+P2-T003: Fix system view connection lines
+Change child line origin to ring perimeter. Optional: billboard ring for the “floating endpoint” effect.
+
+P2-T004: Remove minimap if present in current branch
+If it exists in their version, remove it and clean up dependent state.
+
+Acceptance: Your exact repro steps no longer fail.
+
+Phase 3: Star customization overhaul (your NMS simplification)
+
+Replace “Design Your Star” with a simpler NMS-style model:
+
+Pick “Star Type” (4 options)
+
+Brightness slider
+
+Twinkle slider
+
+Optional color tint (or derive from household/system)
+Everything else becomes auto-generated.
+Acceptance: fewer controls, consistent look, fast on mobile, saves reliably.
+
+Phase 4: Realistic seed data and household definition
+
+Seed with realistic living arrangements (Ava in her own household, Martin with Matt/Megan)
+
+Add household_status or memberships later if you want part-time/visiting
+Acceptance: Galaxy and List views feel believable and testable.
+
+Phase 5: Security and production readiness
+
+Whitelist entity types and columns in CRUD
+
+Remove users from generic CRUD
+
+Fix CORS origin from true to your real frontend
+
+Move session storage to Postgres store
+Acceptance: no obvious injection paths, stable auth across restarts.
+
+4) One key note to tell Replit right now
+
+“Before you start fixing anything, confirm you are working from the same version. The plan you wrote references a GalaxyView that is much longer than what is in the attached zip.”
+
+If you want, I can turn the above into a tighter task list with exact SQL migration snippets (ALTER TABLE ADD COLUMN IF NOT EXISTS) and the exact ring-perimeter math for the system view lines.

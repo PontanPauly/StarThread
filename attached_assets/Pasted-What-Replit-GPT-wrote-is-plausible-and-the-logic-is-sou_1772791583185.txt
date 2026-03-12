@@ -1,0 +1,88 @@
+What “Replit GPT” wrote is plausible and the logic is sound:
+
+If they truly are on a newer branch where schema, CalendarEvent, functions routes, and CRUD whitelisting are already fixed, then my earlier “Phase 1 and Phase 5” concerns would be obsolete.
+
+The fact they cite GalaxyView at ~4488 lines vs ~2455 lines strongly suggests version mismatch.
+
+The only problem is: their message reads like “trust me” without proving it. The right move is to force version alignment and verify with quick, objective checks, then proceed with the UI bug list.
+
+What I would do next (and what to tell Replit)
+
+Here is a clean message you can paste to Replit. It keeps things tight and avoids long dashes.
+
+Message to Replit (copy/paste)
+
+Thanks. If the schema, CalendarEvent, functions, and CRUD hardening are already resolved in the current codebase, great. Before you start fixes, lock version alignment so we do not chase ghosts.
+
+Please do these quick verifications and paste outputs:
+
+Confirm we are on the latest code
+
+git rev-parse HEAD
+
+wc -l src/components/constellation/GalaxyView.jsx
+
+Confirm functions route is mounted
+
+Show the line in server/index.js (or wherever routes mount) that mounts functions, plus the route path.
+
+grep -R "routes/functions" -n server
+
+grep -R "/api/functions" -n server
+
+Confirm person update really reaches the API and returns success
+
+In the browser, perform “Update Person” once and paste the Network tab result:
+
+request URL
+
+status code
+
+response body (or error)
+This will immediately tell us why “Saving...” sticks.
+
+Once that is confirmed, proceed with the UI issue list in this order:
+
+T1 Remove minimap or any overlapping bottom right HUD element (ship the simple layout first)
+
+T2 Fix Upload Photo button readability in PersonForm and profile edit (guaranteed contrast)
+
+T3 Fix stuck “Saving...” state
+
+Wrap submit in try/catch/finally
+
+Always reset loading in finally
+
+Surface backend error toast so we see the real cause
+
+Ensure early returns reset loading
+
+T4 Fix system view child lines
+
+Line should start at ring perimeter, not parent center
+
+As camera rotates, endpoint should remain on ring edge (billboard math if ring is billboarded)
+
+T5 App-wide QA pass
+
+Run through each feature and file issues in a checklist: Galaxy, list view edit, profile edit, star customize, trips, moments, calendar, messaging
+
+Record each bug with screenshot and repro steps
+
+Fix in priority order: data integrity and blockers first, then visual polish
+
+Also add “Design Your Star” simplification as a separate phase after the app is stable.
+
+My take on the “Saving...” bug
+
+Even if schema and API are correct now, the “Saving...” symptom almost always means one of these:
+
+a thrown error not caught (loading never cleared)
+
+an early return path that skips setLoading(false)
+
+network request failing (400/500) and UI not surfacing it
+
+backend response shape changed and UI is waiting for something that never arrives
+
+That’s why I would force them to paste the Network response for one save attempt. It ends the guessing instantly.

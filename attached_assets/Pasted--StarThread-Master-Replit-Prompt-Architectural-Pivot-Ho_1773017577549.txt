@@ -1,0 +1,351 @@
+# StarThread — Master Replit Prompt
+## Architectural Pivot: Household-Based → Relationship-Based
+
+**Context:** This app was previously called Nashiverse. It is being renamed to StarThread. It is a family social platform with a cosmic/space visual theme — stars, galaxies, constellations. The existing codebase is React + Express + PostgreSQL, hosted on Replit. It currently uses a household-based data model where families are organized by where people live. That model is being replaced with a relationship-based model where family connections are the spine of the app. Households become optional profile metadata.
+
+**This prompt is a phased implementation plan. Execute each phase fully and verify it works before moving to the next phase.**
+
+---
+
+## PHASE 1 — Database Schema Migration
+
+### Overview
+Restructure the database from household-centric to relationship-centric. The `relationships` table becomes the most important table in the system. People are connected by family ties, not addresses. Households become an optional field on a person's profile.
+
+### Schema Changes
+
+**Modify `people` table:**
+- Add column `user_id UUID REFERENCES users(id)` — direct link to auth user, replaces the old `linked_user_email` pattern
+- Add column `address TEXT` — optional, replaces the idea of household as a structural element
+- Add column `city TEXT`
+- Add column `state TEXT`  
+- Add column `is_memorial BOOLEAN DEFAULT false` — for deceased members
+- Add column `memorial_date DATE`
+- Add column `privacy_level TEXT DEFAULT 'public'` — values: 'public', 'private', 'family_only'
+- Keep `household_id` for now as optional legacy/grouping field, but it should no longer be required or drive any UI structure
+- Keep all existing columns (name, nickname, photo_url, birth_date, birth_year, death_date, role_type, allergies, dietary_preferences, is_deceased, about, medical_notes, star_profile, star_pattern, star_intensity, star_flare_count)
+
+**Modify `relationships` table:**
+The relationships table is now the backbone. Each row represents a directional relationship between two people.
+
+```sql
+CREATE TABLE IF NOT EXISTS relationships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+  related_person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+  relationship_type TEXT NOT NULL,  -- 'parent', 'child', 'spouse', 'sibling', 'step_parent', 'step_child', 'step_sibling', 'grandparent', 'grandchild', 'aunt_uncle', 'niece_nephew', 'cousin', 'in_law', 'chosen_family'
+  subtype TEXT DEFAULT 'biological', -- 'biological', 'adoptive', 'step', 'half', 'honorary', 'legal'
+  status_from_person TEXT DEFAULT 'confirmed', -- 'confirmed', 'claimed', 'pending'
+  status_from_related TEXT DEFAULT 'pending', -- 'confirmed', 'denied', 'pending', 'unaware'
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+Key design decisions:
+- Relationships are stored from person_id's perspective. "person_id is the [relationship_type] of related_person_id" — e.g., person_id=Paul, related_person_id=Nash, relationship_type='parent' means Paul is a parent of Nash.
+- When person A adds person B as a child, create TWO rows: A→B as 'parent' and B→A as 'child'. The A→B row has `status_from_person='confirmed'` and `status_from_related='pending'`. The B→A row has `status_from_person='pending'` and `status_from_related='confirmed'`. When B confirms, both rows flip to confirmed/confirmed.
+- Even if person B denies the relationship, person A's row keeps `status_from_person='confirmed'`. Person A still sees the relationship in their own galaxy. Person B does not.
+
+**New `relationship_visibility` table:**
+```sql
+CREATE TABLE IF NOT EXISTS relationship_visibility (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  relationship_id UUID NOT NULL REFERENCES relationships(id) ON DELETE CASCADE,
+  is_visible BOOLEAN DEFAULT true,
+  UNIQUE(user_id, relationship_id)
+);
+```
+This lets each user independently hide specific relationships from their personal galaxy view without affecting anyone else.
+
+**New `trusted_contacts` table:**
+```sql
+CREATE TABLE IF NOT EXISTS trusted_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+  trusted_person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(person_id, trusted_person_id)
+);
+```
+
+**Auto-link users to people on registration:**
+When a new user registers, automatically create a corresponding `people` row with `user_id` set to the new user's ID, `name` set to their `full_name`, and `role_type` set to `'adult'`. This eliminates the old problem where users had to manually be linked via `linked_user_email`.
+
+Update the registration endpoint in `server/routes/auth.js` to do this:
+```javascript
+// After creating the user...
+const user = result.rows[0];
+req.session.userId = user.id;
+
+// Auto-create linked person record
+await pool.query(
+  'INSERT INTO people (name, user_id, role_type) VALUES ($1, $2, $3)',
+  [user.full_name, user.id, 'adult']
+);
+```
+
+Also update `base44Client.js` AuthProxy `me()` and any frontend code that searches for a person by `linked_user_email` — replace all of those patterns with lookups by `user_id` instead.
+
+### Migration Script
+Run all of these as `ALTER TABLE ADD COLUMN IF NOT EXISTS` statements in `server/db/migrate.js`, following the existing migration pattern. Do NOT drop any existing columns — keep backward compatibility during transition.
+
+---
+
+## PHASE 2 — Onboarding Flow
+
+### Overview
+When a new user registers, they should immediately enter a guided onboarding experience — not land on an empty dashboard. The onboarding has 4 steps.
+
+### Technical Implementation
+Create a new page component `src/pages/Onboarding.jsx`. Add it to `pages.config.js`. In `App.jsx`, modify the `ProtectedRoute` component: after auth check succeeds, check if the user's person record has a flag `onboarding_complete BOOLEAN DEFAULT false` (add this column to `people`). If false, redirect to `/Onboarding`. If true, proceed normally.
+
+### Step 1 — Your Profile
+Clean, focused form. Cosmic-themed card with the StarThread visual identity.
+- Photo upload (circle avatar)
+- Birthday (date picker)
+- Short bio (optional textarea)
+- Address / city / state (optional — framed as "Where do you call home?" not as a structural requirement)
+
+### Step 2 — Your Closest Family
+This is the most important step. The UI should feel warm and inviting, not like a form.
+
+Show a simple interface with prompt text: "Who are your closest family members?"
+
+Offer quick-add buttons for common relationships:
+- "Add a Parent"
+- "Add a Spouse / Partner"  
+- "Add a Child"
+- "Add a Sibling"
+
+When they click one, a small inline form appears asking for:
+- Name
+- Email (optional — "if they're on StarThread or you'd like to invite them")
+
+When submitted:
+1. If the email matches an existing user, create the relationship rows linking them, with `status_from_related='pending'`, and queue a notification/verification request.
+2. If the email doesn't match or isn't provided, create an **unlinked person** stub in the `people` table (no `user_id`) and create the relationship rows with `status_from_related='unaware'`.
+3. Show each added person as a small star/card below the form so the user sees their family taking shape visually.
+
+Users should be able to add as many or as few as they want. Minimum of zero — don't block progress.
+
+### Step 3 — Trusted Contacts
+Simple, warmly worded step.
+
+Heading: "Who do you trust?"
+Subtext: "Pick 2-3 people who can help manage your account if something ever happens to you. This keeps your star safe."
+
+Show a list of the people they just added in Step 2, plus the option to type in someone else. They tap to select. Minimum 0 (don't force it), suggested 2-3.
+
+Save selections to the `trusted_contacts` table.
+
+### Step 4 — Invite Family
+Final step. Show a share link and/or email invite form.
+
+Heading: "Bring your family into the universe"
+Subtext: "StarThread is better together. Share a link to invite your family."
+
+Generate a unique invite link. Also offer "Send email invites" using the emails collected in Step 2 that aren't already on the platform.
+
+A "Skip for now" option should be prominent — don't guilt them.
+
+When complete, set `onboarding_complete = true` on their person record and redirect to Home.
+
+### Visual Direction
+The onboarding should feel like a journey through space — a slow reveal. Each step could have a subtle star-field background animation (reuse the canvas animation from the current Login page). Progress indicator at the top — maybe 4 small stars that light up as you complete each step. Use the existing cosmic color palette: deep slate/navy backgrounds, amber/gold accents, purple nebula touches. Glass-card styling for form containers.
+
+---
+
+## PHASE 3 — Relationship-Based Galaxy View
+
+### Overview
+The galaxy view currently clusters people by household. It needs to be restructured so that it clusters people by relationship distance from the viewing user.
+
+### How It Should Work
+
+**My Galaxy (default view when a user opens the Family page):**
+- The current user's star is at the center
+- First ring: immediate family — spouse/partner, parents, children
+- Second ring: siblings, grandparents, grandchildren
+- Third ring: aunts/uncles, nieces/nephews, cousins, in-laws
+- Outer area: extended/chosen family, more distant connections
+- Constellation lines connect related people. Confirmed relationships render as solid lines. Claimed-only relationships render as dashed/faded lines.
+- Any relationship the user has set to hidden (via `relationship_visibility`) is not rendered at all.
+
+**Someone else's galaxy (when you tap on another person):**
+- That person becomes the center star
+- Their relationships radiate outward using the same ring logic
+- Filtered by: that person's own visibility settings (they might have hidden people), AND the viewer's privacy permissions (private people show name only)
+
+**Data fetching:**
+Create a new API endpoint: `GET /api/relationships/galaxy/:personId`
+
+This endpoint should:
+1. Fetch all relationships where `person_id = :personId` AND `status_from_person` is 'confirmed' or 'claimed'
+2. Apply the requesting user's `relationship_visibility` filters (if viewing own galaxy)
+3. Apply privacy filters for private people (return name + relationship type only, no full profile)
+4. Return the person data and relationship data in a single payload, structured by relationship distance
+
+The existing `GalaxyView.jsx` component (4500 lines) should be adapted rather than rewritten from scratch. The key change is replacing the household-clustering logic with relationship-distance-based positioning. The d3-force-3d simulation can stay — just change the link/node generation to use the relationship graph instead of household groupings.
+
+### HouseholdCluster.jsx → RelationshipCluster.jsx
+Rename and refactor. Instead of grouping by `household_id`, group by relationship rings (immediate, extended, distant). The cluster component should accept a `ring` prop that determines its orbital distance from the center.
+
+---
+
+## PHASE 4 — Privacy & Visibility System
+
+### Personal Visibility Controls
+Add a section to the user's Profile or Settings page: "My Family View"
+
+Show a list of all relationships connected to the user. Each one has a toggle: visible / hidden. Toggling creates or updates a row in `relationship_visibility`.
+
+This is personal and asymmetric. Hiding your stepfather from your galaxy does NOT hide you from his galaxy.
+
+### Privacy Levels
+Each person has a `privacy_level` on their profile: 'public', 'family_only', 'private'.
+
+- **Public**: Full profile visible to anyone on StarThread. Full galaxy viewable by anyone connected to them.
+- **Family Only**: Full profile visible to people with confirmed mutual relationships. Others see name + direct relationship to them only.
+- **Private**: Name visible in universe view. Direct known relationship to the viewer may be shown. All other profile data and relational web hidden.
+
+### Claimed vs. Confirmed Display
+In the galaxy view:
+- **Mutually confirmed** relationships: solid constellation line, full star brightness
+- **Claimed by one side only**: dashed or faded constellation line, slightly dimmer star
+- **Pending verification**: subtle pulsing animation on the line, indicating waiting for response
+
+### Relationship Verification Flow
+When User A adds User B (who is already on StarThread) as a relative:
+1. User B gets a notification: "[Name] says they are your [relationship_type]. Confirm?"
+2. User B can: Confirm, Deny, or Ignore
+3. Confirm: both relationship rows flip to confirmed/confirmed
+4. Deny: B's row gets `status_from_person='denied'`. A's row keeps `status_from_related='denied'`. A still sees the claimed relationship in their own galaxy. B does not see it.
+5. Ignore: stays as pending indefinitely
+
+---
+
+## PHASE 5 — Deceased / Memorial Flow
+
+### Initiation
+When a person's trusted contacts need to mark them as deceased, any one of them can initiate the process from the person's profile.
+
+Add a button (visible only to trusted contacts): "Report that [Name] has passed away"
+
+### Verification
+When initiated:
+1. The system sends a confirmation request to the other trusted contacts
+2. At least 2 of the designated trusted contacts must confirm (2-of-3 model)
+3. Confirmation happens via email verification code
+4. Once threshold is met, the account transitions to memorial state
+
+### Memorial State
+- `is_deceased` = true, `is_memorial` = true, `memorial_date` = date of passing
+- Person's star still appears in everyone's galaxies, but visually distinct — dimmer glow, maybe a subtle halo effect or a different color temperature (cooler/blue-shifted)
+- Profile becomes read-only
+- All their content (moments, love notes, stories) is preserved and viewable
+- No one can send them messages
+- Trusted contacts can manage what content stays visible
+- Their star tooltip or card shows a small memorial indicator (dates of birth and passing)
+
+---
+
+## PHASE 6 — Universe View
+
+### Overview
+The universe view is the zoomed-all-the-way-out view. Every person on StarThread is represented. It's the global map.
+
+### Implementation
+- Show all people as stars in a large 3D space
+- Stars that are connected (through any relationship chain) cluster together naturally via the force simulation
+- Isolated people or small family groups float at the edges
+- Search bar at the top lets users find anyone by name
+- Tapping a star opens a brief card: name, photo, relationship to you (if any), and a "View Galaxy" button
+- Privacy filtering applies: private users show name only, no relationship web
+
+### Relationship Intelligence (Future — Plant the Seed Now)
+In the database layer, even when users hide relationships or set themselves to private, the underlying relationship graph is preserved. This means the system can eventually:
+- Detect that two seemingly unconnected users share a common relative
+- Suggest "You may be related to [Name] through [Shared Relative]"
+- Surface extended family connections that neither user was aware of
+
+For now, just make sure the data model supports this. Don't build the suggestion engine yet — but don't make architectural decisions that would prevent it.
+
+---
+
+## PHASE 7 — Branding & Naming Updates
+
+### Rename Nashiverse → StarThread throughout the codebase
+- Update all UI text: page titles, sidebar branding, login page, onboarding
+- Update `package.json` name field
+- Update any meta tags in `index.html`
+- The sidebar logo text should say "StarThread" with subtitle "Your Family Universe"
+- The cosmic visual theme stays — it still fits perfectly with the StarThread name
+- Keep the star logo icon
+
+---
+
+## PHASE 8 — Bug Fixes & Launch Hardening
+
+These are critical fixes that apply regardless of the architectural changes above:
+
+### Must Fix
+1. **Global Error Boundary**: Wrap the app in a React Error Boundary in `App.jsx`. On error, show a friendly "Something went wrong" screen with a "Reload" button. Currently any unhandled error crashes to white screen.
+
+2. **CSP Header**: Add Content-Security-Policy header in `server/index.js`:
+```javascript
+res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; font-src 'self' data:;");
+```
+
+3. **Password Validation**: In `server/routes/auth.js` registration, add minimum 8 character password requirement. Show the requirement in the Login.jsx registration form.
+
+4. **Email Validation**: Add basic email format check on registration endpoint.
+
+5. **TripDetail Routing**: In `src/pages/TripDetail.jsx`, replace `new URLSearchParams(window.location.search)` with React Router's `useSearchParams()` hook so in-app navigation works without full page reload.
+
+6. **Photo Upload Error Handling**: In `PersonForm.jsx` `handlePhotoUpload`, wrap in try/catch, reset `uploading` state in finally block, show error toast on failure.
+
+7. **Remove Duplicate Auth Calls**: `Layout.jsx` and `Home.jsx` both manually call `base44.auth.me()`. Remove those — use `useAuth()` context hook instead, which already has the user data.
+
+### Should Fix
+8. **Entity Validation**: Add required-field checks in the entity POST handler (`server/routes/entities.js`). At minimum: Person requires `name`, Trip requires `name` + `start_date` + `end_date`, LoveNote requires `content` + `from_person_id` + `to_person_id`.
+
+9. **Rate Limiting on Entity Routes**: Add express-rate-limit to entity CRUD routes (100 requests per minute per session).
+
+10. **Delete Confirmations**: Add AlertDialog confirmation before deleting Moments and LoveNotes.
+
+11. **Home Page Loading State**: Add loading spinner/skeleton while the 6+ queries on Home are resolving.
+
+12. **Remove `moment` dependency**: It's in package.json but unused. Only `date-fns` is used. Remove it to save ~300KB from the bundle.
+
+13. **Clean `attached_assets/`**: This folder is 176MB of development reference files (GIFs, screenshots, 3D models). Add it to `.gitignore` and do not include it in production builds.
+
+---
+
+## Summary of New Files to Create
+- `src/pages/Onboarding.jsx` — 4-step onboarding flow
+- `relationship_visibility` table in migrations
+- `trusted_contacts` table in migrations
+- New API endpoint: `GET /api/relationships/galaxy/:personId`
+- New API endpoint: `POST /api/relationships/verify/:relationshipId` (confirm/deny)
+- New API endpoint: `POST /api/memorial/initiate/:personId`
+- New API endpoint: `POST /api/memorial/confirm/:personId`
+
+## Summary of Key Files to Modify
+- `server/db/migrate.js` — new tables and columns
+- `server/routes/auth.js` — auto-create person on register, password/email validation
+- `server/routes/entities.js` — input validation, rate limiting
+- `server/index.js` — CSP header
+- `src/App.jsx` — error boundary, onboarding redirect
+- `src/Layout.jsx` — rename to StarThread, remove duplicate auth call
+- `src/pages.config.js` — add Onboarding page
+- `src/pages/Home.jsx` — remove duplicate auth call, add loading state
+- `src/pages/Login.jsx` — update branding to StarThread, add password requirements
+- `src/pages/Family.jsx` — galaxy view now relationship-based
+- `src/pages/TripDetail.jsx` — fix routing
+- `src/pages/Profile.jsx` — add privacy controls, visibility toggles, trusted contacts
+- `src/components/constellation/GalaxyView.jsx` — restructure from household-clustering to relationship-distance clustering
+- `src/components/constellation/HouseholdCluster.jsx` — rename/refactor to RelationshipCluster.jsx
+- `src/components/family/PersonForm.jsx` — photo upload error handling
+- `src/api/base44Client.js` — replace all `linked_user_email` patterns with `user_id` lookups
+- `package.json` — rename, remove moment dependency

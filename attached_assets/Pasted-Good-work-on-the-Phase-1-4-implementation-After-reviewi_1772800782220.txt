@@ -1,0 +1,35 @@
+Good work on the Phase 1-4 implementation. After reviewing the current codebase directly, here is the exact list of what's still broken and what needs to be done next.
+Bug 1: Logout still broken — never fixed
+src/Layout.jsx line 288 still calls base44.auth.logout() directly. AuthContext has a proper logout() method that clears state and redirects. Replace the direct call with const { logout } = useAuth() at the top of Layout, then call logout() on click. This is the same bug flagged in the original evaluation — it was not fixed.
+Bug 2: Meals and Activities save silently fail
+MealManager.jsx and ActivityManager.jsx have no try/catch in handleSubmit. If the API call throws (missing required field, server error), setLoading(false) and onSuccess() still run, closing the dialog without showing any error and without the item appearing. Wrap both handleSubmit functions in try/catch. On error: show a toast with the error message and do not call onSuccess(). On success: call onSuccess() and invalidate queries.
+Bug 3: Photo upload button doesn't trigger file picker
+The shadcn Button component with type="button" inside a <label> does not reliably propagate clicks to the hidden file input across all browsers. Fix: add a ref to the hidden file input and call inputRef.current.click() directly from the button's onClick handler. Remove the wrapping <label>. Apply this fix in PersonForm.jsx.
+Bug 4: Edit buttons missing from Moments and LoveNotes
+Neither src/pages/Moments.jsx nor src/pages/LoveNotes.jsx have edit functionality. Add an Edit button (pencil icon) next to the existing Delete button on each item. Clicking it should open the existing create form pre-populated with the item's current values. Saving should PATCH the existing record. On success, invalidate the relevant query so the updated item appears immediately.
+Bug 5: Rituals popup still says "Ritual" not "Tradition"
+src/pages/Rituals.jsx line 279 says 'Add New Ritual' and line 352 says 'Ritual Name *'. Change both display labels (and any others inside the add/edit dialog) to say "Tradition" and "Tradition Name". Do not change the underlying data model, table name, or variable names — display labels only.
+Bug 6: Export Data fails
+exportFamilyData in server/routes/functions.js calls requireAdminRole which checks req.session.userId. If the user is not flagged as admin in the DB, this throws and the export fails. Two fixes needed: (1) confirm the logged-in user actually has admin role set in the DB — if not, run makeAdmin first. (2) Add better error messaging in Home.jsx handleExportData so the failure reason is shown to the user rather than a generic "Export failed".
+Bug 7: Star twinkle has no visible effect
+The animation property from the star profile (steady, gentle-pulse, twinkle, dancing) is stored but never used to change the shader behavior. The time uniform always advances at the same rate regardless of the selected animation. Fix: map the animation preset to a timeScale multiplier passed as a uniform to the shader. Steady = 0.0 (frozen or nearly still), Gentle = 0.3, Twinkle = 1.0, Vivid/Dancing = 2.5. The shader already uses time extensively — multiplying the incoming delta before adding to timeRef.current is sufficient.
+Bug 8: Remove birth year field — birth date only
+PersonForm.jsx still has both birth_date and birth_year fields (lines 33–34, 359–369). Remove birth_year from the form UI entirely. Keep birth_date as the single field. The entity config can keep birth_year in the whitelist for backward compatibility, but the form should not offer it.
+Bug 9: No WebGL error boundary
+src/pages/Family.jsx has no error boundary around the Canvas. If WebGL fails or crashes, the entire page goes blank. Add a React error boundary class component that wraps the 3D canvas. If it catches an error, show a fallback: "3D view unavailable on this device" with a button to switch to the list view. This does not need to be elaborate — just prevent a blank screen.
+Bug 10: AI star icon still present
+StarEditor.jsx imports Sparkles from lucide-react and uses it in the "Design Your Star" header badge. Replace Sparkles with Star from lucide-react throughout the editor. The Sparkles icon reads as a generic AI badge and undermines the custom feel.
+Bug 11: Admin transfer missing from Settings
+src/pages/Settings.jsx has no admin transfer mechanism. Add a section in the admin settings area: "Transfer Admin Role." Show a dropdown of current family members (excluding the current admin) and a "Transfer Admin" button. On click, show a confirmation dialog: "Are you sure? You will lose admin access." On confirm, call a new server function transferAdmin(targetPersonEmail) that sets the new user's role to admin and removes it from the current user. This is critical for family continuity.
+
+After completing all of the above, do a manual verification pass:
+
+Add a meal to a trip → dialog closes → meal appears in list immediately
+Add an activity → same
+Click Upload Photo on any person → file picker opens → upload succeeds → photo appears
+Edit a moment → changes persist after refresh
+Edit a love note → changes persist after refresh
+Create a tradition → popup says "Add New Tradition" → saves → refresh shows it
+Click export data → file downloads successfully
+Logout → UI immediately shows login screen without needing refresh
+Change star twinkle to Steady → star barely moves; change to Vivid → noticeably more active

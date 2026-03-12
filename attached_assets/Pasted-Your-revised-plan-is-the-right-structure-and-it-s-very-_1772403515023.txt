@@ -1,0 +1,145 @@
+Your revised plan is the right structure and it’s very close to implementation-ready. Before you lock it in, there are a few concrete fixes/holes (based on what’s actually in the repo right now) that you should bake into the tasks so you don’t hit “why is this page still broken?” whack-a-mole.
+
+The plan is solid — here are the must-fix corrections
+1) T001 schema changes: expand + correct a few fields to match the UI
+
+People table: your list is good, but the UI also writes these right now:
+
+star_pattern (TEXT)
+
+star_intensity (INTEGER)
+
+star_flare_count (INTEGER)
+
+Family settings table: Settings UI expects these columns (currently not in schema.sql):
+
+tagline (TEXT)
+
+admin_emails (TEXT[])
+
+planner_emails (TEXT[])
+
+Join requests table: Settings UI writes this on approval:
+
+reviewed_by_email (TEXT) (optional but recommended: reviewed_at TIMESTAMPTZ)
+
+Users table: you have two choices—pick one and align code to it:
+
+Option A (recommended): add role TEXT DEFAULT 'user' so user.role === 'admin' works (Settings checks this today).
+
+Option B: don’t add role; make “admin” purely driven by family_settings.admin_emails, and remove the user.role check from Settings.
+
+Calendar events table: your proposed columns don’t match the Calendar page.
+Calendar expects:
+
+title, description
+
+date (the code uses event.date)
+
+event_type
+
+person_ids UUID[]
+
+is_recurring BOOLEAN
+
+color TEXT
+
+created_at
+So adjust that table definition accordingly.
+
+Trip participants constraint change: “fix status CHECK to include invited” is correct, but note:
+
+You can’t “ALTER CHECK” inline. You’ll need to DROP the existing constraint and recreate it.
+
+2) T003 “functions route” path needs to match your base44 client
+
+Your base44Client.js calls:
+POST /api/functions/:functionName
+So implement that route shape (not /api/functions/invoke).
+
+Also: Home does const { data } = await base44.functions.invoke(...), so your function endpoints should return:
+
+{ "data": ... }
+
+(or update the frontend to not destructure { data }).
+
+3) Phase 2 security: add one more hard requirement
+
+Your T004 whitelist work is essential, but it’s not complete unless you also:
+
+whitelist filter columns (because GET /filter currently interpolates column names too)
+
+whitelist create/update columns (because POST and PATCH accept arbitrary keys today)
+
+If you don’t whitelist those, you’ll still have injection and “write-any-column” problems even after entity whitelisting.
+
+4) Dangerous admin functions need environment gating
+
+cleanupTestData is a foot-gun even with a confirm dialog.
+
+Add a hard rule:
+
+only runs when NODE_ENV !== 'production' (or ALLOW_DESTRUCTIVE_ADMIN=true)
+
+and only for admins
+
+That prevents a “one bad click nuked prod” incident.
+
+A tightened version of your plan (same structure, corrected)
+Phase 1: Stabilize API + Schema Contract
+
+T001: Fix Database Schema — Add Missing Columns + Tables (match UI exactly)
+Add the extra columns noted above (people star_* fields, family_settings fields, join_requests reviewed_by_email, users role or remove role usage).
+Create calendar_events with date, person_ids, is_recurring, color.
+Update trip_participants status constraint to include invited (drop + recreate constraint).
+Acceptance: People / Trips / Settings / Calendar can read+write without DB errors.
+
+T002: Register CalendarEvent entity
+Add CalendarEvent to entityTypes in src/api/base44Client.js and map it to calendar_events in server/routes/entities.js.
+Acceptance: Calendar CRUD works end-to-end.
+
+T003: Implement missing backend functions (match base44Client expectations)
+Implement POST /api/functions/:functionName and support:
+
+exportFamilyData → return { data: { ...all tables... } }
+
+makeAdmin → either set users.role='admin' or append email to family_settings.admin_emails
+
+cleanupTestData → dev-only + admin-only, truncate in FK-safe order
+Stub/retire getFamilyInsights in UI as “Coming soon” (your call), but don’t leave a broken call.
+Acceptance: Home + Settings quick actions behave correctly.
+
+Phase 2: Security + Production Readiness
+
+T004: Secure generic CRUD completely
+
+entity whitelist (no fallthrough table guessing)
+
+remove users from CRUD
+
+whitelist allowed columns for: sort, filter, create, update
+
+sanitize / reject unknown keys
+Acceptance: unknown entity types = 403, unknown columns rejected, no SQL injection vectors through column names.
+
+T005: Move sessions to Postgres
+(connect-pg-simple + session table + SESSION_SECRET).
+Acceptance: sessions survive restart / multiple instances.
+
+T006: Security headers + tighter CORS
+Use helmet, restrict origins, ensure cookies: httpOnly, secure in prod, sameSite set intentionally, and set trust proxy if you’re behind a proxy.
+Acceptance: only legit origins, hardened headers, sane cookie policy.
+
+Phase 3: NMS Galaxy Restyle
+
+Your T007–T012 are well-shaped. No changes needed beyond what you already added.
+
+One optional “Phase 2.5” you should consider now (even if you implement later)
+
+If Nashiverse is eventually multi-family/multi-universe, add a scoping plan:
+
+universe_id on all tables + enforce it in every query
+
+membership table linking users ↔ universe with roles
+
+If you don’t want that yet, explicitly treat this as “single-universe app” and lock it down accordingly.

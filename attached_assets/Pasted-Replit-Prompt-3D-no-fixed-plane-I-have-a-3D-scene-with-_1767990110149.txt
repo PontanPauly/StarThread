@@ -1,0 +1,28 @@
+Replit Prompt (3D, no fixed plane)
+
+I have a 3D scene with multiple nebula objects (each with child stars) and an orbit/pan/zoom camera. The nebulas are NOT on a fixed flat plane in world space, and the user can move around them freely in 3D.
+
+I want a “focus bubble” hover interaction that is camera-relative, not world-plane based:
+
+When the mouse hovers near a nebula, it becomes the focused object. It should smoothly scale up and move slightly toward the camera (along the camera forward vector), like it’s coming closer to the viewer.
+
+Other nebulas should “make room” by shifting outward away from the focused nebula, BUT they must not move farther away from the viewer (don’t push them deeper into Z). Instead, their displacement must be sideways relative to the current camera view.
+
+Because the camera can rotate, the “sideways” directions must be computed every frame from the camera basis:
+
+cameraForward = normalized (camera -> look direction)
+
+cameraRight and cameraUp vectors
+The outward push direction for each nebula should be projected onto the camera’s view plane (the plane perpendicular to cameraForward). This is a camera-relative plane, NOT a fixed world plane.
+
+All nebulas should also scale up slightly together (global scale boost) when any focus is active, so it stays easy to glide to the next nebula. The focused nebula gets extra scaling on top.
+
+Smoothness: focus must blend continuously as the mouse moves toward another nebula (avoid snapping). Use a continuous focusWeight based on mouse proximity to each nebula’s projected screen position, then smoothly damp/lerp both the focus weights and each nebula’s position/scale.
+
+Stars inside each nebula must be locked/parented to the nebula group so they inherit the exact same transform when the nebula moves/scales (no star drift). Ensure star positions/noise are computed in nebula local space (not world space) if shaders are involved.
+
+Goal: a fully 3D navigable galaxy where hover makes one nebula come forward, neighbors slide outward in the camera view plane (not away from camera), and the whole system feels seamless and “magnetic” as you move from one nebula to another.
+
+Tiny mental model line (helps Replit)
+
+“Not a world plane. Use the camera’s view plane (perpendicular to camera forward) as the plane of repulsion each frame.”

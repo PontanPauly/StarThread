@@ -1,0 +1,118 @@
+You’re thinking about the right “fault line” in the model: household is not the same thing as family unit, and if we pretend it is, the Galaxy will always feel a little wrong as soon as someone moves out, moves in, divorces, co-parents, etc.
+
+Here’s how I’d frame it long term, without overengineering too early.
+
+The key definition
+Household = a living unit (where someone sleeps most nights)
+
+That is the “system” in the galaxy map.
+
+Then you separately track:
+
+Relationships (parent, sibling, partner, etc.)
+
+Membership strength / status (primary household, part-time, visiting, moved out)
+
+This keeps the Galaxy intuitive:
+
+James + Lisa + kids in one system
+
+Ava in Austin’s system
+
+Martin in Matthew + Megan’s system
+
+Relationship lines show how households connect
+
+Why this works
+
+It matches reality and updates naturally when people move.
+
+It keeps the Galaxy useful for “who’s together day to day” (planning trips, household notes, chores, routines, local events).
+
+It keeps genealogy-ish relationships intact without forcing them into the same bubble.
+
+The minimum model change I’d make (so you can handle messy cases)
+
+Right now you have people.household_id. That’s fine for v1, but you need just a little more:
+
+Add these fields to people
+
+primary_household_id (UUID) — rename household_id to this eventually
+
+household_status (TEXT) — values like:
+
+primary (default)
+
+part_time
+
+visiting
+
+moved_out
+
+moved_out_at (DATE) optional
+
+That alone lets you represent:
+
+kids splitting time between parents (part_time)
+
+college kid who “belongs” but not day-to-day (moved_out)
+
+grandma staying for a month (visiting)
+
+If/when you outgrow that
+
+You graduate to a join table:
+
+household_memberships (person_id, household_id, role, schedule, is_primary, start_date, end_date)
+
+That’s the “adult” solution, but you don’t need it on day one unless you want shared custody and multiple households right now.
+
+How the Galaxy should interpret it
+
+In Galaxy view:
+
+Show everyone in their primary household
+
+If part_time:
+
+still show in primary household
+
+optionally show a small “ghost star” or icon in the other household (later feature)
+
+In system view:
+
+center = adults in that household
+
+orbiting = children in that household
+
+moved_out people should not orbit the parents anymore if they don’t live there (Ava case)
+
+A clean rule set to adopt (so it’s consistent)
+
+When deciding where someone belongs:
+
+Where do they sleep most nights? → primary household
+
+If split fairly evenly → pick one as primary + mark part_time (or use memberships later)
+
+If they’re financially dependent but live elsewhere (college) → moved_out, still connected by relationships
+
+If they’re temporarily staying → visiting
+
+For your specific examples
+
+James + Lisa + kids: one household, all primary
+
+Ava + Austin: new household “Ava & Austin” (even if not married)
+
+Martin living with Matthew + Megan: Martin’s primary household = Matthew & Megan’s household (relationship lines still connect him to Angela)
+
+What I would do next
+
+Decide: do you want to keep v1 as “single household_id” or introduce household_status now?
+
+Update seed data to reflect real living arrangements (Ava w/ Austin, Martin w/ Matt/Megan)
+
+Update Galaxy classification logic to use household membership count based on “who lives there,” not “who is related”
+
+If you want my recommendation: keep the single household field for now, but add household_status so you don’t paint yourself into a corner. That gives you realism without turning the database into a monster.

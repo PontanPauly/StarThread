@@ -1,0 +1,469 @@
+Master Replit Prompt: Nashiverse Next Dev Session Plan (Phased)
+
+You have the full picture from multiple evaluations. Execute the plan below exactly in order. Do not work on Phase 2 until Phase 1 passes its acceptance tests. Do not work on Phase 3 until Phase 2 passes. Do not work on Phase 4 until Phases 1–3 pass.
+
+Constraints:
+
+Current codebase is source of truth.
+
+Do not create new tables where existing tables already exist and are intended. Specifically keep shared_trip_items and do not create a new shared_items table.
+
+Every task must end with the acceptance tests listed. If a test fails, fix it before moving on.
+
+Phase 1: Data contract fixes (features are broken until this is done)
+
+Goal: Frontend field names and shapes must match the DB schema and entity whitelist so data persists after refresh.
+
+P1-T001: Trips field alignment across all trip sub-features
+
+Files to change:
+
+src/components/trips/ActivityManager.jsx
+
+src/components/trips/MealManager.jsx
+
+src/components/trips/MyPackingList.jsx
+
+src/components/trips/SharedItemsManager.jsx
+
+src/components/trips/BudgetManager.jsx
+
+Also update any shared trip types/helpers if they exist.
+
+Rules:
+
+Match the DB column names already in schema and whitelisted entity config.
+
+If the UI uses single select but DB expects UUID array, store it as a 1 element array.
+
+If the UI currently references fields that do not exist in DB, either map them to the existing columns or explicitly remove the UI field.
+
+Concrete field mappings:
+
+Activities
+
+Replace organizer_person_id with organizer_ids (UUID array).
+
+UI behavior: single organizer selection should save organizer_ids = [selectedId].
+
+Loading behavior: when editing an existing activity, preselect from organizer_ids[0] if present.
+
+Meals
+
+Replace responsible_person_id with chef_ids (UUID array).
+
+Replace menu_description with description (TEXT).
+
+UI behavior: single chef selection should save chef_ids = [selectedId].
+
+Packing list
+
+Replace item_name with item (TEXT).
+
+If quantity exists in UI but not DB, decide now:
+
+If DB already has quantity, map it.
+
+If DB does not, either remove quantity from UI or add column in migration in Phase 3 only if required. For Phase 1, do not add new columns unless necessary to avoid data loss. Prefer removing non persisted UI controls.
+
+Shared items
+
+Keep table and entity shared_trip_items.
+
+Replace item_name with item (TEXT).
+
+Replace brought_by_person_id with assigned_to_person_id (UUID).
+
+If UI uses category or quantity and DB does not persist them, remove those UI controls for now or show them as non persisted placeholders clearly. Do not silently drop user input.
+
+Budget
+
+Replace split_with_person_ids with split_among_ids (UUID array).
+
+Remove or disable custom_splits logic unless the DB supports it. Do not store custom split state only in frontend.
+
+Ensure totals and displays derive from persisted fields only.
+
+Acceptance tests for P1-T001:
+
+Create a new trip.
+
+Add one activity with an organizer. Refresh page. Organizer persists.
+
+Add one meal with a chef and description. Refresh. Chef and description persist.
+
+Add one packing item. Refresh. Item persists.
+
+Add one shared item with assigned person. Refresh. Item and assigned person persist.
+
+Add one expense with split among people. Refresh. Split persists.
+
+No console errors during these actions.
+
+P1-T002: Messaging data model and unread logic fixes
+
+Tables to change via migration:
+
+conversations: add type and name.
+
+Files to change:
+
+server/db/migrate.js (or your migration system)
+
+server/routes/entities.js (whitelist config must include new columns)
+
+src/pages/Messages.jsx (or whatever messaging page)
+
+Any messaging components that reference conversation fields.
+
+Concrete work:
+
+Database
+
+Add columns:
+
+conversations.type TEXT NOT NULL DEFAULT 'direct'
+
+conversations.name TEXT (nullable)
+
+Ensure migration runs safely (ADD COLUMN IF NOT EXISTS).
+
+Update entity whitelist so type and name are allowed for select, insert, update.
+
+Frontend
+
+Ensure conversation list renders without undefined fields.
+
+Fix unread logic. Current bug: it compares message fields against conversation id or uses to_person_id which does not exist.
+
+Implement a working MVP read model:
+
+Add is_read BOOLEAN DEFAULT false on messages only if it already exists. If it exists, use it.
+
+When opening a conversation, mark all messages in that conversation where from_person_id != currentPersonId as read.
+
+If is_read does not exist, add it in Phase 3 bootstrap work. For Phase 1, do not fake unread states.
+
+Acceptance tests for P1-T002:
+
+Create a direct conversation and send a message. Refresh. Conversation persists.
+
+Create a group conversation with a name. Refresh. Name persists.
+
+Send a message from Person A to Person B. Open convo as Person B. Unread indicator clears after opening.
+
+No logic compares from_person_id to conversation id.
+
+No references to non existent to_person_id.
+
+P1-T003: FamilyStories field name alignment
+
+Files to change:
+
+src/pages/FamilyStories.jsx (and any story form component)
+
+Concrete change:
+
+Replace all usages of subject_person_ids with related_person_ids to match DB and whitelist.
+
+Ensure the story save payload includes related_person_ids as UUID array.
+
+Acceptance tests for P1-T003:
+
+Create a story, tag 1–2 people, save. Refresh. Tagged people persist.
+
+Edit story tags, save, refresh. Updated tags persist.
+
+P1-T004: Rituals persist or remove controls (no silent drops)
+
+Decide one path and implement it fully.
+
+Option A, persist fields:
+
+Add missing ritual columns via migration and whitelist them:
+
+typical_month TEXT
+
+host_rotation UUID[]
+
+current_host_index INTEGER
+
+custom_frequency TEXT
+
+cover_image_url TEXT
+
+Update server/routes/entities.js whitelist for rituals to include these columns.
+
+Option B, remove controls:
+
+Remove UI controls for fields that cannot persist.
+
+Ensure UI only displays and edits fields that actually save.
+
+Files to change:
+
+server/db/migrate.js (if Option A)
+
+server/routes/entities.js (if Option A)
+
+src/pages/Rituals.jsx or relevant ritual components (Option A or B)
+
+Acceptance tests for P1-T004:
+
+Create a ritual with all visible fields filled.
+
+Refresh.
+
+If Option A: all fields persist.
+
+If Option B: only persisted fields exist and no user input is silently lost.
+
+Phase 1 exit criteria:
+
+All acceptance tests for P1-T001 through P1-T004 pass.
+
+Only after they pass, proceed to Phase 2.
+
+Phase 2: Security baseline (required before sharing beyond my family)
+
+Goal: prevent obvious data exposure and account abuse. Implement all items.
+
+P2-T001: Protect uploads behind auth
+
+Current issue: /uploads is served statically without auth.
+
+Files to change:
+
+server/index.js (or wherever static routes are mounted)
+
+server/middleware/requireAuth.js (or equivalent)
+
+Concrete change:
+
+Remove unauthenticated static serving of uploads.
+
+Replace with an authenticated route, for example:
+
+GET /api/uploads/:filename that checks session then serves the file.
+
+Ensure only logged in users can access uploaded assets.
+
+Acceptance tests:
+
+Logged out: requesting an uploaded file returns 401.
+
+Logged in: requesting an uploaded file returns 200 and content displays.
+
+P2-T002: Remove SESSION_SECRET fallback and fail fast in production
+
+Files to change:
+
+server/index.js
+
+Concrete change:
+
+If NODE_ENV === 'production' and SESSION_SECRET is missing, throw at startup with a clear error.
+
+Remove any hardcoded fallback secret for production. Dev fallback is acceptable only when NODE_ENV is not production.
+
+Acceptance tests:
+
+Production mode without secret: server refuses to start with explicit message.
+
+Dev mode: server starts.
+
+P2-T003: Rate limit login and register
+
+Files to change:
+
+server/routes/auth.js (or wherever login/register endpoints are)
+
+Add dependency express-rate-limit
+
+Concrete change:
+
+Add rate limiting to login and register endpoints.
+
+Reasonable defaults: 10 attempts per 10 minutes per IP.
+
+Ensure rate limit responses are 429.
+
+Acceptance tests:
+
+Hitting login rapidly triggers 429.
+
+Normal login still works.
+
+P2-T004: CSRF mitigation for cookie based session auth
+
+Files to change:
+
+server/index.js and mutation routes
+
+Concrete change:
+
+Implement a minimum viable CSRF defense:
+
+Verify Origin or Referer for all state changing routes POST PATCH DELETE under /api.
+
+Only allow same origin as your frontend origin.
+
+Do not block GET.
+
+Ensure CORS origin is not wildcard.
+
+Acceptance tests:
+
+Requests with invalid Origin to POST/PATCH/DELETE are rejected.
+
+Requests from the legitimate frontend origin succeed.
+
+P2-T005: Basic authorization guardrails
+
+Files to change:
+
+server/routes/entities.js
+
+server/routes/functions.js
+
+any settings routes
+
+Concrete rules:
+
+Non admin users cannot:
+
+delete core entities like people, households, relationships, trips
+
+modify family_settings
+
+run destructive functions such as cleanup and seed
+
+Admin determination: use your existing admin system, either user.role or admin_emails. Pick one and enforce consistently.
+
+Acceptance tests:
+
+Logged in non admin attempts a delete returns 403.
+
+Logged in admin can delete.
+
+Non admin cannot update family settings.
+
+Phase 2 exit criteria:
+
+All Phase 2 acceptance tests pass.
+
+Only then proceed to Phase 3.
+
+Phase 3: DB bootstrap reliability (fresh DB must self initialize)
+
+Goal: a blank Postgres database should become fully usable with one start command, no manual SQL.
+
+P3-T001: Migrations must create base tables if missing
+
+Current issue: migrate may rely on pre existing tables.
+
+Files to change:
+
+server/db/migrate.js
+
+Concrete change:
+
+Ensure migrate creates required core tables with CREATE TABLE IF NOT EXISTS.
+
+At minimum ensure tables used by the app exist:
+
+users, people, households, relationships
+
+trips and all trip child tables
+
+conversations, messages
+
+family_settings, join_requests
+
+calendar_events
+
+any others referenced by entity config
+
+Acceptance tests:
+
+Create a new empty database.
+
+Run start command once.
+
+App boots without errors.
+
+Login, create person, create trip, create message, create story all work.
+
+Phase 3 exit criteria:
+
+A fresh DB plus one start command results in a working app.
+
+Phase 4: Polish (only after Phases 1–3 are complete)
+
+Goal: improvements that do not block core function.
+
+P4-T001: Galaxy ring anchor in camera plane
+
+Files:
+
+src/components/constellation/GalaxyView.jsx
+
+Concrete change:
+
+If CoupleRing is billboarded, compute ring anchor in the ring local camera facing plane.
+
+Lines from children should anchor to the ring perimeter correctly as camera moves.
+
+Acceptance tests:
+
+Rotate camera around couple system. Child lines remain attached to ring edge.
+
+P4-T002: Star designer simplification (NMS style)
+
+Files:
+
+Star designer components, likely src/components/family/StarDesigner or similar
+
+Concrete change:
+
+Replace complex star design with a simple model:
+
+star type (4 options)
+
+brightness slider
+
+twinkle slider
+
+optional tint or derive from household
+
+Persist only these fields.
+
+Acceptance tests:
+
+Change star type and brightness, save, refresh, it persists.
+
+UI is simple and fast on mobile.
+
+P4-T003: UI consistency sweep
+
+Concrete change:
+
+Resolve remaining unreadable buttons, spacing, and overlapping elements.
+
+Ensure mobile layouts work.
+
+Acceptance tests:
+
+No overlapping controls on Galaxy.
+
+Major modals readable in dark theme.
+
+No console errors.
+
+Deliverables:
+
+For each task, include a short changelog summary and list the files modified.
+
+Do not mark a task done until its acceptance tests pass.
+
+Start with Phase 1 now.

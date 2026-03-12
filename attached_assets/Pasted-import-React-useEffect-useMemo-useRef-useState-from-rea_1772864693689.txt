@@ -1,0 +1,545 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+
+const PAL = {
+  mint: { n:'Green', center:[233,255,114], body:[220,255,110], edge:[140,255,35], glow:[100,210,15], deep:[60,140,8], bg:[25,55,4] },
+  celestial: { n:'Blue', center:[200,225,255], body:[150,200,255], edge:[60,140,255], glow:[30,100,220], deep:[15,50,140], bg:[5,15,50] },
+  solar: { n:'Gold', center:[255,250,200], body:[255,235,140], edge:[255,200,50], glow:[220,160,20], deep:[140,90,10], bg:[45,30,5] },
+  ember: { n:'Ember', center:[255,240,200], body:[255,200,120], edge:[255,140,40], glow:[220,100,15], deep:[140,55,8], bg:[45,18,4] },
+  rose: { n:'Rose', center:[255,220,235], body:[255,170,210], edge:[255,100,170], glow:[200,50,120], deep:[120,25,65], bg:[40,10,25] },
+  violet: { n:'Violet', center:[230,220,255], body:[190,160,255], edge:[130,80,240], glow:[80,40,180], deep:[40,20,100], bg:[15,8,40] },
+  arctic: { n:'White', center:[245,250,255], body:[220,235,255], edge:[160,200,250], glow:[110,160,220], deep:[50,80,130], bg:[12,18,35] },
+  ruby: { n:'Red', center:[255,230,220], body:[255,160,140], edge:[255,80,65], glow:[200,40,30], deep:[120,20,15], bg:[40,8,6] },
+  amber: { n:'Amber', center:[255,248,210], body:[255,220,150], edge:[255,180,70], glow:[200,130,25], deep:[120,70,10], bg:[40,25,5] },
+  teal: { n:'Teal', center:[210,255,245], body:[120,240,220], edge:[40,200,175], glow:[15,150,130], deep:[8,80,70], bg:[4,28,24] },
+  indigo: { n:'Indigo', center:[220,225,255], body:[150,160,255], edge:[80,90,230], glow:[40,50,180], deep:[20,25,100], bg:[8,10,38] },
+  sunset: { n:'Sunset', center:[255,240,210], body:[255,180,100], edge:[255,110,30], glow:[200,60,15], deep:[130,30,10], bg:[40,12,5] },
+};
+
+const ANIMS=[{id:'steady',n:'Steady',ts:0.015},{id:'gentle',n:'Gentle',ts:0.25},{id:'twinkle',n:'Twinkle',ts:0.9},{id:'breathing',n:'Breathing',ts:0.45},{id:'vivid',n:'Vivid',ts:2.2}];
+const SPECTRAL=[{id:'O',l:'Blue Giant',c:'celestial',a:'vivid'},{id:'B',l:'Blue-White',c:'arctic',a:'gentle'},{id:'F',l:'Yel-White',c:'solar',a:'gentle'},{id:'G',l:'Yellow',c:'amber',a:'gentle'},{id:'K',l:'Orange',c:'ember',a:'breathing'},{id:'M',l:'Red Dwarf',c:'ruby',a:'steady'},{id:'E',l:'Exotic',c:'mint',a:'twinkle'},{id:'X',l:'Anomaly',c:'violet',a:'vivid'}];
+
+const STAR_TYPES=[
+  {id:'living', n:'Living', desc:'Organic corona, NMS-style'},
+  {id:'pulsar', n:'Pulsar', desc:'Intense rays, rotating spikes'},
+  {id:'nebula', n:'Nebula', desc:'Dreamy swirling wisps'},
+];
+
+function seeded(s){return function(){let t=(s+=0x6D2B79F5);t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
+function rgb(c){return`rgb(${c[0]},${c[1]},${c[2]})`;}
+function rgba(c,a){return`rgba(${c[0]},${c[1]},${c[2]},${a})`;}
+
+export default function NMSStar(){
+  const canvasRef=useRef(null);
+  const wrapRef=useRef(null);
+  const frameRef=useRef(null);
+  const timeRef=useRef(0);
+  const lastRef=useRef(0);
+  const ptrRef=useRef({x:0,y:0});
+  
+  const [animId,setAnimId]=useState('twinkle');
+  const [palId,setPalId]=useState('mint');
+  const [cls,setCls]=useState('E');
+  const [brightness,setBrightness]=useState(90);
+  const [starType,setStarType]=useState('living');
+  
+  const p=PAL[palId]||PAL.mint;
+  const animDef=ANIMS.find(a=>a.id===animId)||ANIMS[2];
+  
+  const bgStars=useMemo(()=>{
+    const r=seeded(42);
+    return Array.from({length:200},(_,i)=>({x:r(),y:r(),s:0.3+r()*2.0,a:0.15+r()*0.65,ph:r()*Math.PI*2,sp:0.3+r()*1.8,big:i<20}));
+  },[]);
+  
+  // Nebula wisps — pre-generated curve control points
+  const wisps=useMemo(()=>{
+    const r=seeded(77);
+    return Array.from({length:12},()=>{
+      const angle=r()*Math.PI*2;
+      const dist=0.6+r()*1.2;
+      const width=0.08+r()*0.18;
+      const len=0.4+r()*0.8;
+      const curve=r()*2-1;
+      const speed=0.15+r()*0.4;
+      const dir=r()>0.5?1:-1;
+      const alpha=0.06+r()*0.12;
+      return{angle,dist,width,len,curve,speed,dir,alpha};
+    });
+  },[]);
+  
+  useEffect(()=>{
+    const wrap=wrapRef.current,canvas=canvasRef.current;
+    if(!wrap||!canvas)return;
+    const ctx=canvas.getContext('2d');
+    if(!ctx)return;
+    
+    const resize=()=>{
+      const rect=wrap.getBoundingClientRect();
+      const dpr=Math.min(window.devicePixelRatio||1,2);
+      canvas.width=Math.floor(rect.width*dpr);
+      canvas.height=Math.floor(rect.height*dpr);
+      canvas.style.width=`${rect.width}px`;
+      canvas.style.height=`${rect.height}px`;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    };
+    const onPtr=(e)=>{
+      const rect=wrap.getBoundingClientRect();
+      ptrRef.current.x=(e.clientX-rect.left)/rect.width-0.5;
+      ptrRef.current.y=(e.clientY-rect.top)/rect.height-0.5;
+    };
+    resize();
+    window.addEventListener('resize',resize);
+    window.addEventListener('pointermove',onPtr);
+    
+    const render=(stamp)=>{
+      const w=wrap.clientWidth,h=wrap.clientHeight;
+      const cx=w/2,cy=h/2;
+      const maxDim=Math.max(w,h);
+      const minDim=Math.min(w,h);
+      
+      if(!lastRef.current)lastRef.current=stamp;
+      const dt=Math.min(0.05,(stamp-lastRef.current)/1000);
+      lastRef.current=stamp;
+      timeRef.current+=dt*animDef.ts;
+      const t=timeRef.current;
+      const px=ptrRef.current.x*16;
+      const py=ptrRef.current.y*16;
+      const br=brightness/100;
+      const R=minDim*0.22;
+      const breath=1+Math.sin(t*1.2)*0.015;
+      const starR=R*breath;
+      
+      ctx.clearRect(0,0,w,h);
+      
+      // ============================================================
+      // SHARED: Background + washes + stars
+      // ============================================================
+      ctx.fillStyle=rgb(p.bg);
+      ctx.fillRect(0,0,w,h);
+      
+      const wash=(x,y,r,color,alpha)=>{
+        const g=ctx.createRadialGradient(x,y,0,x,y,r);
+        g.addColorStop(0,rgba(color,alpha));
+        g.addColorStop(0.5,rgba(color,alpha*0.4));
+        g.addColorStop(1,rgba(color,0));
+        ctx.fillStyle=g;
+        ctx.fillRect(0,0,w,h);
+      };
+      wash(cx*0.7,cy*0.6,maxDim*0.7,p.deep,0.35*br);
+      wash(cx*1.3,cy*0.4,maxDim*0.6,p.deep,0.3*br);
+      wash(cx,cy*1.4,maxDim*0.65,p.deep,0.25*br);
+      wash(cx,cy,maxDim*0.5,p.glow,0.15*br);
+      
+      for(const s of bgStars){
+        const twinkle=0.5+0.5*Math.sin(t*(1.0*s.sp)+s.ph);
+        const sx=s.x*w+px*(s.big?1.5:0.6);
+        const sy=s.y*h+py*(s.big?1.5:0.6);
+        const sz=s.s*(s.big?1.6:1);
+        const dFromStar=Math.hypot(sx-cx,sy-cy)/starR;
+        const dimming=Math.min(1,Math.max(0,(dFromStar-0.8)*0.8));
+        const alpha=s.a*twinkle*dimming;
+        if(alpha<0.02)continue;
+        ctx.fillStyle=rgba([255,255,240],alpha);
+        ctx.beginPath();ctx.arc(sx,sy,sz,0,Math.PI*2);ctx.fill();
+        if(s.big&&twinkle>0.5){
+          const sg=ctx.createRadialGradient(sx,sy,0,sx,sy,sz*5);
+          sg.addColorStop(0,rgba(p.body,alpha*0.2));
+          sg.addColorStop(1,rgba(p.body,0));
+          ctx.fillStyle=sg;
+          ctx.beginPath();ctx.arc(sx,sy,sz*5,0,Math.PI*2);ctx.fill();
+        }
+      }
+      
+      const scx=cx+px*0.2;
+      const scy=cy+py*0.2;
+      
+      // ============================================================
+      // STAR TYPE: LIVING — NMS organic corona
+      // ============================================================
+      if(starType==='living'){
+        // Atmospheric haze
+        const g1=ctx.createRadialGradient(scx,scy,starR*0.5,scx,scy,starR*4.0);
+        g1.addColorStop(0,rgba(p.glow,0.5*br));
+        g1.addColorStop(0.3,rgba(p.glow,0.3*br));
+        g1.addColorStop(0.6,rgba(p.deep,0.15*br));
+        g1.addColorStop(1,rgba(p.deep,0));
+        ctx.fillStyle=g1;
+        ctx.beginPath();ctx.arc(scx,scy,starR*4.0,0,Math.PI*2);ctx.fill();
+        
+        // Outer glow
+        const g2=ctx.createRadialGradient(scx,scy,starR*0.3,scx,scy,starR*2.5);
+        g2.addColorStop(0,rgba(p.edge,0.6*br));
+        g2.addColorStop(0.4,rgba(p.glow,0.4*br));
+        g2.addColorStop(0.7,rgba(p.glow,0.15*br));
+        g2.addColorStop(1,rgba(p.deep,0));
+        ctx.fillStyle=g2;
+        ctx.beginPath();ctx.arc(scx,scy,starR*2.5,0,Math.PI*2);ctx.fill();
+        
+        // Inner glow
+        const g3=ctx.createRadialGradient(scx,scy,starR*0.2,scx,scy,starR*1.6);
+        g3.addColorStop(0,rgba(p.body,0.8*br));
+        g3.addColorStop(0.5,rgba(p.edge,0.6*br));
+        g3.addColorStop(0.8,rgba(p.glow,0.2*br));
+        g3.addColorStop(1,rgba(p.glow,0));
+        ctx.fillStyle=g3;
+        ctx.beginPath();ctx.arc(scx,scy,starR*1.6,0,Math.PI*2);ctx.fill();
+        
+        // Corona — animated organic edge
+        ctx.save();
+        ctx.beginPath();
+        const cp=100;
+        for(let i=0;i<=cp;i++){
+          const a=(i/cp)*Math.PI*2;
+          const w1=Math.sin(a*5+t*0.7)*0.06;
+          const w2=Math.sin(a*11-t*1.4)*0.04;
+          const w3=Math.sin(a*23+t*2.0)*0.02;
+          const pr1=Math.pow(Math.max(Math.sin(a*2+t*0.3),0),4)*0.08;
+          const pr2=Math.pow(Math.max(Math.sin(a*3-t*0.5+2),0),5)*0.06;
+          const pulse=Math.sin(t*1.0+a*2.5)*0.03;
+          const r=starR*(1.05+w1+w2+w3+pr1+pr2+pulse);
+          const x=scx+Math.cos(a)*r;
+          const y=scy+Math.sin(a)*r;
+          i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        }
+        ctx.closePath();
+        const cg=ctx.createRadialGradient(scx,scy,starR*0.3,scx,scy,starR*1.4);
+        cg.addColorStop(0,rgba(p.center,0));
+        cg.addColorStop(0.4,rgba(p.body,0.3*br));
+        cg.addColorStop(0.65,rgba(p.edge,0.25*br));
+        cg.addColorStop(0.85,rgba(p.glow,0.1*br));
+        cg.addColorStop(1,rgba(p.glow,0));
+        ctx.fillStyle=cg;
+        ctx.filter='blur(8px)';
+        ctx.fill();
+        ctx.restore();ctx.filter='none';
+        
+        // Tighter corona layer
+        ctx.save();ctx.beginPath();
+        for(let i=0;i<=cp;i++){
+          const a=(i/cp)*Math.PI*2;
+          const w1=Math.sin(a*7+t*1.0)*0.04;
+          const w2=Math.sin(a*17-t*1.8)*0.025;
+          const w3=Math.sin(a*31+t*2.5)*0.012;
+          const r=starR*(1.02+w1+w2+w3);
+          const x=scx+Math.cos(a)*r;
+          const y=scy+Math.sin(a)*r;
+          i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        }
+        ctx.closePath();
+        const cg2=ctx.createRadialGradient(scx,scy,starR*0.5,scx,scy,starR*1.2);
+        cg2.addColorStop(0,rgba(p.center,0));
+        cg2.addColorStop(0.5,rgba(p.body,0.2*br));
+        cg2.addColorStop(0.8,rgba(p.edge,0.08*br));
+        cg2.addColorStop(1,rgba(p.edge,0));
+        ctx.fillStyle=cg2;
+        ctx.filter='blur(4px)';
+        ctx.fill();
+        ctx.restore();ctx.filter='none';
+        
+        // Body
+        const gb=ctx.createRadialGradient(scx,scy,0,scx,scy,starR*1.1);
+        gb.addColorStop(0,rgba(p.center,1.0*br));
+        gb.addColorStop(0.6,rgba(p.body,0.95*br));
+        gb.addColorStop(0.8,rgba(p.body,0.7*br));
+        gb.addColorStop(0.92,rgba(p.edge,0.3*br));
+        gb.addColorStop(1,rgba(p.edge,0));
+        ctx.fillStyle=gb;
+        ctx.beginPath();ctx.arc(scx,scy,starR*1.1,0,Math.PI*2);ctx.fill();
+        
+        // Bright center
+        const gi=ctx.createRadialGradient(scx,scy,0,scx,scy,starR*0.6);
+        gi.addColorStop(0,rgba([255,255,Math.min(255,p.center[2]+40)],0.4*br));
+        gi.addColorStop(0.5,rgba(p.center,0.2*br));
+        gi.addColorStop(1,rgba(p.center,0));
+        ctx.fillStyle=gi;
+        ctx.beginPath();ctx.arc(scx,scy,starR*0.6,0,Math.PI*2);ctx.fill();
+      }
+      
+      // ============================================================
+      // STAR TYPE: PULSAR — Intense rotating ray spikes
+      // Smaller tighter core, 4-6 dramatic rays that rotate slowly
+      // ============================================================
+      if(starType==='pulsar'){
+        const numRays=6;
+        const baseAngle=t*0.3;
+        const coreR=starR*0.65;
+        
+        // Wide haze (smaller than living)
+        const gh=ctx.createRadialGradient(scx,scy,coreR*0.5,scx,scy,starR*3.0);
+        gh.addColorStop(0,rgba(p.glow,0.4*br));
+        gh.addColorStop(0.4,rgba(p.glow,0.2*br));
+        gh.addColorStop(0.7,rgba(p.deep,0.08*br));
+        gh.addColorStop(1,rgba(p.deep,0));
+        ctx.fillStyle=gh;
+        ctx.beginPath();ctx.arc(scx,scy,starR*3.0,0,Math.PI*2);ctx.fill();
+        
+        // Rays — each is a long thin gradient triangle
+        for(let i=0;i<numRays;i++){
+          const rayAngle=baseAngle+(i/numRays)*Math.PI*2;
+          // Each ray pulses independently
+          const pulse=0.6+0.4*Math.sin(t*1.8+i*1.7);
+          const rayLen=starR*(2.5+Math.sin(t*0.8+i*2.3)*0.8)*pulse;
+          const rayWidth=starR*0.12*(0.7+0.3*Math.sin(t*2.2+i*1.1));
+          
+          const tipX=scx+Math.cos(rayAngle)*rayLen;
+          const tipY=scy+Math.sin(rayAngle)*rayLen;
+          const perpX=-Math.sin(rayAngle)*rayWidth;
+          const perpY=Math.cos(rayAngle)*rayWidth;
+          
+          // Draw tapered ray
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(scx+perpX,scy+perpY);
+          ctx.lineTo(tipX,tipY);
+          ctx.lineTo(scx-perpX,scy-perpY);
+          ctx.closePath();
+          
+          // Gradient along ray length
+          const rg=ctx.createLinearGradient(scx,scy,tipX,tipY);
+          rg.addColorStop(0,rgba(p.body,0.5*br*pulse));
+          rg.addColorStop(0.2,rgba(p.edge,0.35*br*pulse));
+          rg.addColorStop(0.5,rgba(p.glow,0.15*br*pulse));
+          rg.addColorStop(1,rgba(p.glow,0));
+          ctx.fillStyle=rg;
+          ctx.filter='blur(6px)';
+          ctx.fill();
+          ctx.restore();ctx.filter='none';
+          
+          // Bright inner ray (thinner, brighter)
+          ctx.save();
+          ctx.beginPath();
+          const innerWidth=rayWidth*0.3;
+          ctx.moveTo(scx+(-Math.sin(rayAngle))*innerWidth,scy+(Math.cos(rayAngle))*innerWidth);
+          ctx.lineTo(scx+Math.cos(rayAngle)*rayLen*0.6,scy+Math.sin(rayAngle)*rayLen*0.6);
+          ctx.lineTo(scx-(-Math.sin(rayAngle))*innerWidth,scy-(Math.cos(rayAngle))*innerWidth);
+          ctx.closePath();
+          const rg2=ctx.createLinearGradient(scx,scy,scx+Math.cos(rayAngle)*rayLen*0.6,scy+Math.sin(rayAngle)*rayLen*0.6);
+          rg2.addColorStop(0,rgba(p.center,0.4*br*pulse));
+          rg2.addColorStop(0.4,rgba(p.body,0.2*br*pulse));
+          rg2.addColorStop(1,rgba(p.edge,0));
+          ctx.fillStyle=rg2;
+          ctx.filter='blur(2px)';
+          ctx.fill();
+          ctx.restore();ctx.filter='none';
+        }
+        
+        // Diffraction ring — thin bright ring around the core
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(scx,scy,coreR*1.3,0,Math.PI*2);
+        ctx.strokeStyle=rgba(p.edge,0.15*br);
+        ctx.lineWidth=2;
+        ctx.filter='blur(3px)';
+        ctx.stroke();
+        ctx.restore();ctx.filter='none';
+        
+        // Inner glow ring
+        const gi=ctx.createRadialGradient(scx,scy,coreR*0.2,scx,scy,coreR*1.5);
+        gi.addColorStop(0,rgba(p.body,0.7*br));
+        gi.addColorStop(0.4,rgba(p.edge,0.5*br));
+        gi.addColorStop(0.7,rgba(p.glow,0.15*br));
+        gi.addColorStop(1,rgba(p.glow,0));
+        ctx.fillStyle=gi;
+        ctx.beginPath();ctx.arc(scx,scy,coreR*1.5,0,Math.PI*2);ctx.fill();
+        
+        // Core body — bright, smaller
+        const gc=ctx.createRadialGradient(scx,scy,0,scx,scy,coreR);
+        gc.addColorStop(0,rgba(p.center,1.0*br));
+        gc.addColorStop(0.5,rgba(p.body,0.95*br));
+        gc.addColorStop(0.85,rgba(p.edge,0.6*br));
+        gc.addColorStop(1,rgba(p.edge,0));
+        ctx.fillStyle=gc;
+        ctx.beginPath();ctx.arc(scx,scy,coreR,0,Math.PI*2);ctx.fill();
+        
+        // Hot center
+        const gx=ctx.createRadialGradient(scx,scy,0,scx,scy,coreR*0.4);
+        gx.addColorStop(0,rgba([255,255,255],0.5*br));
+        gx.addColorStop(0.5,rgba(p.center,0.3*br));
+        gx.addColorStop(1,rgba(p.center,0));
+        ctx.fillStyle=gx;
+        ctx.beginPath();ctx.arc(scx,scy,coreR*0.4,0,Math.PI*2);ctx.fill();
+      }
+      
+      // ============================================================
+      // STAR TYPE: NEBULA — Dreamy swirling wisps
+      // Softer body, surrounded by animated gas/dust tendrils
+      // that curl and drift around the star
+      // ============================================================
+      if(starType==='nebula'){
+        // Extra wide soft atmospheric wash for dreamy feel
+        const gw=ctx.createRadialGradient(scx,scy,0,scx,scy,starR*5);
+        gw.addColorStop(0,rgba(p.glow,0.35*br));
+        gw.addColorStop(0.2,rgba(p.glow,0.25*br));
+        gw.addColorStop(0.5,rgba(p.deep,0.12*br));
+        gw.addColorStop(1,rgba(p.deep,0));
+        ctx.fillStyle=gw;
+        ctx.beginPath();ctx.arc(scx,scy,starR*5,0,Math.PI*2);ctx.fill();
+        
+        // Wisps — curved tendrils of gas that drift around the star
+        for(const ws of wisps){
+          const a=ws.angle+t*ws.speed*ws.dir;
+          const d=ws.dist*starR;
+          const wispCx=scx+Math.cos(a)*d;
+          const wispCy=scy+Math.sin(a)*d;
+          
+          // Each wisp is a curved thick line with gradient
+          ctx.save();
+          ctx.beginPath();
+          
+          const segments=20;
+          const length=ws.len*starR;
+          const curvature=ws.curve*0.8;
+          
+          for(let i=0;i<=segments;i++){
+            const frac=i/segments;
+            const along=frac*length;
+            const perpOffset=Math.sin(frac*Math.PI)*curvature*length*0.3;
+            // Secondary wave for organic shape
+            const wave=Math.sin(frac*Math.PI*3+t*1.5*ws.speed)*starR*0.04;
+            
+            const tangent=a+Math.PI/2*ws.dir;
+            const px2=wispCx+Math.cos(tangent)*along+Math.cos(a)*perpOffset+Math.cos(tangent+Math.PI/2)*wave;
+            const py2=wispCy+Math.sin(tangent)*along+Math.sin(a)*perpOffset+Math.sin(tangent+Math.PI/2)*wave;
+            
+            i===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);
+          }
+          
+          // Taper: thick in middle, thin at ends
+          const wispAlpha=ws.alpha*br*(0.6+0.4*Math.sin(t*0.8+ws.angle*3));
+          ctx.strokeStyle=rgba(p.edge,wispAlpha);
+          ctx.lineWidth=ws.width*starR;
+          ctx.lineCap='round';
+          ctx.filter=`blur(${Math.floor(ws.width*starR*0.6)}px)`;
+          ctx.stroke();
+          ctx.restore();ctx.filter='none';
+          
+          // Brighter inner wisp
+          ctx.save();
+          ctx.beginPath();
+          for(let i=0;i<=segments;i++){
+            const frac=i/segments;
+            const along=frac*length;
+            const perpOffset=Math.sin(frac*Math.PI)*curvature*length*0.3;
+            const wave=Math.sin(frac*Math.PI*3+t*1.5*ws.speed)*starR*0.04;
+            const tangent=a+Math.PI/2*ws.dir;
+            const px2=wispCx+Math.cos(tangent)*along+Math.cos(a)*perpOffset+Math.cos(tangent+Math.PI/2)*wave;
+            const py2=wispCy+Math.sin(tangent)*along+Math.sin(a)*perpOffset+Math.sin(tangent+Math.PI/2)*wave;
+            i===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);
+          }
+          ctx.strokeStyle=rgba(p.body,wispAlpha*0.4);
+          ctx.lineWidth=ws.width*starR*0.3;
+          ctx.lineCap='round';
+          ctx.filter=`blur(${Math.floor(ws.width*starR*0.2)}px)`;
+          ctx.stroke();
+          ctx.restore();ctx.filter='none';
+        }
+        
+        // Soft circular glow layers
+        const g2=ctx.createRadialGradient(scx,scy,starR*0.2,scx,scy,starR*2.2);
+        g2.addColorStop(0,rgba(p.body,0.6*br));
+        g2.addColorStop(0.3,rgba(p.edge,0.4*br));
+        g2.addColorStop(0.6,rgba(p.glow,0.15*br));
+        g2.addColorStop(1,rgba(p.glow,0));
+        ctx.fillStyle=g2;
+        ctx.beginPath();ctx.arc(scx,scy,starR*2.2,0,Math.PI*2);ctx.fill();
+        
+        // Soft corona — less defined than living, more diffuse
+        ctx.save();ctx.beginPath();
+        const cp=80;
+        for(let i=0;i<=cp;i++){
+          const a2=(i/cp)*Math.PI*2;
+          const w1=Math.sin(a2*3+t*0.4)*0.08;
+          const w2=Math.sin(a2*7-t*0.8)*0.04;
+          const w3=Math.sin(a2*13+t*1.2)*0.03;
+          const r=starR*(1.1+w1+w2+w3);
+          const x=scx+Math.cos(a2)*r;
+          const y=scy+Math.sin(a2)*r;
+          i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        }
+        ctx.closePath();
+        const cg=ctx.createRadialGradient(scx,scy,starR*0.4,scx,scy,starR*1.4);
+        cg.addColorStop(0,rgba(p.center,0));
+        cg.addColorStop(0.4,rgba(p.body,0.2*br));
+        cg.addColorStop(0.7,rgba(p.edge,0.12*br));
+        cg.addColorStop(1,rgba(p.edge,0));
+        ctx.fillStyle=cg;
+        ctx.filter='blur(12px)';
+        ctx.fill();
+        ctx.restore();ctx.filter='none';
+        
+        // Body — softer edges than living
+        const gb=ctx.createRadialGradient(scx,scy,0,scx,scy,starR*1.15);
+        gb.addColorStop(0,rgba(p.center,0.9*br));
+        gb.addColorStop(0.45,rgba(p.body,0.8*br));
+        gb.addColorStop(0.7,rgba(p.body,0.5*br));
+        gb.addColorStop(0.9,rgba(p.edge,0.15*br));
+        gb.addColorStop(1,rgba(p.edge,0));
+        ctx.fillStyle=gb;
+        ctx.beginPath();ctx.arc(scx,scy,starR*1.15,0,Math.PI*2);ctx.fill();
+        
+        // Bright center
+        const gi=ctx.createRadialGradient(scx,scy,0,scx,scy,starR*0.5);
+        gi.addColorStop(0,rgba([255,255,Math.min(255,p.center[2]+40)],0.35*br));
+        gi.addColorStop(0.5,rgba(p.center,0.15*br));
+        gi.addColorStop(1,rgba(p.center,0));
+        ctx.fillStyle=gi;
+        ctx.beginPath();ctx.arc(scx,scy,starR*0.5,0,Math.PI*2);ctx.fill();
+      }
+      
+      frameRef.current=requestAnimationFrame(render);
+    };
+    
+    frameRef.current=requestAnimationFrame(render);
+    return()=>{
+      if(frameRef.current)cancelAnimationFrame(frameRef.current);
+      window.removeEventListener('resize',resize);
+      window.removeEventListener('pointermove',onPtr);
+    };
+  },[animId,palId,brightness,p,animDef,bgStars,wisps,starType]);
+  
+  const pick=sp=>{setPalId(sp.c);setAnimId(sp.a);setCls(sp.id);};
+  
+  return(
+    <div style={{position:'relative',width:'100%',maxWidth:700,margin:'0 auto',minHeight:'100vh',overflow:'hidden',background:rgb(p.bg),fontFamily:'system-ui,sans-serif',color:'#cdd4e0'}}>
+      <div ref={wrapRef} style={{position:'absolute',inset:0}}>
+        <canvas ref={canvasRef} style={{position:'absolute',inset:0}}/>
+      </div>
+      
+      <div style={{position:'absolute',left:10,top:10,width:220,zIndex:10,background:'rgba(0,0,0,0.35)',backdropFilter:'blur(16px)',borderRadius:10,border:'1px solid rgba(255,255,255,0.07)',padding:12}}>
+        <div style={{fontSize:13,fontWeight:700,marginBottom:10}}>NMS Star Lab</div>
+        
+        <Lbl d="#f97316" t="Star Type"/>
+        <div style={{display:'flex',gap:4,marginBottom:12}}>
+          {STAR_TYPES.map(st=>(<button key={st.id} onClick={()=>setStarType(st.id)} style={{flex:1,padding:'6px 4px',borderRadius:5,cursor:'pointer',fontSize:10,fontWeight:600,border:starType===st.id?'1.5px solid rgba(255,255,255,0.5)':'1px solid rgba(255,255,255,0.06)',background:starType===st.id?'rgba(255,255,255,0.1)':'transparent',color:starType===st.id?'#eee':'#555',textAlign:'center',lineHeight:1.3}}><div>{st.n}</div><div style={{fontSize:8,fontWeight:400,opacity:0.6,marginTop:2}}>{st.desc}</div></button>))}
+        </div>
+        
+        <Lbl d="#fbbf24" t="Spectral Class"/>
+        <div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:12}}>
+          {SPECTRAL.map(sp=>(<button key={sp.id} onClick={()=>pick(sp)} style={{padding:'3px 6px',borderRadius:4,cursor:'pointer',fontSize:10,fontWeight:700,fontFamily:'monospace',border:cls===sp.id?'1.5px solid rgba(255,255,255,0.5)':'1px solid rgba(255,255,255,0.06)',background:cls===sp.id?'rgba(255,255,255,0.1)':'transparent',color:cls===sp.id?'#eee':'#555'}}>{sp.id}</button>))}
+        </div>
+        
+        <Lbl d="#a78bfa" t="Palette"/>
+        <div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:12}}>
+          {Object.entries(PAL).map(([id,pl])=>(<button key={id} onClick={()=>{setPalId(id);setCls(null);}} style={{width:20,height:20,borderRadius:4,cursor:'pointer',background:rgb(pl.edge),border:palId===id?'2px solid white':'1px solid rgba(255,255,255,0.06)',transform:palId===id?'scale(1.2)':'scale(1)',transition:'transform 0.15s'}}/>))}
+        </div>
+        
+        <Lbl d="#34d399" t="Animation"/>
+        <div style={{display:'flex',gap:2,flexWrap:'wrap',marginBottom:12}}>
+          {ANIMS.map(a=>(<button key={a.id} onClick={()=>{setAnimId(a.id);setCls(null);}} style={{padding:'3px 7px',borderRadius:4,cursor:'pointer',fontSize:9,fontWeight:600,border:animId===a.id?'1.5px solid rgba(255,255,255,0.4)':'1px solid rgba(255,255,255,0.06)',background:animId===a.id?'rgba(255,255,255,0.08)':'transparent',color:animId===a.id?'#dde2ea':'#555'}}>{a.n}</button>))}
+        </div>
+        
+        <div style={{marginBottom:6}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#6a7588',marginBottom:2}}>
+            <span>Brightness</span><span>{brightness}%</span>
+          </div>
+          <input type="range" min={40} max={100} step={1} value={brightness} style={{width:'100%',accentColor:rgb(p.edge),height:3}} onChange={e=>setBrightness(+e.target.value)}/>
+        </div>
+        
+        <div style={{textAlign:'center',marginTop:10}}>
+          <button onClick={()=>{const c=Object.keys(PAL),a=ANIMS.map(x=>x.id),st=STAR_TYPES.map(x=>x.id);setPalId(c[Math.random()*c.length|0]);setAnimId(a[Math.random()*a.length|0]);setStarType(st[Math.random()*st.length|0]);setBrightness(70+Math.random()*30|0);setCls(null);}} style={{padding:'5px 14px',borderRadius:5,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:'#7a8598',cursor:'pointer',fontSize:10,fontWeight:600}}>⟲ Random</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Lbl({d,t}){return(<div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}><div style={{width:4,height:4,borderRadius:'50%',background:d}}/><span style={{fontSize:9,fontWeight:700,color:'#5a6577',letterSpacing:1.5,textTransform:'uppercase'}}>{t}</span></div>);}

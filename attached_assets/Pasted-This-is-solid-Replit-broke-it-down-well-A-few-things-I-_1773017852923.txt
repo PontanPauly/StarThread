@@ -1,0 +1,18 @@
+This is solid — Replit broke it down well. A few things I want to flag before you greenlight it:
+Things it got right:
+
+The dependency chain is correct (T001 before T003 before T004, etc.)
+Bidirectional relationship row creation in T006 matches the design
+The ring logic in T010 is properly tiered
+Auto-linking users to people on registration (T003) is there
+It correctly marked Phase 7 (branding) as already complete
+
+Things to watch or push back on:
+T004 is going to be the messiest task. It touches 10+ files and replaces a pattern that's deeply embedded. Replit should create the /api/auth/my-person endpoint first, test it in isolation, and then do the frontend replacements file by file rather than all at once. If it tries to do them all in a single pass and something breaks, debugging will be painful. I'd suggest telling Replit to split T004 into two subtasks — backend endpoint first, then frontend migration.
+T006 is doing too much in one task. Steps 2, 3, and 4 of onboarding are bundled together, but Step 2 alone (creating bidirectional relationship rows, matching existing users by email, creating unlinked stubs) is the most complex logic in the entire prompt. If Replit stumbles, tell it to do Step 2 separately, verify it works, then add Steps 3 and 4.
+T008 (galaxy API) is missing one thing: it should also return the person data for each related person (name, photo, star_profile, etc.), not just relationship metadata. Otherwise the frontend will need a second round of fetches to render the stars. Make sure the endpoint joins people + relationships in the response.
+T010 is where the risk lives. GalaxyView.jsx is 4,500 lines. Replit might try to do a heavy rewrite and break the 3D rendering. Push it to make incremental changes — swap out the data source first (household → relationship rings), keep the rendering pipeline intact, then adjust visual positioning. If the 3D view gets unstable, the list-view fallback in Family.jsx is the safety net.
+T016 (Universe View) is underspecified. It says "show all people as stars" but doesn't address pagination or performance. If StarThread ever has more than a few hundred users, loading every person into a 3D scene will tank. For MVP this is fine, but flag it as a known scaling concern.
+One missing task: There's no task for handling invite links from onboarding Step 4. The prompt says "generate a unique invite link" but there's no table for invite codes or an endpoint to validate them. Replit either needs to add that or simplify Step 4 to just email invites using the existing invite_code field in family_settings. I'd ask Replit to use the simpler path for now.
+One more missing piece: No task covers what happens when an invited person registers via an invite link — the system should auto-create the reciprocal relationship. For example, if Paul invites someone as his brother, when that person registers through the link, the system should pre-populate the relationship rather than making them re-enter it during their own onboarding. That's a nice-to-have for MVP though, not a blocker.
+Overall, this plan is executable. The phases are ordered correctly and the acceptance criteria are clear. Tell Replit to start with Phase 1 + T017/T018 (bug fixes that have no dependencies) in parallel, then move into Phase 2. Want me to write up these notes as a follow-up prompt you can paste directly to Replit?

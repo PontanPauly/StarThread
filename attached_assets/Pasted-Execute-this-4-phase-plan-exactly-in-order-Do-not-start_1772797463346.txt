@@ -1,0 +1,387 @@
+Execute this 4 phase plan exactly in order. Do not start Phase 2 until Phase 1 acceptance tests pass. Do not start Phase 3 until Phase 2 passes. Do not start Phase 4 until Phase 3 passes. Current codebase is the only source of truth.
+
+Constraints:
+
+Do not create any new tables where an existing table already serves the feature. Specifically keep shared_trip_items. Do not create shared_items.
+
+Every task must include a quick manual test: create or edit data, refresh, confirm persistence. If it fails, fix it before moving on.
+
+No vague fixes. Make the concrete changes listed below.
+
+PHASE 1. DATA CONTRACT FIXES (features broken until done)
+
+P1-T001 Trips field alignment across trip sub-features
+Files:
+
+src/components/trips/ActivityManager.jsx
+
+src/components/trips/MealManager.jsx
+
+src/components/trips/MyPackingList.jsx
+
+src/components/trips/SharedItemsManager.jsx
+
+src/components/trips/BudgetManager.jsx
+
+Make these changes exactly:
+
+ActivityManager
+
+Replace organizer_person_id with organizer_ids (UUID array).
+
+When saving from a single select, store [selectedId].
+
+When loading into single select, use organizer_ids?.[0] ?? null.
+
+MealManager
+
+Replace responsible_person_id with chef_ids (UUID array). Save [selectedId], load from chef_ids?.[0].
+
+Replace menu_description with description.
+
+Replace name with title (DB column is title).
+
+Remove any fields referenced in UI that do not exist in DB (do not silently drop user input).
+
+MyPackingList
+
+Replace item_name with item.
+
+Remove quantity UI if it does not persist in DB. Do not keep editable controls that cannot save.
+
+SharedItemsManager
+
+Keep existing entity/table shared_trip_items.
+
+Replace item_name with item.
+
+Replace brought_by_person_id with assigned_to_person_id.
+
+Remove category and quantity UI if not persisted in DB. Do not keep editable controls that cannot save.
+
+BudgetManager
+
+Replace split_with_person_ids with split_among_ids (UUID array).
+
+Remove custom_splits logic unless schema supports it. Do not keep non persisted split controls.
+
+Remove split_equally and receipt_url if not in DB.
+
+Acceptance for P1-T001:
+
+Create trip.
+
+Add one activity, one meal, one packing item, one shared item, and one expense.
+
+Refresh the page.
+
+All records and key fields persist and render correctly.
+
+No console errors.
+
+P1-T002 Messaging model and unread logic
+Files:
+
+server/db/migrate.js
+
+server/routes/entities.js
+
+src/pages/Messages.jsx
+
+DB changes:
+
+Add to conversations table via migration (safe):
+
+type TEXT NOT NULL DEFAULT 'direct'
+
+name TEXT
+Use ADD COLUMN IF NOT EXISTS.
+
+Entity whitelist:
+
+Add type and name to the Conversation whitelist so CRUD persists them.
+
+Frontend fixes:
+
+Remove any reference to to_person_id on messages if it does not exist.
+
+Fix unread logic. Correct behavior:
+
+Unread means message belongs to the selected conversation, is_read is false, and from_person_id is not the current person.
+
+When opening a conversation, mark all messages in that conversation from other people as read.
+
+Do not compare from_person_id to conversation id.
+
+Acceptance for P1-T002:
+
+Create direct conversation, refresh, it persists.
+
+Create group conversation with name, refresh, name persists.
+
+Send messages, unread indicator clears when opening the conversation.
+
+No console errors.
+
+P1-T003 FamilyStories field name alignment
+File:
+
+src/pages/FamilyStories.jsx
+
+Change:
+
+Replace all subject_person_ids references with related_person_ids to match DB and whitelist.
+
+Acceptance:
+
+Create story, tag people, save, refresh, tags persist.
+
+Edit tags, save, refresh, changes persist.
+
+P1-T004 Rituals persist missing fields, including typical_participant_household_ids
+Files:
+
+server/db/migrate.js
+
+server/routes/entities.js
+
+src/pages/Rituals.jsx (only if needed for field naming consistency)
+
+DB migration: add columns if missing (ADD COLUMN IF NOT EXISTS)
+
+typical_month TEXT
+
+host_rotation UUID[]
+
+current_host_index INTEGER
+
+custom_frequency TEXT
+
+cover_image_url TEXT
+
+typical_participant_household_ids UUID[] (required because UI references it)
+
+Entity whitelist:
+
+Add all 6 fields above to Ritual whitelist.
+
+Acceptance:
+
+Create ritual, set month, host rotation, cover image url, and typical participant households.
+
+Save, refresh.
+
+All values persist.
+
+Phase 1 exit criteria:
+
+All Phase 1 acceptance tests pass.
+
+PHASE 2. SECURITY BASELINE (required before sharing beyond my family)
+
+P2-T001 Protect uploads behind auth without breaking existing photo URLs
+File:
+
+server/index.js
+
+Change:
+
+Do not change URL paths if people store /uploads/ URLs.
+
+Gate the existing uploads static route with auth:
+app.use('/uploads', requireAuth, express.static(uploadsDir))
+
+Remove any unauthenticated serving of uploads.
+
+Acceptance:
+
+Logged out: GET /uploads/<file> returns 401.
+
+Logged in: same URL returns 200.
+
+Existing profile photos still render.
+
+P2-T002 SESSION_SECRET fail fast in production
+File:
+
+server/index.js
+
+Change:
+
+If NODE_ENV is production and SESSION_SECRET is missing, throw at startup with clear error.
+
+No production fallback secret.
+
+Acceptance:
+
+Production without secret fails to start.
+
+Dev still starts.
+
+P2-T003 Rate limit login and register
+File:
+
+server/routes/auth.js
+
+Change:
+
+Add express-rate-limit to login and register.
+
+10 attempts per 10 minutes per IP.
+
+Return 429 when exceeded.
+
+Acceptance:
+
+Spam login triggers 429.
+
+Normal login works.
+
+P2-T004 CSRF mitigation for cookie session mutations
+File:
+
+server/index.js
+
+Change:
+
+Add middleware for POST PATCH DELETE under /api that verifies Origin or Referer.
+
+Enforce in production. In dev allow missing Origin.
+
+Ensure CORS origin is not wildcard in production.
+
+Acceptance:
+
+Invalid Origin POST is rejected.
+
+Legit frontend origin succeeds.
+
+P2-T005 Authorization guardrails and destructive function safety
+Files:
+
+server/routes/entities.js
+
+server/routes/functions.js
+
+Rules:
+
+Non admins cannot delete core entities: people, households, relationships, trips.
+
+Non admins cannot modify family_settings.
+
+Non admins cannot run cleanup or seed functions.
+
+Use existing user.role logic consistently.
+
+Additionally harden seed and cleanup:
+
+Require explicit confirm string in request body (example confirm: "SEED" or confirm: "CLEANUP").
+
+Block destructive actions in production unless ALLOW_DESTRUCTIVE_ADMIN=true.
+
+Acceptance:
+
+Non admin delete returns 403.
+
+Admin delete succeeds.
+
+Non admin cannot change family settings.
+
+Destructive functions require confirm and are blocked in prod without flag.
+
+Phase 2 exit criteria:
+
+All Phase 2 acceptance tests pass.
+
+PHASE 3. DB BOOTSTRAP RELIABILITY (fresh DB self initializes)
+
+P3-T001 Migrations must stand up a blank Postgres database with one start command
+File:
+
+server/db/migrate.js
+Optional: server/db/schema.sql if you choose to run it.
+
+Requirement:
+
+Fresh empty DB plus one start command must create all required tables and columns.
+Preferred approach:
+
+If core tables are missing, run schema.sql once, then run ALTER migrations.
+Alternate approach:
+
+Use CREATE TABLE IF NOT EXISTS for all required tables before ALTER.
+
+Tables required at minimum:
+users, people, households, relationships,
+trips, trip_participants, meals, rooms, activities, expenses, packing_items, shared_trip_items,
+moments, love_notes, family_stories, family_settings, join_requests, rituals,
+conversations, messages, calendar_events, session
+
+Acceptance:
+
+Point app at a brand new empty database.
+
+Start server once.
+
+App boots with no migration errors.
+
+Can login, create person, create trip, send message, create story, create ritual, refresh each page and data persists.
+
+PHASE 4. POLISH (do last)
+
+P4-T001 Galaxy ring anchor camera plane correctness
+File:
+
+src/components/constellation/GalaxyView.jsx
+
+Change:
+
+If CoupleRing is billboarded, compute child line ring anchor in the same camera facing plane so endpoints stay on ring edge as camera moves.
+
+Acceptance:
+
+Rotate camera around couple system. Child lines stay attached to ring perimeter.
+
+P4-T002 Star designer simplification (NMS style)
+Files:
+
+src/components/family/StarEditor.jsx (or current star editor component)
+
+src/lib/starConfig.js (or equivalent)
+
+Change:
+
+Replace complex design with:
+
+star type (4 options)
+
+brightness slider
+
+twinkle slider
+
+optional tint
+
+Persist only these fields and remove non persisted controls.
+
+Acceptance:
+
+Change star type and brightness. Save. Refresh. Persists. UI is fast on mobile.
+
+P4-T003 UI consistency sweep
+Fix remaining unreadable buttons, spacing, overlaps, and mobile layout issues.
+
+Acceptance:
+
+No overlapping controls on Galaxy.
+
+Modals readable in dark theme.
+
+No console errors.
+
+Deliverables after each phase:
+
+List files changed.
+
+Confirm acceptance tests passed with brief notes.
+
+Start Phase 1 now.

@@ -1,0 +1,97 @@
+1) Layout: organic, clustered, meaningful
+
+No circles by default.
+
+Stars should naturally cluster into constellations based on relationship distance (household, parents/children, siblings, extended family).
+
+Farther relationships drift farther away, but still feel connected.
+
+The overall shape should feel like a galaxy or star field, not a wheel.
+
+2) Visual hierarchy: calm by default, detail on focus
+
+Default state should be calm: minimal or no visible lines.
+
+Lines appear only on hover/focus/selection, and only for relevant relationships (1 to 2 hops).
+
+Unrelated stars subtly dim or blur when focused, so the chosen constellation becomes obvious.
+
+3) “People feel unique”
+
+Each person’s star has stable, seeded uniqueness (glow profile, subtle flicker pattern, halo shape, twinkle cadence).
+
+Size is mostly rule-driven (age/role), with small seeded variation.
+
+Visual quality should feel premium, not UI dots.
+
+4) Interaction feels magical but simple
+
+Hover shows name (and maybe role badge like Parent, Child, etc.) without clicking.
+
+Click focuses a person: pulls their constellation forward, reveals only their connections.
+
+Second click or a button opens the detail panel.
+
+Zoom feels like you are traveling through the universe (smooth camera easing, not abrupt scaling).
+
+Copy/paste prompt for Replit (Universe view improvement)
+
+Paste this into Replit as-is:
+
+Prompt:
+
+The Nashiverse Universe view works, but it currently feels artificial and silly because it arranges stars in near-perfect rings and shows a faint spiderweb of connections across everything. We want the Universe view to feel like a living galaxy, not a node diagram.
+
+Do not keep the circular layout. Redesign the Universe view toward these end results:
+
+Organic galaxy layout
+
+Stars should cluster naturally into constellations based on relationship distance and household grouping.
+
+The overall shape should not default to circles or rings.
+
+Nearby relationships form tight clusters. Distant relationships spread out.
+
+Calm default state
+
+Default view should be visually calm and readable.
+
+No global spiderweb of lines.
+
+Lines should appear only on hover/focus/selection and only for relevant relationships (1 to 2 hops).
+
+Strong focus behavior
+
+Hover: show name label, slight emphasis.
+
+Click: focus a person and clearly reveal partner, parents, children, and optionally siblings.
+
+Everything else should dim slightly so the selected constellation is obvious.
+
+Clicking empty space resets focus.
+
+Star uniqueness and quality
+
+Every person’s star should have stable seeded uniqueness (halo, glow radius, twinkle cadence, subtle imperfections).
+
+Star size should be mostly rule-driven (example: age/role) plus small seeded variation.
+
+Overall star rendering should look premium and cinematic, not simple dots.
+
+Performance
+
+Must remain smooth with many stars.
+
+Use whatever rendering approach is best, but prioritize fluid interaction and clarity.
+
+Deliver: implement the revised Universe layout, interaction states, and star visual generator so the view feels like a real universe and remains readable.
+
+Quick “acceptance checks” (so we know it’s fixed)
+
+If you refresh 5 times, the layout should stay stable per person, but still look organic.
+
+If you zoom out, it should feel like a galaxy map, not a circle of nodes.
+
+If nothing is selected, the screen should look clean and calm (no web of lines).
+
+If you click a person, you instantly understand their family cluster in under 2 seconds.
