@@ -58,11 +58,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, fullName, inviteCode) => {
+  const register = async (email, password, fullName, inviteCode, relationshipType) => {
     try {
       setIsLoadingAuth(true);
       setAuthError(null);
-      const userData = await base44.auth.register(email, password, fullName, inviteCode);
+      const userData = await base44.auth.register(email, password, fullName, inviteCode, relationshipType);
       setUser(userData);
       setIsAuthenticated(true);
       return userData;

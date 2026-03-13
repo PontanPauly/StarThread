@@ -154,6 +154,7 @@ export default function Onboarding() {
   const [inviteLinks, setInviteLinks] = useState([]);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(-1);
+  const [persistedMemberIds, setPersistedMemberIds] = useState(null);
 
   useEffect(() => {
     if (myPerson) {
@@ -455,32 +456,29 @@ export default function Onboarding() {
     );
   };
 
-  const generateInviteLinks = async () => {
+  const generateInviteLinks = async (persistedIds) => {
     if (!myPerson) return;
     setGeneratingLink(true);
     try {
+      let idMap = persistedIds || {};
+      if (!persistedIds && addedMembers.length > 0) {
+        idMap = await persistStagedMembers();
+        setPersistedMemberIds(idMap);
+      }
       const links = [];
       const baseUrl = window.location.origin;
-      const membersWithEmail = addedMembers.filter((m) => !m.isExisting && m.email);
-      for (const member of membersWithEmail) {
+      const nonLinkedMembers = addedMembers.filter((m) => !m.isExisting);
+      for (const member of nonLinkedMembers) {
+        const personId = idMap[member.tempId] || null;
         const code = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-        await base44.entities.InviteLink.create({
+        const inviteData = {
           code,
           created_by_person_id: myPerson.id,
           relationship_type: member.type,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-        links.push({ name: member.name, type: member.type, url: `${baseUrl}/login?invite=${code}` });
-      }
-      const membersWithoutEmail = addedMembers.filter((m) => !m.isExisting && !m.email);
-      for (const member of membersWithoutEmail) {
-        const code = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-        await base44.entities.InviteLink.create({
-          code,
-          created_by_person_id: myPerson.id,
-          relationship_type: member.type,
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        });
+        };
+        if (personId) inviteData.for_person_id = personId;
+        await base44.entities.InviteLink.create(inviteData);
         links.push({ name: member.name, type: member.type, url: `${baseUrl}/login?invite=${code}` });
       }
       if (links.length === 0) {
@@ -515,7 +513,7 @@ export default function Onboarding() {
     if (!myPerson) return;
     setSaving(true);
     try {
-      const persistedIds = await persistStagedMembers();
+      const persistedIds = persistedMemberIds || await persistStagedMembers();
 
       if (trustedContacts.length > 0 && persistedIds) {
         for (const tempId of trustedContacts) {

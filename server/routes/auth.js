@@ -57,9 +57,31 @@ const RECIPROCAL_TYPES = {
   extended: 'extended'
 };
 
+router.get('/invite-info', async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code) return res.status(400).json({ error: 'Code is required' });
+    const result = await pool.query(
+      'SELECT relationship_type, for_person_id FROM invite_links WHERE code = $1 AND used_by_user_id IS NULL AND (expires_at IS NULL OR expires_at > NOW())',
+      [code]
+    );
+    if (result.rows.length === 0) return res.json({ valid: false });
+    const invite = result.rows[0];
+    res.json({
+      valid: true,
+      has_relationship_type: !!invite.relationship_type,
+      relationship_type: invite.relationship_type || null,
+      is_named: !!invite.for_person_id,
+    });
+  } catch (err) {
+    console.error('Invite info error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { email, password, full_name, invite_code } = req.body;
+    const { email, password, full_name, invite_code, relationship_type } = req.body;
 
     if (!email || !password || !full_name) {
       return res.status(400).json({ error: 'Email, password, and full_name are required' });
@@ -104,7 +126,7 @@ router.post('/register', authLimiter, async (req, res) => {
       'INSERT INTO people (name, first_name, middle_name, last_name, user_id, linked_user_email, role_type) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
       [formattedName, regFirstName, regMiddleName, regLastName, user.id, email, 'adult']
     );
-    const newPersonId = personResult.rows[0].id;
+    let newPersonId = personResult.rows[0].id;
 
     if (invite_code) {
       const inviteResult = await pool.query(
@@ -113,17 +135,41 @@ router.post('/register', authLimiter, async (req, res) => {
       );
       if (inviteResult.rows.length > 0) {
         const invite = inviteResult.rows[0];
-        const relType = invite.relationship_type || 'chosen_family';
+        const relType = invite.relationship_type || (relationship_type ? relationship_type : 'extended');
         const reciprocalType = RECIPROCAL_TYPES[relType] || relType;
 
-        await pool.query(
-          'INSERT INTO relationships (person_id, related_person_id, relationship_type, status_from_person, status_from_related) VALUES ($1, $2, $3, $4, $5)',
-          [invite.created_by_person_id, newPersonId, relType, 'confirmed', 'confirmed']
+        if (invite.for_person_id) {
+          const existingPerson = await pool.query('SELECT id, user_id FROM people WHERE id = $1', [invite.for_person_id]);
+          if (existingPerson.rows.length > 0 && !existingPerson.rows[0].user_id) {
+            await pool.query('DELETE FROM people WHERE id = $1', [newPersonId]);
+            await pool.query(
+              'UPDATE people SET user_id = $1, linked_user_email = $2, first_name = COALESCE(first_name, $3), last_name = COALESCE(last_name, $4) WHERE id = $5',
+              [user.id, email, regFirstName, regLastName, invite.for_person_id]
+            );
+            newPersonId = invite.for_person_id;
+          }
+        }
+
+        const existingRel = await pool.query(
+          'SELECT id FROM relationships WHERE person_id = $1 AND related_person_id = $2 AND relationship_type = $3',
+          [invite.created_by_person_id, newPersonId, relType]
         );
-        await pool.query(
-          'INSERT INTO relationships (person_id, related_person_id, relationship_type, status_from_person, status_from_related) VALUES ($1, $2, $3, $4, $5)',
-          [newPersonId, invite.created_by_person_id, reciprocalType, 'confirmed', 'confirmed']
+        if (existingRel.rows.length === 0) {
+          await pool.query(
+            'INSERT INTO relationships (person_id, related_person_id, relationship_type, status_from_person, status_from_related) VALUES ($1, $2, $3, $4, $5)',
+            [invite.created_by_person_id, newPersonId, relType, 'confirmed', 'confirmed']
+          );
+        }
+        const existingRecip = await pool.query(
+          'SELECT id FROM relationships WHERE person_id = $1 AND related_person_id = $2 AND relationship_type = $3',
+          [newPersonId, invite.created_by_person_id, reciprocalType]
         );
+        if (existingRecip.rows.length === 0) {
+          await pool.query(
+            'INSERT INTO relationships (person_id, related_person_id, relationship_type, status_from_person, status_from_related) VALUES ($1, $2, $3, $4, $5)',
+            [newPersonId, invite.created_by_person_id, reciprocalType, 'confirmed', 'confirmed']
+          );
+        }
 
         await pool.query(
           'UPDATE invite_links SET used_by_user_id = $1, used_at = NOW() WHERE id = $2',

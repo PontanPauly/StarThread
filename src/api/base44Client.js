@@ -110,9 +110,10 @@ class AuthProxy {
     return response.json();
   }
 
-  async register(email, password, fullName, inviteCode) {
+  async register(email, password, fullName, inviteCode, relationshipType) {
     const body = { email, password, full_name: fullName };
     if (inviteCode) body.invite_code = inviteCode;
+    if (relationshipType) body.relationship_type = relationshipType;
     const response = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

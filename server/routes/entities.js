@@ -468,7 +468,7 @@ const entityConfig = {
   },
   InviteLink: {
     table: 'invite_links',
-    columns: ['id', 'code', 'created_by_person_id', 'relationship_type', 'created_at', 'expires_at', 'used_by_user_id', 'used_at']
+    columns: ['id', 'code', 'created_by_person_id', 'relationship_type', 'for_person_id', 'created_at', 'expires_at', 'used_by_user_id', 'used_at']
   }
 };
 

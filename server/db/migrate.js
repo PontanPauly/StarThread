@@ -344,11 +344,19 @@ export async function runMigrations() {
         code TEXT UNIQUE NOT NULL,
         created_by_person_id UUID NOT NULL REFERENCES people(id),
         relationship_type TEXT,
+        for_person_id UUID REFERENCES people(id),
         created_at TIMESTAMPTZ DEFAULT NOW(),
         expires_at TIMESTAMPTZ,
         used_by_user_id UUID REFERENCES users(id),
         used_at TIMESTAMPTZ
       );
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE invite_links ADD COLUMN IF NOT EXISTS for_person_id UUID REFERENCES people(id);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$;
     `);
 
     await client.query(`

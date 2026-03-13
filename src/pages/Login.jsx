@@ -17,6 +17,28 @@ const GOOGLE_ICON = (
   </svg>
 );
 
+const INVITE_RELATIONSHIP_OPTIONS = [
+  { value: "parent", label: "Parent" },
+  { value: "child", label: "Child" },
+  { value: "sibling", label: "Sibling" },
+  { value: "partner", label: "Partner" },
+  { value: "spouse", label: "Spouse" },
+  { value: "grandparent", label: "Grandparent" },
+  { value: "grandchild", label: "Grandchild" },
+  { value: "aunt_uncle", label: "Aunt/Uncle" },
+  { value: "niece_nephew", label: "Niece/Nephew" },
+  { value: "cousin", label: "Cousin" },
+  { value: "in_law", label: "In-Law" },
+  { value: "step_parent", label: "Step-Parent" },
+  { value: "step_child", label: "Step-Child" },
+  { value: "step_sibling", label: "Step-Sibling" },
+  { value: "half_sibling", label: "Half-Sibling" },
+  { value: "guardian", label: "Guardian" },
+  { value: "godparent", label: "Godparent" },
+  { value: "chosen_family", label: "Chosen Family" },
+  { value: "extended", label: "Extended Family" },
+];
+
 export default function Login() {
   const [searchParams] = useSearchParams();
   const inviteCode = searchParams.get('invite') || '';
@@ -29,12 +51,26 @@ export default function Login() {
     password: "",
     fullName: "",
   });
+  const [selectedRelationship, setSelectedRelationship] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const canvasRef = useRef(null);
 
   const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  const { data: inviteInfo } = useQuery({
+    queryKey: ['invite-info', inviteCode],
+    queryFn: async () => {
+      const res = await fetch(`/api/auth/invite-info?code=${encodeURIComponent(inviteCode)}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!inviteCode,
+    staleTime: 60000,
+  });
+
+  const needsRelationshipSelection = inviteCode && inviteInfo?.valid && !inviteInfo?.has_relationship_type;
 
   const { data: googleEnabled } = useQuery({
     queryKey: ['googleAuthEnabled'],
@@ -67,7 +103,7 @@ export default function Login() {
       if (isLogin) {
         await login(formData.email, formData.password);
       } else {
-        await register(formData.email, formData.password, formData.fullName, inviteCode);
+        await register(formData.email, formData.password, formData.fullName, inviteCode, selectedRelationship || undefined);
       }
       navigate("/");
     } catch (err) {
@@ -141,9 +177,27 @@ export default function Login() {
           </div>
 
           {inviteCode && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
-              <Link2 className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              <p className="text-sm text-amber-300">You've been invited to join a family. Register to connect.</p>
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <Link2 className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <p className="text-sm text-amber-300">You've been invited to join a family. Register to connect.</p>
+              </div>
+              {needsRelationshipSelection && !isLogin && (
+                <div className="space-y-1">
+                  <Label className="text-slate-300 text-sm">How are you related to the person who invited you?</Label>
+                  <select
+                    value={selectedRelationship}
+                    onChange={(e) => setSelectedRelationship(e.target.value)}
+                    className="w-full h-10 rounded-md bg-slate-800/60 border border-slate-600/50 text-slate-100 px-3 text-sm focus:border-amber-400/60 focus:ring-amber-400/20 focus:outline-none"
+                    required
+                  >
+                    <option value="">Select relationship...</option>
+                    {INVITE_RELATIONSHIP_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 
