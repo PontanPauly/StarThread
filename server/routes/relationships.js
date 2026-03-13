@@ -35,22 +35,24 @@ router.get('/universe-members', requireAuth, async (req, res) => {
     }
     const rootPersonId = personResult.rows[0].id;
 
+    const { rows: hiddenRels } = await pool.query(`
+      SELECT relationship_id FROM relationship_visibility
+      WHERE user_id = $1 AND is_visible = false
+    `, [userId]);
+    const hiddenRelIds = new Set(hiddenRels.map(r => r.relationship_id));
+
     const { rows: allRels } = await pool.query(`
       SELECT r.id, r.person_id, r.related_person_id, r.relationship_type, r.subtype,
              r.status_from_person, r.status_from_related
       FROM relationships r
-      WHERE (r.status_from_person IN ('confirmed', 'claimed')
-             AND r.status_from_related IN ('confirmed', 'claimed'))
-         OR (r.person_id = $1 OR r.related_person_id = $1)
-    `, [rootPersonId]);
+      WHERE r.status_from_person IN ('confirmed', 'claimed')
+        AND r.status_from_related IN ('confirmed', 'claimed')
+    `);
 
-    const confirmedRels = allRels.filter(r =>
-      (r.status_from_person === 'confirmed' || r.status_from_person === 'claimed') &&
-      (r.status_from_related === 'confirmed' || r.status_from_related === 'claimed')
-    );
+    const visibleRels = allRels.filter(r => !hiddenRelIds.has(r.id));
 
     const adjacency = {};
-    for (const rel of confirmedRels) {
+    for (const rel of visibleRels) {
       if (!adjacency[rel.person_id]) adjacency[rel.person_id] = [];
       if (!adjacency[rel.related_person_id]) adjacency[rel.related_person_id] = [];
       adjacency[rel.person_id].push(rel.related_person_id);
@@ -80,12 +82,6 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       return res.json({ people: [], relationships: [], households: [] });
     }
 
-    const { rows: hiddenRels } = await pool.query(`
-      SELECT relationship_id FROM relationship_visibility
-      WHERE user_id = $1 AND is_visible = false
-    `, [userId]);
-    const hiddenRelIds = new Set(hiddenRels.map(r => r.relationship_id));
-
     const { rows: people } = await pool.query(`
       SELECT ${SAFE_PERSON_COLS}
       FROM people
@@ -99,8 +95,8 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       return p;
     });
 
-    const graphRelationships = confirmedRels.filter(r =>
-      visited.has(r.person_id) && visited.has(r.related_person_id) && !hiddenRelIds.has(r.id)
+    const graphRelationships = visibleRels.filter(r =>
+      visited.has(r.person_id) && visited.has(r.related_person_id)
     );
 
     const householdIds = [...new Set(filteredPeople.map(p => p.household_id).filter(Boolean))];

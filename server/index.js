@@ -125,6 +125,7 @@ app.use('/api/entities', entityRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/functions', functionsRoutes);
 app.use('/api/relationships', relationshipsRoutes);
+app.use('/api/family', relationshipsRoutes);
 app.use('/api/memorial', memorialRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/subscription', subscriptionRoutes);

@@ -72,7 +72,7 @@ export default function Family() {
   const { data: universeData, isLoading: loadingUniverse } = useQuery({
     queryKey: ['universe-members'],
     queryFn: async () => {
-      const response = await fetch('/api/relationships/universe-members', { credentials: 'include' });
+      const response = await fetch('/api/family/universe-members', { credentials: 'include' });
       if (!response.ok) return { people: [], relationships: [], households: [] };
       return response.json();
     },
