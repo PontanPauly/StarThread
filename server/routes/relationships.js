@@ -46,7 +46,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
              r.status_from_person, r.status_from_related
       FROM relationships r
       WHERE r.status_from_person IN ('confirmed', 'claimed')
-        AND r.status_from_related IN ('confirmed', 'claimed')
+         OR r.status_from_related IN ('confirmed', 'claimed')
     `);
 
     const visibleRels = allRels.filter(r => !hiddenRelIds.has(r.id));
@@ -57,6 +57,26 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       if (!adjacency[rel.related_person_id]) adjacency[rel.related_person_id] = [];
       adjacency[rel.person_id].push(rel.related_person_id);
       adjacency[rel.related_person_id].push(rel.person_id);
+    }
+
+    const { rows: householdCoMembers } = await pool.query(`
+      SELECT id, household_id FROM people
+      WHERE household_id IS NOT NULL AND merged_into_id IS NULL
+    `);
+    const hhMembers = {};
+    for (const row of householdCoMembers) {
+      if (!hhMembers[row.household_id]) hhMembers[row.household_id] = [];
+      hhMembers[row.household_id].push(row.id);
+    }
+    for (const members of Object.values(hhMembers)) {
+      for (let i = 0; i < members.length; i++) {
+        for (let j = i + 1; j < members.length; j++) {
+          if (!adjacency[members[i]]) adjacency[members[i]] = [];
+          if (!adjacency[members[j]]) adjacency[members[j]] = [];
+          adjacency[members[i]].push(members[j]);
+          adjacency[members[j]].push(members[i]);
+        }
+      }
     }
 
     const visited = new Set([rootPersonId]);
