@@ -168,31 +168,5 @@ export function computeHouseholdEdges(relationships, people) {
     }
   }
 
-  const nonParentTypes = new Set(['partner', 'spouse', 'sibling', 'grandparent', 'grandchild', 'aunt_uncle', 'niece_nephew', 'cousin', 'in_law', 'chosen_family', 'extended', 'guardian', 'godparent', 'half_sibling']);
-  for (const rel of relationships) {
-    const type = (rel.relationship_type || '').toLowerCase();
-    if (!nonParentTypes.has(type)) continue;
-
-    const idA = rel.person_id || rel.person1_id;
-    const idB = rel.related_person_id || rel.person2_id;
-    const hhA = personToHousehold[idA];
-    const hhB = personToHousehold[idB];
-
-    if (hhA && hhB && hhA !== hhB) {
-      const key = [hhA, hhB].sort().join('|') + '|' + type;
-      if (!edgeSet.has(key)) {
-        edgeSet.add(key);
-        edges.push({
-          from: hhA,
-          to: hhB,
-          fromPersonId: idA,
-          childPersonId: idB,
-          fromRing: false,
-          type
-        });
-      }
-    }
-  }
-
   return edges;
 }
