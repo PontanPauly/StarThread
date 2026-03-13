@@ -193,32 +193,32 @@ export default function Family() {
             />
           </WebGLErrorBoundary>
           {/* Floating Controls */}
-          <div className="fixed top-[4.5rem] lg:top-4 left-3 sm:left-4 lg:left-68 right-3 sm:right-4 z-50 flex flex-col gap-2 sm:gap-3 pointer-events-none">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="glass-card rounded-xl px-3 py-2 border border-slate-700/50 pointer-events-auto flex-shrink-0">
-                <h1 className="text-sm lg:text-lg font-bold text-slate-100 flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-amber-400" />
-                  <span className="hidden lg:inline">Family Universe</span>
-                  <span className="lg:hidden">Universe</span>
+          <div className="fixed top-[4.5rem] lg:top-4 left-3 sm:left-4 lg:left-68 right-3 sm:right-4 z-50 pointer-events-none">
+            <div className="flex items-center justify-between gap-2">
+              <div className="glass-card rounded-xl px-3 py-1.5 border border-slate-700/50 pointer-events-auto flex-shrink-0">
+                <h1 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span className="hidden xl:inline">Family Universe</span>
+                  <span className="xl:hidden">Universe</span>
                 </h1>
-                <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">{people.length} stars · {relationships.length} connections</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">{people.length} stars · {relationships.length} connections</p>
               </div>
 
-              <div className="flex gap-1.5 pointer-events-auto items-center flex-wrap justify-end">
+              <div className="flex gap-1 pointer-events-auto items-center flex-shrink-0">
                 <Button
                   onClick={() => setMobileSearchOpen(true)}
-                  className="md:hidden bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 backdrop-blur-md p-2"
+                  className="xl:hidden bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 backdrop-blur-md h-8 w-8 p-0"
                   size="icon"
                 >
-                  <Search className="w-4 h-4" />
+                  <Search className="w-3.5 h-3.5" />
                 </Button>
-                <div className="relative hidden md:block">
+                <div className="relative hidden xl:block">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     placeholder="Find a star..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-36 lg:w-48 bg-slate-800/90 border-slate-600 text-slate-200 placeholder:text-slate-500 backdrop-blur-md"
+                    className="pl-9 w-44 bg-slate-800/90 border-slate-600 text-slate-200 placeholder:text-slate-500 backdrop-blur-md h-8"
                   />
                   {searchQuery && (
                     <div className="absolute top-full right-0 mt-2 w-72 glass-card rounded-xl border border-slate-700/50 pointer-events-auto max-h-64 overflow-y-auto z-[60]">
@@ -260,35 +260,35 @@ export default function Family() {
                 </div>
                 <Button 
                   onClick={() => setViewMode('list')}
-                  className="bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md"
+                  className="bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md h-8 w-8 xl:w-auto xl:px-3 p-0"
                   size="sm"
                 >
-                  <Users className="w-4 h-4 lg:mr-1.5" />
-                  <span className="hidden lg:inline">List</span>
+                  <Users className="w-3.5 h-3.5 xl:mr-1.5" />
+                  <span className="hidden xl:inline text-xs">List</span>
                 </Button>
                 <Button 
                   onClick={() => setViewMode('connections')}
-                  className="hidden md:flex bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md"
+                  className="hidden md:flex bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md h-8 w-8 xl:w-auto xl:px-3 p-0"
                   size="sm"
                 >
-                  <Network className="w-4 h-4 lg:mr-1.5" />
-                  <span className="hidden lg:inline">Lineage</span>
+                  <Network className="w-3.5 h-3.5 xl:mr-1.5" />
+                  <span className="hidden xl:inline text-xs">Lineage</span>
                 </Button>
                 <Button 
                   onClick={() => { setAddingChild(true); setShowPersonForm(true); }}
-                  className="hidden lg:flex bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold backdrop-blur-md"
+                  className="hidden xl:flex bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold backdrop-blur-md h-8 px-3"
                   size="sm"
                 >
-                  <Baby className="w-4 h-4 mr-1.5" />
-                  Add Child
+                  <Baby className="w-3.5 h-3.5 mr-1.5" />
+                  <span className="text-xs">Add Child</span>
                 </Button>
                 <Button 
                   onClick={() => setShowPersonForm(true)}
-                  className="bg-amber-500/90 hover:bg-amber-600 text-slate-900 font-semibold backdrop-blur-md"
+                  className="bg-amber-500/90 hover:bg-amber-600 text-slate-900 font-semibold backdrop-blur-md h-8 w-8 xl:w-auto xl:px-3 p-0"
                   size="sm"
                 >
-                  <Plus className="w-4 h-4 lg:mr-1.5" />
-                  <span className="hidden lg:inline">Add Star</span>
+                  <Plus className="w-3.5 h-3.5 xl:mr-1.5" />
+                  <span className="hidden xl:inline text-xs">Add Star</span>
                 </Button>
               </div>
             </div>
