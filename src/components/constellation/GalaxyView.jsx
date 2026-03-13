@@ -1694,7 +1694,7 @@ function arrangeStarsInCluster(people, centerX = 0, centerY = 0, centerZ = 0, re
   
   const positioned = [];
   
-  const parentOrbitRadius = 1.8;
+  const parentOrbitRadius = 4.0;
   const parentOrbitAngle = Math.PI / 6;
   
   if (parentPair.length >= 2) {
@@ -2086,7 +2086,7 @@ function getStarPrimaryColor(starProfile) {
   return '#ffffff';
 }
 
-function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff', intensity = 1.0, scale = 1.0 }) {
+function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff', intensity = 1.0 }) {
   const streamAtoB = useRef();
   const streamBtoA = useRef();
 
@@ -2113,9 +2113,9 @@ function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff'
         particles.push({
           speed: 0.05 + r * 0.08,
           offset: i / particlesPerStream + r2 * 0.05,
-          driftA: (r3 - 0.5) * 0.4 * scale,
-          driftB: (r4 - 0.5) * 0.4 * scale,
-          size: (0.15 + r * 0.2) * scale,
+          driftA: (r3 - 0.5) * 0.4,
+          driftB: (r4 - 0.5) * 0.4,
+          size: 0.15 + r * 0.2,
           brightness: 0.8 + r2 * 0.4,
           wobbleFreq: 1.5 + r3 * 2.0,
           wobbleFreq2: 1.0 + r4 * 1.5,
@@ -2129,7 +2129,7 @@ function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff'
       aToB: makeStream(0),
       bToA: makeStream(100),
     };
-  }, [scale]);
+  }, []);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -3157,7 +3157,7 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
       centerZ = parentStars.reduce((sum, s) => sum + s.position[2], 0) / parentStars.length;
     }
 
-    const ringRadius = 2.8;
+    const ringRadius = 5.0;
     const parentStarIds = new Set(parentStars.map(s => s.id));
 
     const bioParentsOf = {};
@@ -3230,8 +3230,7 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
           starB={coupleStarB.position}
           colorA={getStarPrimaryColor(coupleStarA.starProfile)}
           colorB={getStarPrimaryColor(coupleStarB.starProfile)}
-          intensity={opacity}
-          scale={3.0}
+          intensity={1.0}
         />
       )}
       {lines_data.length > 0 && (
