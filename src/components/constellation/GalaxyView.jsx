@@ -2477,6 +2477,9 @@ function AnimatedHouseholdGroup({
     curr.opacity += (targetOpacity - curr.opacity) * lerpSpeed;
     curr.starOpacity += (targetStarOpacity - curr.starOpacity) * lerpSpeed;
     
+    if (Math.abs(curr.opacity - targetOpacity) < 0.005) curr.opacity = targetOpacity;
+    if (Math.abs(curr.starOpacity - targetStarOpacity) < 0.005) curr.starOpacity = targetStarOpacity;
+    
     groupRef.current.position.set(
       basePosition.x + curr.offsetX,
       basePosition.y + curr.offsetY,
@@ -5466,10 +5469,17 @@ export default function GalaxyView({ people = [], relationships = [], households
     cameraPosRef.current = pos;
   }, []);
 
+  const lastReportedPos = useRef({ x: 0, y: 0, z: 0 });
   useEffect(() => {
     const interval = setInterval(() => {
       if (cameraPosRef.current) {
-        setCameraPos({ ...cameraPosRef.current });
+        const p = cameraPosRef.current;
+        const lp = lastReportedPos.current;
+        const dx = p.x - lp.x, dy = p.y - lp.y, dz = p.z - lp.z;
+        if (dx * dx + dy * dy + dz * dz > 0.01) {
+          lastReportedPos.current = { x: p.x, y: p.y, z: p.z };
+          setCameraPos({ x: p.x, y: p.y, z: p.z });
+        }
       }
     }, 200);
     return () => clearInterval(interval);
