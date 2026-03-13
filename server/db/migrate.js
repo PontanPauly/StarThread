@@ -573,6 +573,19 @@ export async function runMigrations() {
     `);
 
     await client.query(`
+      UPDATE relationships SET relationship_type = 'child'
+      WHERE person_id IN (SELECT id FROM people WHERE name = 'Paul Nash')
+        AND related_person_id IN (SELECT id FROM people WHERE name IN ('Nancy Nash', 'Randy Nash'))
+        AND relationship_type = 'parent'
+    `);
+    await client.query(`
+      UPDATE relationships SET relationship_type = 'parent'
+      WHERE person_id IN (SELECT id FROM people WHERE name IN ('Nancy Nash', 'Randy Nash'))
+        AND related_person_id IN (SELECT id FROM people WHERE name = 'Paul Nash')
+        AND relationship_type = 'child'
+    `);
+
+    await client.query(`
       ALTER TABLE people ADD COLUMN IF NOT EXISTS parental_controls JSONB;
     `);
 
