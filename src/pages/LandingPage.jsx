@@ -279,8 +279,9 @@ export default function LandingPage() {
         </nav>
 
         <section className="px-6 md:px-12 pt-16 pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 mb-8">
-            <span className="text-sm font-medium text-amber-300">Your family, your constellation</span>
+          <div className="inline-flex items-center gap-3 mb-8">
+            <img src="/logo.png" alt="StarThread" className="w-14 h-14 object-contain drop-shadow-[0_0_12px_rgba(0,200,255,0.5)]" />
+            <span className="text-3xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent tracking-wide">StarThread</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
