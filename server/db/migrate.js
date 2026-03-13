@@ -740,6 +740,10 @@ export async function runMigrations() {
       ALTER TABLE people ADD COLUMN IF NOT EXISTS created_by_user_id UUID REFERENCES users(id);
     `);
 
+    await client.query(`
+      ALTER TABLE people ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}';
+    `);
+
     await client.query('COMMIT');
     console.log('Database migrations completed successfully');
   } catch (error) {

@@ -98,6 +98,7 @@ CREATE TABLE people (
   privacy_level                     TEXT        DEFAULT 'public',  -- 'public' | 'family' | 'private'
   parental_controls                 JSONB,
   onboarding_complete               BOOLEAN     DEFAULT false,
+  social_links                      JSONB       DEFAULT '{}',
   created_at                        TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX idx_people_household_id      ON people(household_id);

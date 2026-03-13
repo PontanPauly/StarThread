@@ -40,6 +40,7 @@ The application follows a client-server architecture:
 21. **Beta Program**: Allows users to join/leave a beta program, granting full premium features during the beta period and a discount post-beta.
 22. **WebGL Error Boundaries**: Provides robust error handling and retry mechanisms for 3D canvases.
 23. **PWA Support**: Installable progressive web app with offline caching and mobile web app capabilities.
+24. **Social Platform Linking**: Users can link/unlink social media accounts (Facebook, X/Twitter, Instagram, LinkedIn, TikTok, YouTube) to their profile. Stored as JSONB `social_links` on the `people` table. Handles/URLs validated on both client and server. Displayed on Profile page and StarView, respecting privacy settings.
 
 ### System Design Choices
 -   Data model centered on `people` and `relationships`, with optional `households`. Auto-computes `name` from `first_name`, `middle_name`, `last_name`.

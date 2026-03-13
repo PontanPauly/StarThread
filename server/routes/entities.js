@@ -334,10 +334,49 @@ async function isSystemAdmin(userId) {
   return rows.length > 0 && rows[0].role === 'admin';
 }
 
+const SOCIAL_PLATFORMS = ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok', 'youtube'];
+const SOCIAL_URL_PATTERNS = {
+  facebook: /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9._-]+\/?$/,
+  twitter: /^https?:\/\/(www\.)?(twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/?$/,
+  instagram: /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9._]+\/?$/,
+  linkedin: /^https?:\/\/(www\.)?linkedin\.com\/(in|company)\/[a-zA-Z0-9._-]+\/?$/,
+  tiktok: /^https?:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9._-]+\/?$/,
+  youtube: /^https?:\/\/(www\.)?(youtube\.com\/(c\/|channel\/|@)?[a-zA-Z0-9._-]+|youtu\.be\/[a-zA-Z0-9._-]+)\/?$/,
+};
+const SOCIAL_HANDLE_PATTERNS = {
+  facebook: /^[a-zA-Z0-9._-]+$/,
+  twitter: /^@?[a-zA-Z0-9_]{1,15}$/,
+  instagram: /^@?[a-zA-Z0-9._]{1,30}$/,
+  linkedin: /^[a-zA-Z0-9._-]+$/,
+  tiktok: /^@?[a-zA-Z0-9._-]+$/,
+  youtube: /^@?[a-zA-Z0-9._-]+$/,
+};
+
+function validateSocialLinks(socialLinks) {
+  if (typeof socialLinks !== 'object' || socialLinks === null || Array.isArray(socialLinks)) {
+    return 'social_links must be an object';
+  }
+  for (const [platform, value] of Object.entries(socialLinks)) {
+    if (!SOCIAL_PLATFORMS.includes(platform)) {
+      return `Unsupported social platform: ${platform}`;
+    }
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      return `Invalid value for ${platform}`;
+    }
+    const trimmed = value.trim();
+    const urlPattern = SOCIAL_URL_PATTERNS[platform];
+    const handlePattern = SOCIAL_HANDLE_PATTERNS[platform];
+    if (!urlPattern.test(trimmed) && !handlePattern.test(trimmed)) {
+      return `Invalid ${platform} handle or URL`;
+    }
+  }
+  return null;
+}
+
 const entityConfig = {
   Person: {
     table: 'people',
-    columns: ['id', 'name', 'first_name', 'middle_name', 'last_name', 'nickname', 'photo_url', 'birth_date', 'birth_year', 'death_date', 'role_type', 'household_id', 'household_status', 'linked_user_email', 'allergies', 'dietary_preferences', 'is_deceased', 'about', 'star_profile', 'guardian_ids', 'star_pattern', 'star_intensity', 'star_flare_count', 'user_id', 'address', 'city', 'state', 'is_memorial', 'memorial_date', 'privacy_level', 'parental_controls', 'onboarding_complete', 'created_by_user_id', 'created_at']
+    columns: ['id', 'name', 'first_name', 'middle_name', 'last_name', 'nickname', 'photo_url', 'birth_date', 'birth_year', 'death_date', 'role_type', 'household_id', 'household_status', 'linked_user_email', 'allergies', 'dietary_preferences', 'is_deceased', 'about', 'star_profile', 'guardian_ids', 'star_pattern', 'star_intensity', 'star_flare_count', 'user_id', 'address', 'city', 'state', 'is_memorial', 'memorial_date', 'privacy_level', 'parental_controls', 'onboarding_complete', 'created_by_user_id', 'social_links', 'created_at']
   },
   Trip: {
     table: 'trips',
@@ -849,6 +888,13 @@ router.post('/:type', requireAuth, async (req, res) => {
     if (config.table === 'people') {
       syncRoleFromBirthDate(data, null);
       data.created_by_user_id = req.session.userId;
+      if ('social_links' in data) {
+        if (data.social_links === null || data.social_links === undefined) {
+          data.social_links = {};
+        }
+        const validationError = validateSocialLinks(data.social_links);
+        if (validationError) return res.status(400).json({ error: validationError });
+      }
     }
 
     const columns = Object.keys(data);
@@ -976,6 +1022,14 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
     }
     if (data.name && !data.first_name && !data.last_name) data.name = formatProperName(data.name);
     if (data.nickname) data.nickname = formatProperName(data.nickname);
+
+    if (config.table === 'people' && 'social_links' in data) {
+      if (data.social_links === null || data.social_links === undefined) {
+        data.social_links = {};
+      }
+      const validationError = validateSocialLinks(data.social_links);
+      if (validationError) return res.status(400).json({ error: validationError });
+    }
 
     let previousLinkedEmail = null;
     if (config.table === 'people') {

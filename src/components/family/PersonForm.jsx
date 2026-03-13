@@ -22,9 +22,150 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandItem } from "@/components/ui/command";
-import { X, Plus, AlertCircle, Upload, Sparkles, User, Star, Search, Check } from "lucide-react";
+import { X, Plus, AlertCircle, Upload, Sparkles, User, Star, Search, Check, Link2 } from "lucide-react";
 import StarEditor from "./StarEditor";
 import { DEFAULT_STAR_PROFILE } from "@/lib/starConfig";
+
+const SOCIAL_PLATFORM_CONFIG = [
+  { key: 'facebook', label: 'Facebook', placeholder: 'username or https://facebook.com/username' },
+  { key: 'twitter', label: 'X (Twitter)', placeholder: '@handle or https://x.com/handle' },
+  { key: 'instagram', label: 'Instagram', placeholder: '@handle or https://instagram.com/handle' },
+  { key: 'linkedin', label: 'LinkedIn', placeholder: 'username or https://linkedin.com/in/username' },
+  { key: 'tiktok', label: 'TikTok', placeholder: '@handle or https://tiktok.com/@handle' },
+  { key: 'youtube', label: 'YouTube', placeholder: '@channel or https://youtube.com/@channel' },
+];
+
+function SocialLinksEditor({ socialLinks, onChange }) {
+  const [editingPlatform, setEditingPlatform] = useState(null);
+  const [inputValue, setInputValue] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  const handleAdd = (platformKey) => {
+    setEditingPlatform(platformKey);
+    setInputValue(socialLinks[platformKey] || '');
+    setValidationError('');
+  };
+
+  const validateInput = (platform, value) => {
+    if (!value.trim()) return 'Please enter a handle or URL';
+    const trimmed = value.trim();
+    const isUrl = trimmed.startsWith('http');
+    if (isUrl) {
+      const urlPatterns = {
+        facebook: /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9._-]+\/?$/,
+        twitter: /^https?:\/\/(www\.)?(twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/?$/,
+        instagram: /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9._]+\/?$/,
+        linkedin: /^https?:\/\/(www\.)?linkedin\.com\/(in|company)\/[a-zA-Z0-9._-]+\/?$/,
+        tiktok: /^https?:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9._-]+\/?$/,
+        youtube: /^https?:\/\/(www\.)?(youtube\.com\/(c\/|channel\/|@)?[a-zA-Z0-9._-]+|youtu\.be\/[a-zA-Z0-9._-]+)\/?$/,
+      };
+      if (!urlPatterns[platform]?.test(trimmed)) return `Invalid ${SOCIAL_PLATFORM_CONFIG.find(p => p.key === platform)?.label} URL`;
+    } else {
+      const handlePatterns = {
+        facebook: /^[a-zA-Z0-9._-]+$/,
+        twitter: /^@?[a-zA-Z0-9_]{1,15}$/,
+        instagram: /^@?[a-zA-Z0-9._]{1,30}$/,
+        linkedin: /^[a-zA-Z0-9._-]+$/,
+        tiktok: /^@?[a-zA-Z0-9._-]+$/,
+        youtube: /^@?[a-zA-Z0-9._-]+$/,
+      };
+      if (!handlePatterns[platform]?.test(trimmed)) return `Invalid ${SOCIAL_PLATFORM_CONFIG.find(p => p.key === platform)?.label} handle`;
+    }
+    return '';
+  };
+
+  const handleSave = () => {
+    const error = validateInput(editingPlatform, inputValue);
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+    const updated = { ...socialLinks, [editingPlatform]: inputValue.trim() };
+    onChange(updated);
+    setEditingPlatform(null);
+    setInputValue('');
+    setValidationError('');
+  };
+
+  const handleRemove = (platformKey) => {
+    const updated = { ...socialLinks };
+    delete updated[platformKey];
+    onChange(updated);
+  };
+
+  const linkedPlatforms = SOCIAL_PLATFORM_CONFIG.filter(p => socialLinks[p.key]);
+  const unlinkedPlatforms = SOCIAL_PLATFORM_CONFIG.filter(p => !socialLinks[p.key]);
+
+  return (
+    <div className="space-y-3 pt-4 border-t border-slate-700">
+      <Label className="text-slate-300 text-base font-semibold flex items-center gap-2">
+        <Link2 className="w-4 h-4" />
+        Social Accounts
+      </Label>
+      <p className="text-xs text-slate-500">Link your social media accounts to your profile (optional)</p>
+
+      {linkedPlatforms.map(platform => (
+        <div key={platform.key} className="flex items-center gap-2 p-3 rounded-lg bg-slate-800/60 border border-slate-700/40">
+          <span className="text-sm text-slate-300 font-medium min-w-[90px]">{platform.label}</span>
+          <span className="text-sm text-amber-300 flex-1 truncate">{socialLinks[platform.key]}</span>
+          <Button type="button" variant="ghost" size="sm" onClick={() => handleAdd(platform.key)} className="text-slate-400 hover:text-slate-200 h-7 px-2">
+            Edit
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => handleRemove(platform.key)} className="text-red-400 hover:text-red-300 h-7 px-2">
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      ))}
+
+      {editingPlatform && (
+        <div className="p-3 rounded-lg bg-slate-800/80 border border-amber-500/30 space-y-2">
+          <Label className="text-slate-300 text-sm">
+            {SOCIAL_PLATFORM_CONFIG.find(p => p.key === editingPlatform)?.label}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              value={inputValue}
+              onChange={(e) => { setInputValue(e.target.value); setValidationError(''); }}
+              placeholder={SOCIAL_PLATFORM_CONFIG.find(p => p.key === editingPlatform)?.placeholder}
+              className="bg-slate-900 border-slate-700 text-slate-100 flex-1"
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSave(); } }}
+            />
+            <Button type="button" size="sm" onClick={handleSave} className="bg-amber-500 hover:bg-amber-600 text-slate-900">
+              Save
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => { setEditingPlatform(null); setValidationError(''); }} className="text-slate-400">
+              Cancel
+            </Button>
+          </div>
+          {validationError && (
+            <p className="text-xs text-red-400 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {validationError}
+            </p>
+          )}
+        </div>
+      )}
+
+      {!editingPlatform && unlinkedPlatforms.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {unlinkedPlatforms.map(platform => (
+            <Button
+              key={platform.key}
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleAdd(platform.key)}
+              className="text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-600 text-xs h-7"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              {platform.label}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PersonSearchPicker({ people, excludeIds = [], onSelect, placeholder = "Search people..." }) {
   const [open, setOpen] = useState(false);
@@ -120,6 +261,7 @@ export default function PersonForm({ person, households, people, onSuccess, onCa
     dietary_preferences: person?.dietary_preferences || [],
     medical_notes: person?.medical_notes || "",
     about: person?.about || "",
+    social_links: person?.social_links || {},
     star_pattern: person?.star_pattern || "classic",
     star_intensity: person?.star_intensity || 5,
     star_flare_count: person?.star_flare_count || 8,
@@ -866,6 +1008,12 @@ export default function PersonForm({ person, households, people, onSuccess, onCa
           rows={3}
         />
       </div>
+
+      {/* Social Links */}
+      <SocialLinksEditor
+        socialLinks={formData.social_links}
+        onChange={(links) => handleFormChange({ social_links: links })}
+      />
 
       {/* Family Links */}
       <div className="space-y-4 pt-4 border-t border-slate-700">

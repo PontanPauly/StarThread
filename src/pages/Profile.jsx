@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
 import { useMyPerson } from "@/hooks/useMyPerson";
-import { User, Sparkles, AlertCircle, Shield, Eye, EyeOff, Globe, Users, Lock, Heart } from "lucide-react";
+import { User, Sparkles, AlertCircle, Shield, Eye, EyeOff, Globe, Users, Lock, Heart, Link2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PersonForm from "@/components/family/PersonForm";
 import PendingRelationships from "@/components/family/PendingRelationships";
@@ -385,6 +385,35 @@ export default function Profile() {
         <div className="glass-card rounded-xl p-6">
           <h3 className="text-lg font-semibold text-slate-100 mb-3">About</h3>
           <p className="text-slate-300">{myProfile.about}</p>
+        </div>
+      )}
+
+      {myProfile.social_links && Object.keys(myProfile.social_links).length > 0 && (
+        <div className="glass-card rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-amber-400" />
+            Social Accounts
+          </h3>
+          <div className="space-y-2">
+            {Object.entries(myProfile.social_links).map(([platform, value]) => {
+              const labels = { facebook: 'Facebook', twitter: 'X (Twitter)', instagram: 'Instagram', linkedin: 'LinkedIn', tiktok: 'TikTok', youtube: 'YouTube' };
+              const prefixes = { facebook: 'https://facebook.com/', twitter: 'https://x.com/', instagram: 'https://instagram.com/', linkedin: 'https://linkedin.com/in/', tiktok: 'https://tiktok.com/@', youtube: 'https://youtube.com/@' };
+              const url = value.startsWith('http') ? value : `${prefixes[platform] || ''}${value.replace(/^@/, '')}`;
+              return (
+                <a
+                  key={platform}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/40 border border-slate-700/30 hover:border-amber-500/30 transition-colors group"
+                >
+                  <span className="text-sm font-medium text-slate-400 min-w-[90px]">{labels[platform] || platform}</span>
+                  <span className="text-sm text-amber-300 flex-1 truncate">{value}</span>
+                  <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                </a>
+              );
+            })}
+          </div>
         </div>
       )}
 

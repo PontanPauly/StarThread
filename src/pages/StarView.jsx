@@ -5,7 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { base44 } from "@/api/base44Client";
 import { useMyPerson } from "@/hooks/useMyPerson";
 import { useNavigate as useNav2 } from "react-router-dom";
-import { ArrowLeft, ChevronRight, Heart, Home, MapPin, ShieldAlert, Sparkles, Users, ZoomIn, ZoomOut, RotateCcw, Shield, Pencil, Globe, Lock, Mail, Info, Eye, MessageSquare, Image, BookOpen, Flame, Calendar } from "lucide-react";
+import { ArrowLeft, ChevronRight, Heart, Home, MapPin, ShieldAlert, Sparkles, Users, ZoomIn, ZoomOut, RotateCcw, Shield, Pencil, Globe, Lock, Mail, Info, Eye, MessageSquare, Image, BookOpen, Flame, Calendar, Link2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -1056,6 +1056,34 @@ export default function StarView() {
                 About
               </h3>
               <p className="text-slate-300 leading-relaxed">{person.about}</p>
+            </div>
+          )}
+
+          {person.social_links && Object.keys(person.social_links).length > 0 && (
+            <div className="w-full max-w-2xl mx-auto mt-6 p-4 sm:p-6 rounded-xl bg-slate-800/60 border border-slate-700/40">
+              <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
+                <Link2 className="w-5 h-5 text-amber-400" />
+                Social Accounts
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(person.social_links).map(([platform, value]) => {
+                  const labels = { facebook: 'Facebook', twitter: 'X (Twitter)', instagram: 'Instagram', linkedin: 'LinkedIn', tiktok: 'TikTok', youtube: 'YouTube' };
+                  const prefixes = { facebook: 'https://facebook.com/', twitter: 'https://x.com/', instagram: 'https://instagram.com/', linkedin: 'https://linkedin.com/in/', tiktok: 'https://tiktok.com/@', youtube: 'https://youtube.com/@' };
+                  const url = value.startsWith('http') ? value : `${prefixes[platform] || ''}${value.replace(/^@/, '')}`;
+                  return (
+                    <a
+                      key={platform}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700/40 border border-slate-600/30 hover:border-amber-500/40 transition-colors group"
+                    >
+                      <span className="text-sm font-medium text-slate-300">{labels[platform] || platform}</span>
+                      <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                    </a>
+                  );
+                })}
+              </div>
             </div>
           )}
 
