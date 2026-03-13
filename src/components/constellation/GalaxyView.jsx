@@ -2505,6 +2505,13 @@ function AnimatedHouseholdGroup({
     return { center: [0, 0, 0], radius: GALAXY_RING_RADIUS };
   }, [localStars]);
 
+  const coupleStarPair = useMemo(() => {
+    if (!localStars || localStars.length < 2) return null;
+    const parentStars = localStars.filter(s => s.isParent);
+    if (parentStars.length < 2) return null;
+    return [parentStars[0], parentStars[1]];
+  }, [localStars]);
+
   const householdColor = HOUSEHOLD_COLORS[colorIndex % HOUSEHOLD_COLORS.length];
 
   return (
@@ -2528,9 +2535,18 @@ function AnimatedHouseholdGroup({
       
       )}
       {!focusedHouseholdId && galaxyCoupleRing && (
-        <GalaxyOutlineRing
-          colorIndex={colorIndex}
+        <CoupleRing
+          center={galaxyCoupleRing.center}
           radius={GALAXY_RING_RADIUS}
+          colorIndex={colorIndex}
+          opacity={renderOpacity * 0.5}
+        />
+      )}
+      {!focusedHouseholdId && coupleStarPair && (
+        <UniverseCoupleLink
+          starA={coupleStarPair[0]}
+          starB={coupleStarPair[1]}
+          colorIndex={colorIndex}
           opacity={renderOpacity}
         />
       )}
@@ -2685,6 +2701,98 @@ function GalaxyOutlineRing({ colorIndex, radius = GALAXY_RING_RADIUS, opacity: e
   );
 }
 
+function UniverseCoupleLink({ starA, starB, colorIndex, opacity = 1 }) {
+  const lineRef = useRef();
+  const particlesRef = useRef();
+  const baseColors = HOUSEHOLD_COLORS[colorIndex % HOUSEHOLD_COLORS.length];
+  const lineColor = useMemo(() => new THREE.Color(baseColors.primary), [baseColors]);
+  const glowColor = useMemo(() => new THREE.Color(baseColors.glow), [baseColors]);
+
+  const PARTICLE_COUNT = 6;
+
+  const particleData = useMemo(() => {
+    const data = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      data.push({
+        speed: 0.25 + Math.random() * 0.3,
+        offset: Math.random(),
+        size: 0.12 + Math.random() * 0.08,
+      });
+    }
+    return data;
+  }, []);
+
+  const lineGeo = useMemo(() => {
+    const posA = starA.position;
+    const posB = starB.position;
+    const pts = new Float32Array([
+      posA[0], posA[1], posA[2],
+      posB[0], posB[1], posB[2],
+    ]);
+    return pts;
+  }, [starA, starB]);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (lineRef.current) {
+      lineRef.current.material.opacity = opacity * (0.35 + Math.sin(t * 1.5) * 0.15);
+    }
+    if (particlesRef.current) {
+      const posA = starA.position;
+      const posB = starB.position;
+      const children = particlesRef.current.children;
+      for (let i = 0; i < children.length && i < particleData.length; i++) {
+        const p = particleData[i];
+        const progress = ((p.offset + t * p.speed) % 1);
+        const x = posA[0] + (posB[0] - posA[0]) * progress;
+        const y = posA[1] + (posB[1] - posA[1]) * progress;
+        const z = posA[2] + (posB[2] - posA[2]) * progress;
+        children[i].position.set(x, y, z);
+        const pulse = 0.5 + Math.sin(t * 3 + p.offset * Math.PI * 2) * 0.3;
+        children[i].material.opacity = opacity * pulse * 0.7;
+        const s = p.size * (0.8 + pulse * 0.4);
+        children[i].scale.set(s, s, 1);
+      }
+    }
+  });
+
+  return (
+    <group>
+      <line ref={lineRef}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={2}
+            array={lineGeo}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial
+          color={lineColor}
+          transparent
+          opacity={0.35}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </line>
+      <group ref={particlesRef}>
+        {particleData.map((p, i) => (
+          <sprite key={`couple-particle-${i}`} scale={[p.size, p.size, 1]}>
+            <spriteMaterial
+              map={getGlowTexture()}
+              color={glowColor}
+              transparent
+              opacity={0}
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+            />
+          </sprite>
+        ))}
+      </group>
+    </group>
+  );
+}
+
 function HoverSphere({ colorIndex, radius = 3.0 }) {
   const meshRef = useRef();
   const baseColors = HOUSEHOLD_COLORS[colorIndex % HOUSEHOLD_COLORS.length];
@@ -2723,8 +2831,8 @@ function CoupleRing({ center, radius, colorIndex, opacity = 0.6 }) {
   const sparkleRef = useRef();
 
   const baseColors = HOUSEHOLD_COLORS[colorIndex % HOUSEHOLD_COLORS.length];
-  const ringColor = new THREE.Color(baseColors.primary);
-  const glowColor = new THREE.Color(baseColors.glow);
+  const ringColor = useMemo(() => new THREE.Color(baseColors.primary), [baseColors.primary]);
+  const glowColor = useMemo(() => new THREE.Color(baseColors.glow), [baseColors.glow]);
 
   const ringLines = useMemo(() => {
     const segments = 96;
@@ -2735,16 +2843,14 @@ function CoupleRing({ center, radius, colorIndex, opacity = 0.6 }) {
       { r: radius * 1.07, opacity: 0.08 },
     ];
     return layers.map(layer => {
-      const pts = [];
+      const arr = new Float32Array((segments + 1) * 3);
       for (let i = 0; i <= segments; i++) {
         const angle = (i / segments) * Math.PI * 2;
-        pts.push(new THREE.Vector3(
-          Math.cos(angle) * layer.r,
-          Math.sin(angle) * layer.r,
-          0
-        ));
+        arr[i * 3] = Math.cos(angle) * layer.r;
+        arr[i * 3 + 1] = Math.sin(angle) * layer.r;
+        arr[i * 3 + 2] = 0;
       }
-      return { points: pts, opacity: layer.opacity };
+      return { positionArray: arr, count: segments + 1, opacity: layer.opacity };
     });
   }, [radius]);
 
@@ -2829,8 +2935,8 @@ function CoupleRing({ center, radius, colorIndex, opacity = 0.6 }) {
             <bufferGeometry>
               <bufferAttribute
                 attach="attributes-position"
-                count={layer.points.length}
-                array={new Float32Array(layer.points.flatMap(p => [p.x, p.y, p.z]))}
+                count={layer.count}
+                array={layer.positionArray}
                 itemSize={3}
               />
             </bufferGeometry>
