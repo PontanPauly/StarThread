@@ -194,31 +194,31 @@ export default function Family() {
           </WebGLErrorBoundary>
           {/* Floating Controls */}
           <div className="fixed top-[4.5rem] lg:top-4 left-3 sm:left-4 lg:left-68 right-3 sm:right-4 z-50 flex flex-col gap-2 sm:gap-3 pointer-events-none">
-            <div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
-              <div className="glass-card rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-slate-700/50 pointer-events-auto flex-shrink-0">
-                <h1 className="text-sm sm:text-lg font-bold text-slate-100 flex items-center gap-1.5 sm:gap-2">
-                  <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
-                  <span className="hidden sm:inline">Family Universe</span>
-                  <span className="sm:hidden">Universe</span>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="glass-card rounded-xl px-3 py-2 border border-slate-700/50 pointer-events-auto flex-shrink-0">
+                <h1 className="text-sm lg:text-lg font-bold text-slate-100 flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-amber-400" />
+                  <span className="hidden lg:inline">Family Universe</span>
+                  <span className="lg:hidden">Universe</span>
                 </h1>
                 <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">{people.length} stars · {relationships.length} connections</p>
               </div>
 
-              <div className="flex gap-1.5 sm:gap-2 pointer-events-auto items-center">
+              <div className="flex gap-1.5 pointer-events-auto items-center flex-wrap justify-end">
                 <Button
                   onClick={() => setMobileSearchOpen(true)}
-                  className="sm:hidden bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 backdrop-blur-md p-2"
+                  className="md:hidden bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 backdrop-blur-md p-2"
                   size="icon"
                 >
                   <Search className="w-4 h-4" />
                 </Button>
-                <div className="relative hidden sm:block">
+                <div className="relative hidden md:block">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     placeholder="Find a star..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-48 bg-slate-800/90 border-slate-600 text-slate-200 placeholder:text-slate-500 backdrop-blur-md"
+                    className="pl-9 w-36 lg:w-48 bg-slate-800/90 border-slate-600 text-slate-200 placeholder:text-slate-500 backdrop-blur-md"
                   />
                   {searchQuery && (
                     <div className="absolute top-full right-0 mt-2 w-72 glass-card rounded-xl border border-slate-700/50 pointer-events-auto max-h-64 overflow-y-auto z-[60]">
@@ -261,30 +261,34 @@ export default function Family() {
                 <Button 
                   onClick={() => setViewMode('list')}
                   className="bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md"
+                  size="sm"
                 >
-                  <Users className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">List</span>
+                  <Users className="w-4 h-4 lg:mr-1.5" />
+                  <span className="hidden lg:inline">List</span>
                 </Button>
                 <Button 
                   onClick={() => setViewMode('connections')}
-                  className="hidden sm:flex bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md"
+                  className="hidden md:flex bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md"
+                  size="sm"
                 >
-                  <Network className="w-4 h-4 mr-2" />
-                  Lineage
+                  <Network className="w-4 h-4 lg:mr-1.5" />
+                  <span className="hidden lg:inline">Lineage</span>
                 </Button>
                 <Button 
                   onClick={() => { setAddingChild(true); setShowPersonForm(true); }}
-                  className="hidden sm:flex bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold backdrop-blur-md"
+                  className="hidden lg:flex bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold backdrop-blur-md"
+                  size="sm"
                 >
-                  <Baby className="w-4 h-4 mr-2" />
+                  <Baby className="w-4 h-4 mr-1.5" />
                   Add Child
                 </Button>
                 <Button 
                   onClick={() => setShowPersonForm(true)}
                   className="bg-amber-500/90 hover:bg-amber-600 text-slate-900 font-semibold backdrop-blur-md"
+                  size="sm"
                 >
-                  <Plus className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Add Star</span>
+                  <Plus className="w-4 h-4 lg:mr-1.5" />
+                  <span className="hidden lg:inline">Add Star</span>
                 </Button>
               </div>
             </div>
