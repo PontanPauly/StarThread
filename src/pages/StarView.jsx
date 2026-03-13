@@ -579,6 +579,17 @@ export default function StarView() {
   const [searchParams] = useSearchParams();
   const fromGalaxy = searchParams.get("from") === "galaxy";
   const fromHouseholdId = searchParams.get("household");
+
+  const handleGoBack = () => {
+    if (fromGalaxy) {
+      navigate(`/family?galaxy=${fromHouseholdId}`);
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/family');
+    }
+  };
+
   const isMobile = useIsMobile();
   const { data: myPerson } = useMyPerson();
   const queryClient = useQueryClient();
@@ -735,11 +746,7 @@ export default function StarView() {
         <div className="text-center">
           <p className="text-2xl text-slate-400 mb-4">Star not found</p>
           <Button
-            onClick={() =>
-              fromGalaxy
-                ? navigate(`/family?galaxy=${fromHouseholdId}`)
-                : navigate(-1)
-            }
+            onClick={handleGoBack}
             variant="outline"
             className="border-slate-600 text-slate-300"
           >
@@ -828,11 +835,7 @@ export default function StarView() {
             />
           )}
           <Button
-            onClick={() =>
-              fromGalaxy
-                ? navigate(`/family?galaxy=${fromHouseholdId}`)
-                : navigate(-1)
-            }
+            onClick={handleGoBack}
             variant="outline"
             className="border-slate-600 text-slate-300 mt-4"
           >
@@ -887,11 +890,7 @@ export default function StarView() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <button
-                  onClick={() =>
-                    fromGalaxy
-                      ? navigate(`/family?galaxy=${fromHouseholdId}`)
-                      : navigate(-1)
-                  }
+                  onClick={handleGoBack}
                   className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0"
                 >
                   <Home className="w-4 h-4 text-amber-400/70 group-hover:text-amber-300 transition-colors" />
