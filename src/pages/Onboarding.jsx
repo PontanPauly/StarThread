@@ -1079,7 +1079,7 @@ export default function Onboarding() {
                   <div className="text-center py-4">
                     <Share2 className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                     <Button
-                      onClick={generateInviteLinks}
+                      onClick={() => generateInviteLinks()}
                       disabled={generatingLink}
                       className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30"
                     >
