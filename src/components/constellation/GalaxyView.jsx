@@ -4906,7 +4906,7 @@ function FilterToggles({
   const activeRelCount = (filters.relationshipTypes || []).length;
 
   return (
-    <div className="absolute top-16 left-4 z-40 hidden lg:block">
+    <div className="absolute top-[4.5rem] left-4 z-40 hidden lg:block">
       <CornerBrackets className="bg-slate-950/80 backdrop-blur-md p-2.5 space-y-2.5">
         <button
           onClick={() => setExpanded(prev => !prev)}
