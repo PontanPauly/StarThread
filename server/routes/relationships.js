@@ -82,7 +82,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
     const visited = new Set([rootPersonId]);
     let frontier = [rootPersonId];
 
-    for (let hop = 0; hop < 2; hop++) {
+    while (frontier.length > 0) {
       const nextFrontier = [];
       for (const personId of frontier) {
         const neighbors = adjacency[personId] || [];
