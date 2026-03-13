@@ -172,6 +172,25 @@ async function buildRlsClause(table, userId, existingParamCount = 0) {
         params: [myPersonId],
       };
     }
+    case 'people': {
+      return {
+        whereClause: `(
+          user_id = $${offset + 1}
+          OR id = $${offset + 2}
+          OR id IN (
+            SELECT related_person_id FROM relationships
+            WHERE person_id = $${offset + 3}
+              AND status_from_person IN ('confirmed', 'claimed')
+            UNION
+            SELECT person_id FROM relationships
+            WHERE related_person_id = $${offset + 4}
+              AND status_from_person IN ('confirmed', 'claimed')
+          )
+          OR privacy_level = 'public'
+        )`,
+        params: [userId, myPersonId, myPersonId, myPersonId],
+      };
+    }
     default:
       return null;
   }
@@ -667,7 +686,7 @@ router.get('/:type', requireAuth, async (req, res) => {
     }
 
     const result = await pool.query(query, params);
-    res.json(result.rows);
+    res.json(result.rows.map(r => sanitizeResponse(r, config.table)));
   } catch (error) {
     console.error('List entities error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -781,7 +800,7 @@ router.get('/:type/filter', requireAuth, async (req, res) => {
     }
 
     const result = await pool.query(query, params);
-    res.json(result.rows);
+    res.json(result.rows.map(r => sanitizeResponse(r, config.table)));
   } catch (error) {
     console.error('Filter entities error:', error);
     res.status(500).json({ error: 'Internal server error' });

@@ -647,9 +647,14 @@ export default function StarView() {
     return () => window.removeEventListener("resize", updateSize);
   }, [isMobile]);
 
-  const { data: people = [], isLoading: loadingPeople } = useQuery({
-    queryKey: ["people"],
-    queryFn: () => base44.entities.Person.list(),
+  const { data: galaxyData, isLoading: loadingPeople } = useQuery({
+    queryKey: ["galaxy", personId],
+    queryFn: async () => {
+      const response = await fetch(`/api/relationships/galaxy/${personId}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to load galaxy data');
+      return response.json();
+    },
+    enabled: !!personId,
   });
 
   const { data: households = [] } = useQuery({
@@ -657,22 +662,11 @@ export default function StarView() {
     queryFn: () => base44.entities.Household.list(),
   });
 
-  const person = people.find((p) => p.id === personId);
+  const person = galaxyData?.centerPerson || null;
 
-  const { data: forwardRels = [] } = useQuery({
-    queryKey: ["relationships", personId],
-    queryFn: () => base44.entities.Relationship.filter({ person_id: personId }),
-    enabled: !!personId,
-  });
+  const { people, relationships } = useMemo(() => {
+    if (!galaxyData) return { people: [], relationships: [] };
 
-  const { data: reverseRels = [] } = useQuery({
-    queryKey: ["reverse-relationships", personId],
-    queryFn: () =>
-      base44.entities.Relationship.filter({ related_person_id: personId }),
-    enabled: !!personId,
-  });
-
-  const relationships = useMemo(() => {
     const inverseType = {
       parent: "child",
       child: "parent",
@@ -683,28 +677,29 @@ export default function StarView() {
       step_parent: "step_child",
       step_child: "step_parent",
     };
-    const byPerson = new Map();
-    reverseRels.forEach((rel) => {
-      const otherId = rel.person_id;
-      if (!byPerson.has(otherId)) {
-        byPerson.set(otherId, {
-          ...rel,
-          _displayType: rel.relationship_type,
-        });
-      }
-    });
-    forwardRels.forEach((rel) => {
-      const otherId = rel.related_person_id;
-      if (!byPerson.has(otherId)) {
-        const type = (rel.relationship_type || "").toLowerCase();
-        byPerson.set(otherId, {
-          ...rel,
+
+    const allPeople = [];
+    const allRelationships = [];
+
+    for (const ring of galaxyData.rings) {
+      for (const entry of ring.people) {
+        allPeople.push(entry.person);
+        const type = (entry.relationship.relationship_type || "").toLowerCase();
+        allRelationships.push({
+          ...entry.relationship,
+          person_id: personId,
+          related_person_id: entry.person.id,
           _displayType: inverseType[type] || type,
         });
       }
-    });
-    return Array.from(byPerson.values());
-  }, [forwardRels, reverseRels]);
+    }
+
+    if (galaxyData.centerPerson) {
+      allPeople.push(galaxyData.centerPerson);
+    }
+
+    return { people: allPeople, relationships: allRelationships };
+  }, [galaxyData, personId]);
 
   const { data: moments = [] } = useQuery({
     queryKey: ["moments"],

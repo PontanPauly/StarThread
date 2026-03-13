@@ -21,6 +21,7 @@ export default function Birthdays() {
     const thisMonth = [];
     
     people.forEach(person => {
+      if (!person.birth_date && !person.birth_year) return;
       if (!person.birth_date) return;
       
       const birthDate = new Date(person.birth_date);
@@ -208,6 +209,32 @@ export default function Birthdays() {
           })}
         </div>
       </div>
+
+      {(() => {
+        const ancestors = people
+          .filter(p => !p.birth_date && p.birth_year)
+          .sort((a, b) => a.birth_year - b.birth_year);
+        if (ancestors.length === 0) return null;
+        return (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="w-5 h-5 text-amber-400" />
+              <h2 className="text-lg font-semibold text-slate-100">Ancestors</h2>
+            </div>
+            <div className="space-y-2">
+              {ancestors.map(person => (
+                <Link key={person.id} to={`/star/${person.id}`} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-800/30">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-100">{person.name}</span>
+                    {person.nickname && <span className="text-sm text-slate-500">"{person.nickname}"</span>}
+                  </div>
+                  <span className="text-sm text-slate-400">b. {person.birth_year}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
