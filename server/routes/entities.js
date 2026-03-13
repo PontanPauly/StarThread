@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { pool } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sendAccountReadyEmail } from '../email.js';
-import { scoreNewPerson, rescorePerson, rescoreForUser } from '../scoringTriggers.js';
+import { scoreNewPerson, rescorePerson, rescoreForUser, rescoreNeighbors } from '../scoringTriggers.js';
 
 const router = express.Router();
 
@@ -1130,6 +1130,20 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
             .catch(err => console.error('[EMAIL] Failed to send account ready email:', err));
         } catch (emailErr) {
           console.error('[EMAIL] Error preparing account ready email:', emailErr);
+        }
+      }
+    }
+
+    if (config.table === 'relationships') {
+      const isNowConfirmed =
+        (data.status_from_person === 'confirmed' || data.status_from_related === 'confirmed');
+      if (isNowConfirmed && updated.person_id && updated.related_person_id) {
+        const bothConfirmed =
+          (updated.status_from_person === 'confirmed' || updated.status_from_person === 'claimed') &&
+          (updated.status_from_related === 'confirmed' || updated.status_from_related === 'claimed');
+        if (bothConfirmed) {
+          rescoreNeighbors(updated.person_id).catch(err => console.error('[ScoringTrigger] async rescoreNeighbors error:', err.message));
+          rescoreNeighbors(updated.related_person_id).catch(err => console.error('[ScoringTrigger] async rescoreNeighbors error:', err.message));
         }
       }
     }

@@ -11,7 +11,7 @@ export default function SuggestedMatches() {
   const { data: suggestions = [], isLoading } = useQuery({
     queryKey: ["identity-suggestions"],
     queryFn: async () => {
-      const res = await fetch("/api/identity/suggestions", { credentials: "include" });
+      const res = await fetch("/api/identity/suggestions?scope=own", { credentials: "include" });
       if (!res.ok) return [];
       return res.json();
     },

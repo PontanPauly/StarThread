@@ -40,11 +40,58 @@ export async function scoreNewPerson(personId) {
 
     if (person.user_id) return;
 
-    const { rows: allUsers } = await pool.query(`
-      SELECT u.id AS user_id, u.email, u.full_name, p.id AS person_id
-      FROM users u
-      LEFT JOIN people p ON p.user_id = u.id
-    `);
+    const personSignals = {
+      name: person.name,
+      first_name: person.first_name,
+      last_name: person.last_name,
+    };
+
+    const candidates = await findCandidates(personSignals, {
+      excludeIds: [personId],
+      limit: 50,
+      unclaimedOnly: false,
+    });
+
+    const claimedCandidates = candidates.filter(c => c.user_id);
+
+    const seenUserIds = new Set();
+
+    for (const candidate of claimedCandidates) {
+      if (seenUserIds.has(candidate.user_id)) continue;
+      seenUserIds.add(candidate.user_id);
+
+      const { rows: userRows } = await pool.query(
+        `SELECT id, email, full_name FROM users WHERE id = $1`, [candidate.user_id]
+      );
+      if (userRows.length === 0) continue;
+      const user = userRows[0];
+
+      const userContextIds = await getConfirmedContextPersonIds(candidate.id);
+      const userSignals = {
+        name: user.full_name,
+        email: user.email,
+        context_person_ids: userContextIds,
+      };
+
+      const result = await computeMatchScore(person, userSignals);
+      if (result.score >= MIN_SCORE_THRESHOLD) {
+        await upsertSuggestion(candidate.user_id, personId, result.score, result.confidence, result.explanations, result.breakdown);
+      }
+    }
+
+    const seenUserIdsArr = Array.from(seenUserIds);
+    const { rows: allUsers } = seenUserIdsArr.length > 0
+      ? await pool.query(`
+        SELECT u.id AS user_id, u.email, u.full_name, p.id AS person_id
+        FROM users u
+        LEFT JOIN people p ON p.user_id = u.id
+        WHERE u.id != ALL($1::uuid[])
+      `, [seenUserIdsArr])
+      : await pool.query(`
+        SELECT u.id AS user_id, u.email, u.full_name, p.id AS person_id
+        FROM users u
+        LEFT JOIN people p ON p.user_id = u.id
+      `);
 
     for (const user of allUsers) {
       const userContextIds = user.person_id ? await getConfirmedContextPersonIds(user.person_id) : [];

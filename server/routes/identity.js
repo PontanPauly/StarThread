@@ -10,22 +10,27 @@ const router = express.Router();
 router.get('/suggestions', requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;
-    const excludeFamily = req.query.exclude_family === 'true';
+    const scope = req.query.scope;
 
-    const { rows: ownSuggestions } = await pool.query(`
-      SELECT s.*, p.name, p.first_name, p.last_name, p.photo_url, p.role_type,
-             p.birth_year, p.city, p.state, NULL AS for_family_member_name, NULL AS for_family_member_id
-      FROM person_match_suggestions s
-      JOIN people p ON p.id = s.suggested_person_id
-      WHERE s.user_id = $1
-        AND s.status = 'pending'
-        AND p.user_id IS NULL
-        AND p.merged_into_id IS NULL
-      ORDER BY s.score DESC
-    `, [userId]);
-
+    let ownSuggestions = [];
     let familySuggestions = [];
-    if (!excludeFamily) {
+
+    if (scope !== 'family') {
+      const { rows } = await pool.query(`
+        SELECT s.*, p.name, p.first_name, p.last_name, p.photo_url, p.role_type,
+               p.birth_year, p.city, p.state, NULL AS for_family_member_name, NULL AS for_family_member_id
+        FROM person_match_suggestions s
+        JOIN people p ON p.id = s.suggested_person_id
+        WHERE s.user_id = $1
+          AND s.status = 'pending'
+          AND p.user_id IS NULL
+          AND p.merged_into_id IS NULL
+        ORDER BY s.score DESC
+      `, [userId]);
+      ownSuggestions = rows;
+    }
+
+    if (scope !== 'own') {
       familySuggestions = await scoreFamilySuggestions(userId);
     }
 
