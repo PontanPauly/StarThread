@@ -73,10 +73,10 @@
     "googleapis": "^171.4.0",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
-    "jspdf": "^2.5.2",
+    "jspdf": "^4.2.0",
     "lodash": "^4.17.21",
     "lucide-react": "^0.475.0",
-    "multer": "^2.0.2",
+    "multer": "^2.1.1",
     "next-themes": "^0.4.4",
     "nodemailer": "^8.0.2",
     "pg": "^8.16.3",
@@ -99,6 +99,15 @@
     "vaul": "^1.1.2",
     "ws": "^8.19.0",
     "zod": "^3.24.2"
+  },
+  "overrides": {
+    "@remix-run/router": "1.23.2",
+    "axios": "1.13.5",
+    "flatted": "3.4.0",
+    "glob": "10.5.0",
+    "minimatch@3": "3.1.4",
+    "minimatch@9": "9.0.7",
+    "rollup": "4.59.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
