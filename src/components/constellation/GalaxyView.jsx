@@ -198,14 +198,17 @@ function useQualityTier() {
   const lastDowngrade = useRef(0);
 
   const downgrade = useCallback(() => {
-    const order = ['ultra', 'high', 'medium', 'low'];
-    const idx = order.indexOf(qualityTier.tier);
-    if (idx < order.length - 1) {
-      const newTier = order[idx + 1];
-      try { localStorage.setItem('starthread_quality_tier', newTier); } catch (e) {}
-      setQualityTier(QUALITY_TIERS[newTier]);
-    }
-  }, [qualityTier.tier]);
+    setQualityTier(prev => {
+      const order = ['ultra', 'high', 'medium', 'low'];
+      const idx = order.indexOf(prev.tier);
+      if (idx < order.length - 1) {
+        const newTier = order[idx + 1];
+        try { localStorage.setItem('starthread_quality_tier', newTier); } catch (e) {}
+        return QUALITY_TIERS[newTier];
+      }
+      return prev;
+    });
+  }, []);
 
   const setTier = useCallback((tierName) => {
     if (QUALITY_TIERS[tierName]) {
@@ -244,7 +247,7 @@ function useQualityTier() {
     return () => cancelAnimationFrame(animId);
   }, [downgrade]);
 
-  return { ...qualityTier, setTier };
+  return useMemo(() => ({ ...qualityTier, setTier }), [qualityTier, setTier]);
 }
 
 const NEBULA_COLORS = {
@@ -974,9 +977,13 @@ function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualit
     }
 
     const targetFov = baseFov.current + speedRatio * 15;
-    currentFov.current += (targetFov - currentFov.current) * dt * 3;
-    camera.fov = currentFov.current;
-    camera.updateProjectionMatrix();
+    const fovDiff = targetFov - currentFov.current;
+    if (Math.abs(fovDiff) > 0.001) {
+      currentFov.current += fovDiff * dt * 3;
+      if (Math.abs(targetFov - currentFov.current) < 0.001) currentFov.current = targetFov;
+      camera.fov = currentFov.current;
+      camera.updateProjectionMatrix();
+    }
   });
 
   return null;
@@ -5542,6 +5549,19 @@ export default function GalaxyView({ people = [], relationships = [], households
   }, [selectedHousehold, householdPositions]);
 
   const cameraInitializedRef = useRef(false);
+  const vignetteStyle = useMemo(() => ({
+    background: 'radial-gradient(ellipse at center, transparent 30%, rgba(10,4,18,0.3) 60%, rgba(6,2,12,0.6) 100%)',
+  }), []);
+  const canvasCamera = useMemo(() => ({ position: [50, 35, 70], fov: 55 }), []);
+  const canvasGl = useMemo(() => ({
+    antialias: qualityTier.tier !== 'low',
+    alpha: false,
+    powerPreference: qualityTier.tier === 'low' ? 'low-power' : 'high-performance',
+    failIfMajorPerformanceCaveat: false,
+    preserveDrawingBuffer: false,
+  }), [qualityTier.tier]);
+  const canvasStyle = useMemo(() => ({ background: '#060410' }), []);
+
   const handleCanvasCreated = useCallback(({ gl, camera }) => {
     rendererRef.current = gl;
     cameraRef.current = camera;
@@ -5721,9 +5741,7 @@ export default function GalaxyView({ people = [], relationships = [], households
     <div className="absolute inset-0" onMouseMove={handleMouseMove}>
       <div
         className="absolute inset-0 pointer-events-none z-[2]"
-        style={{
-          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(10,4,18,0.3) 60%, rgba(6,2,12,0.6) 100%)',
-        }}
+        style={vignetteStyle}
       />
       {contextLost && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/90">
@@ -5734,15 +5752,9 @@ export default function GalaxyView({ people = [], relationships = [], households
         </div>
       )}
       <Canvas
-        camera={{ position: [50, 35, 70], fov: 55 }}
-        gl={{ 
-          antialias: qualityTier.tier !== 'low', 
-          alpha: false, 
-          powerPreference: qualityTier.tier === 'low' ? 'low-power' : 'high-performance',
-          failIfMajorPerformanceCaveat: false,
-          preserveDrawingBuffer: false,
-        }}
-        style={{ background: '#060410' }}
+        camera={canvasCamera}
+        gl={canvasGl}
+        style={canvasStyle}
         dpr={qualityTier.dpr}
         onCreated={handleCanvasCreated}
         frameloop="always"
