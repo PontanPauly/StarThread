@@ -2552,11 +2552,12 @@ function AnimatedHouseholdGroup({
         />
       )}
       {!focusedHouseholdId && coupleStarPair && (
-        <UniverseCoupleLink
-          starA={coupleStarPair[0]}
-          starB={coupleStarPair[1]}
-          colorIndex={colorIndex}
-          opacity={renderOpacity}
+        <UnionLightBridge
+          starA={coupleStarPair[0].position}
+          starB={coupleStarPair[1].position}
+          colorA={getStarPrimaryColor(coupleStarPair[0].starProfile)}
+          colorB={getStarPrimaryColor(coupleStarPair[1].starProfile)}
+          intensity={renderOpacity}
         />
       )}
       {!focusedHouseholdId && isHovered && galaxyCoupleRing && (
