@@ -366,7 +366,7 @@ export default function Onboarding() {
       await base44.entities.Relationship.create({
         person_id: myPerson.id,
         related_person_id: relatedPersonId,
-        relationship_type: member.type,
+        relationship_type: reciprocal,
         status_from_person: "confirmed",
         status_from_related: matchedExisting ? "pending" : "unaware",
       });
@@ -374,7 +374,7 @@ export default function Onboarding() {
       await base44.entities.Relationship.create({
         person_id: relatedPersonId,
         related_person_id: myPerson.id,
-        relationship_type: reciprocal,
+        relationship_type: member.type,
         status_from_person: matchedExisting ? "pending" : "unaware",
         status_from_related: "confirmed",
       });
