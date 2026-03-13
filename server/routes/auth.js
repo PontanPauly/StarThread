@@ -135,7 +135,13 @@ router.post('/register', authLimiter, async (req, res) => {
       );
       if (inviteResult.rows.length > 0) {
         const invite = inviteResult.rows[0];
-        const relType = invite.relationship_type || (relationship_type ? relationship_type : 'extended');
+        let relType = invite.relationship_type;
+        if (!relType) {
+          if (!relationship_type) {
+            return res.status(400).json({ error: 'Please select your relationship to the person who invited you' });
+          }
+          relType = relationship_type;
+        }
         const reciprocalType = RECIPROCAL_TYPES[relType] || relType;
 
         if (invite.for_person_id) {

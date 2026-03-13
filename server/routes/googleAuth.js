@@ -45,11 +45,12 @@ router.get('/google', (req, res) => {
 
   const callbackUrl = getCallbackUrl(req);
   const inviteCode = req.query.invite || '';
+  const relationshipType = req.query.relationship_type || '';
   const nonce = crypto.randomBytes(16).toString('hex');
 
   req.session.oauthNonce = nonce;
 
-  const state = Buffer.from(JSON.stringify({ invite: inviteCode, nonce })).toString('base64url');
+  const state = Buffer.from(JSON.stringify({ invite: inviteCode, nonce, relationship_type: relationshipType })).toString('base64url');
 
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -73,10 +74,12 @@ router.get('/google/callback', async (req, res) => {
 
   let inviteCode = '';
   let stateNonce = '';
+  let stateRelationshipType = '';
   try {
     const stateData = JSON.parse(Buffer.from(state || '', 'base64url').toString());
     inviteCode = stateData.invite || '';
     stateNonce = stateData.nonce || '';
+    stateRelationshipType = stateData.relationship_type || '';
   } catch {}
 
   const expectedNonce = req.session.oauthNonce;
@@ -175,7 +178,13 @@ router.get('/google/callback', async (req, res) => {
       );
       if (inviteResult.rows.length > 0) {
         const invite = inviteResult.rows[0];
-        const relType = invite.relationship_type || 'extended';
+        let relType = invite.relationship_type;
+        if (!relType) {
+          relType = stateRelationshipType || null;
+        }
+        if (!relType) {
+          return res.redirect('/login?error=google_failed&reason=relationship_required');
+        }
         const reciprocalType = RECIPROCAL_TYPES[relType] || relType;
 
         if (invite.for_person_id) {

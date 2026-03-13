@@ -100,6 +100,11 @@ export default function Login() {
     setLoading(true);
 
     try {
+      if (!isLogin && needsRelationshipSelection && !selectedRelationship) {
+        setError("Please select how you are related to the person who invited you.");
+        setLoading(false);
+        return;
+      }
       if (isLogin) {
         await login(formData.email, formData.password);
       } else {
@@ -177,27 +182,9 @@ export default function Login() {
           </div>
 
           {inviteCode && (
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                <Link2 className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <p className="text-sm text-amber-300">You've been invited to join a family. Register to connect.</p>
-              </div>
-              {needsRelationshipSelection && !isLogin && (
-                <div className="space-y-1">
-                  <Label className="text-slate-300 text-sm">How are you related to the person who invited you?</Label>
-                  <select
-                    value={selectedRelationship}
-                    onChange={(e) => setSelectedRelationship(e.target.value)}
-                    className="w-full h-10 rounded-md bg-slate-800/60 border border-slate-600/50 text-slate-100 px-3 text-sm focus:border-amber-400/60 focus:ring-amber-400/20 focus:outline-none"
-                    required
-                  >
-                    <option value="">Select relationship...</option>
-                    {INVITE_RELATIONSHIP_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
+              <Link2 className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <p className="text-sm text-amber-300">You've been invited to join a family. Register to connect.</p>
             </div>
           )}
 
@@ -256,6 +243,23 @@ export default function Login() {
               </div>
             </div>
 
+            {needsRelationshipSelection && !isLogin && (
+              <div className="space-y-2">
+                <Label className="text-slate-300 text-sm">How are you related to the person who invited you?</Label>
+                <select
+                  value={selectedRelationship}
+                  onChange={(e) => setSelectedRelationship(e.target.value)}
+                  className="w-full h-10 rounded-md bg-slate-800/60 border border-slate-600/50 text-slate-100 px-3 text-sm focus:border-amber-400/60 focus:ring-amber-400/20 focus:outline-none"
+                  required
+                >
+                  <option value="">Select relationship...</option>
+                  {INVITE_RELATIONSHIP_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {error && (
               <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm backdrop-blur-sm">
                 {error}
@@ -294,7 +298,7 @@ export default function Login() {
               </div>
 
               <a
-                href={`/api/auth/google${inviteCode ? `?invite=${encodeURIComponent(inviteCode)}` : ''}`}
+                href={`/api/auth/google${inviteCode ? `?invite=${encodeURIComponent(inviteCode)}${selectedRelationship ? `&relationship_type=${encodeURIComponent(selectedRelationship)}` : ''}` : ''}`}
                 className="flex items-center justify-center gap-3 w-full h-11 rounded-md bg-white hover:bg-gray-50 text-slate-800 font-medium text-sm transition-colors border border-slate-200 shadow-sm"
               >
                 {GOOGLE_ICON}
