@@ -1694,7 +1694,7 @@ function arrangeStarsInCluster(people, centerX = 0, centerY = 0, centerZ = 0, re
   
   const positioned = [];
   
-  const parentOrbitRadius = 4.0;
+  const parentOrbitRadius = 1.8;
   const parentOrbitAngle = Math.PI / 6;
   
   if (parentPair.length >= 2) {
@@ -3142,9 +3142,9 @@ function SystemMeshLines({ lines, colorIndex, opacity = 0.6, coupleCenter, coupl
 }
 
 function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 }) {
-  const { lines_data, coupleCenter, coupleRadius, hasCouple, coupleStarA, coupleStarB } = useMemo(() => {
+  const { lines_data, coupleCenter, coupleRadius, hasCouple } = useMemo(() => {
     if (!stars || stars.length < 2) {
-      return { lines_data: [], coupleCenter: [0,0,0], coupleRadius: 0, hasCouple: false, coupleStarA: null, coupleStarB: null };
+      return { lines_data: [], coupleCenter: [0,0,0], coupleRadius: 0, hasCouple: false };
     }
 
     const parentStars = stars.filter(s => s.isParent);
@@ -3157,7 +3157,7 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
       centerZ = parentStars.reduce((sum, s) => sum + s.position[2], 0) / parentStars.length;
     }
 
-    const ringRadius = 5.0;
+    const ringRadius = 2.8;
     const parentStarIds = new Set(parentStars.map(s => s.id));
 
     const bioParentsOf = {};
@@ -3207,8 +3207,6 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
       coupleCenter: [centerX, centerY, centerZ],
       coupleRadius: ringRadius,
       hasCouple: parentStars.length >= 2,
-      coupleStarA: parentStars.length >= 2 ? parentStars[0] : null,
-      coupleStarB: parentStars.length >= 2 ? parentStars[1] : null,
     };
   }, [stars, relationships, colorIndex]);
 
@@ -3222,15 +3220,6 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
           radius={coupleRadius}
           colorIndex={colorIndex}
           opacity={opacity * 0.85}
-        />
-      )}
-      {hasCouple && coupleStarA && coupleStarB && (
-        <UnionLightBridge
-          starA={coupleStarA.position}
-          starB={coupleStarB.position}
-          colorA={getStarPrimaryColor(coupleStarA.starProfile)}
-          colorB={getStarPrimaryColor(coupleStarB.starProfile)}
-          intensity={1.0}
         />
       )}
       {lines_data.length > 0 && (
