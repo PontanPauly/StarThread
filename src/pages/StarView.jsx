@@ -583,8 +583,6 @@ export default function StarView() {
   const handleGoBack = () => {
     if (fromGalaxy) {
       navigate(`/family?galaxy=${fromHouseholdId}`);
-    } else if (window.history.length > 1) {
-      navigate(-1);
     } else {
       navigate('/family');
     }
