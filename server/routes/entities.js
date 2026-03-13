@@ -959,7 +959,12 @@ router.post('/:type', requireAuth, async (req, res) => {
     const values = Object.values(data);
     const placeholders = columns.map((_, i) => `$${i + 1}`);
 
-    const query = `INSERT INTO ${config.table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
+    let query;
+    if (config.table === 'relationships') {
+      query = `INSERT INTO ${config.table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) ON CONFLICT (person_id, related_person_id, relationship_type) DO UPDATE SET status = COALESCE(EXCLUDED.status, relationships.status), updated_at = NOW() RETURNING *`;
+    } else {
+      query = `INSERT INTO ${config.table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
+    }
     const result = await pool.query(query, values);
 
     let created = result.rows[0];
