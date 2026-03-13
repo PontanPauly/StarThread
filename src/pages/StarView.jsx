@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Canvas } from "@react-three/fiber";
 import { base44 } from "@/api/base44Client";
@@ -743,14 +743,13 @@ export default function StarView() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <p className="text-2xl text-slate-400 mb-4">Star not found</p>
-          <Button
-            onClick={handleGoBack}
-            variant="outline"
-            className="border-slate-600 text-slate-300"
+          <Link
+            to="/family"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4" />
             Go Back
-          </Button>
+          </Link>
         </div>
       </div>
     );
@@ -805,12 +804,28 @@ export default function StarView() {
               "radial-gradient(ellipse at center, #1e1b4b15 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, #0f172a 0%, #000 100%)",
           }}
         />
-        <div className="relative z-10 text-center space-y-6 flex flex-col items-center">
-          <Star3D
-            starProfile={starProfile}
-            personId={personId}
-            isMemorial={person.is_memorial}
-          />
+        <div className="relative z-10 text-center space-y-4 flex flex-col items-center">
+          <div className="relative w-[150px] h-[150px]">
+            <Canvas
+              camera={{ position: [0, 0, 4], fov: 50 }}
+              gl={{ alpha: true, antialias: true }}
+              style={{ background: "transparent" }}
+            >
+              <Suspense fallback={null}>
+                <StarComponent
+                  starProfile={starProfile || DEFAULT_STAR_PROFILE}
+                  personId={personId}
+                  position={[0, 0, 0]}
+                  isHovered={false}
+                  isFocused={true}
+                  isMemorial={person.is_memorial}
+                  globalOpacity={1}
+                  globalScale={1.8}
+                  animated={true}
+                />
+              </Suspense>
+            </Canvas>
+          </div>
           <h1 className="text-2xl font-bold text-slate-100">{person.name}</h1>
           {parentNames.length > 0 && (
             <p className="text-slate-400">
@@ -832,14 +847,13 @@ export default function StarView() {
               toast={toast}
             />
           )}
-          <Button
-            onClick={handleGoBack}
-            variant="outline"
-            className="border-slate-600 text-slate-300 mt-4"
+          <Link
+            to={fromGalaxy ? `/family?galaxy=${fromHouseholdId}` : '/family'}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800 transition-colors mt-4"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4" />
             Go Back
-          </Button>
+          </Link>
         </div>
       </div>
     );
