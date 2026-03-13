@@ -405,8 +405,8 @@ router.post('/users/:id/reset-password', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { new_password } = req.body;
-    if (!new_password || new_password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (!new_password || new_password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
     const hash = await bcrypt.hash(new_password, 10);
     const { rows } = await pool.query(

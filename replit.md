@@ -41,6 +41,7 @@ The application follows a client-server architecture:
 22. **WebGL Error Boundaries**: Provides robust error handling and retry mechanisms for 3D canvases.
 23. **PWA Support**: Installable progressive web app with offline caching and mobile web app capabilities.
 24. **Social Platform Linking**: Users can link/unlink social media accounts (Facebook, X/Twitter, Instagram, LinkedIn, TikTok, YouTube) to their profile. Stored as JSONB `social_links` on the `people` table. Handles/URLs validated on both client and server. Displayed on Profile page and StarView, respecting privacy settings.
+25. **Policies & Trust Center**: Dedicated `/policies` route with 5 trust & safety documents (Terms of Service, Privacy Policy, Community Guidelines, Safety Policy, Beta Program). Linked from Settings > Policies tab. Each document has its own detail page at `/policies/:policyKey`.
 
 ### System Design Choices
 -   Data model centered on `people` and `relationships`, with optional `households`. Auto-computes `name` from `first_name`, `middle_name`, `last_name`.
@@ -65,6 +66,12 @@ The application follows a client-server architecture:
 -   **GPU Resource Management**: 3D components manage Three.js material and geometry disposal to prevent memory leaks.
 -   **Toast System**: Unified custom toast system for all notifications.
 -   **Form Dirty Tracking**: Implemented for forms to track unsaved changes and prompt users before discarding.
+-   **Invite Link RLS**: `buildRlsClause` now filters invite_links to `created_by_person_id` (read-level RLS), preventing users from reading other users' invite links.
+-   **PII Protection**: `linked_user_email` removed from Person entity columns (not returned in GET responses). Write-only via `WRITE_ONLY_COLUMNS` map. Guardians access child email via dedicated `GET /api/entities/guardian/:wardPersonId/linked-email` endpoint.
+-   **Password Minimum Length**: Consistently enforced at 8 characters across all endpoints (auth register, change password, reset password, admin reset).
+-   **Unread Message Badge**: Sidebar "Messages" nav item shows amber badge with unread count, polling every 60s.
+-   **Birth Year UI**: PersonForm shows "Birth Year (approximate)" number input when birth_date is empty or role_type is 'ancestor'. Auto-syncs from birth_date when set.
+-   **Birthday Links**: Birthday cards now link to `/star/:personId` (StarView) instead of `/family`.
 
 ## External Dependencies
 -   **Database**: PostgreSQL

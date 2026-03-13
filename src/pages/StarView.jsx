@@ -100,9 +100,16 @@ const PARENTAL_FEATURE_OPTIONS = [
 function ParentControls({ person, personId, age, people, households, queryClient, toast }) {
   const navigate = useNav2();
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [childEmail, setChildEmail] = useState(person.linked_user_email || '');
+  const [childEmail, setChildEmail] = useState('');
   const [savingEmail, setSavingEmail] = useState(false);
   const controls = person.parental_controls || {};
+
+  useEffect(() => {
+    fetch(`/api/entities/guardian/${personId}/linked-email`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.linked_user_email) setChildEmail(data.linked_user_email); })
+      .catch(() => {});
+  }, [personId]);
 
   const handleSaveEmail = async () => {
     setSavingEmail(true);

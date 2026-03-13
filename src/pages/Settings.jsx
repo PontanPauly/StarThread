@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
 import { 
@@ -145,14 +146,27 @@ export default function Settings() {
               <PolicyLink
                 title="Terms of Service"
                 description="Read our terms and conditions for using StarThread."
+                href="/policies/terms"
               />
               <PolicyLink
                 title="Privacy Policy"
                 description="Learn how we collect, use, and protect your personal information."
+                href="/policies/privacy"
+              />
+              <PolicyLink
+                title="Community Guidelines"
+                description="Standards for respectful, safe family interactions."
+                href="/policies/community"
+              />
+              <PolicyLink
+                title="Safety Policy"
+                description="How we protect you and your family, especially minors."
+                href="/policies/safety"
               />
               <PolicyLink
                 title="Beta Program"
                 description="StarThread is currently in beta. Learn about what that means and how to provide feedback."
+                href="/policies/beta"
               />
             </div>
           </div>
@@ -1036,14 +1050,14 @@ function BetaProgramSection() {
   );
 }
 
-function PolicyLink({ title, description }) {
+function PolicyLink({ title, description, href }) {
   return (
-    <div className="flex items-start justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+    <Link to={href} className="flex items-start justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700 hover:bg-slate-800 transition-colors group">
       <div>
-        <h4 className="text-slate-200 font-medium">{title}</h4>
+        <h4 className="text-slate-200 font-medium group-hover:text-amber-300 transition-colors">{title}</h4>
         <p className="text-sm text-slate-400 mt-1">{description}</p>
       </div>
-      <ExternalLink className="w-4 h-4 text-slate-500 mt-1 flex-shrink-0 ml-4" />
-    </div>
+      <ExternalLink className="w-4 h-4 text-slate-500 mt-1 flex-shrink-0 ml-4 group-hover:text-amber-400 transition-colors" />
+    </Link>
   );
 }

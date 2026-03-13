@@ -20,6 +20,7 @@ import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminUsers from '@/pages/admin/AdminUsers';
 import AdminHouseholds from '@/pages/admin/AdminHouseholds';
 import AdminSupport from '@/pages/admin/AdminSupport';
+import Policies from '@/pages/Policies';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -149,6 +150,20 @@ const AuthenticatedApp = () => {
         <ProtectedRoute>
           <LayoutWrapper currentPageName="StarView">
             <StarView />
+          </LayoutWrapper>
+        </ProtectedRoute>
+      } />
+      <Route path="/policies" element={
+        <ProtectedRoute>
+          <LayoutWrapper currentPageName="Policies">
+            <Policies />
+          </LayoutWrapper>
+        </ProtectedRoute>
+      } />
+      <Route path="/policies/:policyKey" element={
+        <ProtectedRoute>
+          <LayoutWrapper currentPageName="Policies">
+            <Policies />
           </LayoutWrapper>
         </ProtectedRoute>
       } />

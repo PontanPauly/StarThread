@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { createPageUrl } from "./utils";
 import { useAuth } from "@/lib/AuthContext";
 import { useMyPerson } from "@/hooks/useMyPerson";
+import { base44 } from "@/api/base44Client";
 import { 
   Home, 
   Users, 
@@ -43,6 +44,19 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const isBetaUser = betaData?.isParticipant && betaData?.hasFullAccess;
+
+  const { data: allMessages } = useQuery({
+    queryKey: ['messages'],
+    queryFn: () => base44.entities.Message.list(),
+    enabled: !!user && !!myPerson,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
+  const unreadCount = useMemo(() => {
+    if (!allMessages || !myPerson) return 0;
+    return allMessages.filter(m => !m.is_read && m.from_person_id !== myPerson.id).length;
+  }, [allMessages, myPerson]);
 
   const allNavigation = [
     { name: "Home", href: createPageUrl("Home"), icon: Home },
@@ -215,6 +229,11 @@ export default function Layout({ children, currentPageName }) {
                 >
                   <Icon className={cn("w-5 h-5", active && "text-amber-400")} />
                   <span className="font-medium">{item.name}</span>
+                  {item.name === "Messages" && unreadCount > 0 && (
+                    <span className="ml-auto bg-amber-500 text-slate-900 text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}

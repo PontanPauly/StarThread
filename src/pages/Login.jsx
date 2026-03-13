@@ -197,7 +197,7 @@ export default function Login() {
                   className="pl-10 bg-slate-800/60 border-slate-600/50 text-slate-100 placeholder:text-slate-500 focus:border-amber-400/60 focus:ring-amber-400/20 backdrop-blur-sm"
                   placeholder="••••••••"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
             </div>

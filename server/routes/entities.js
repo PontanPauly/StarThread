@@ -150,7 +150,6 @@ async function buildRlsClause(table, userId, existingParamCount = 0) {
       };
     }
     case 'packing_items': {
-      // User sees their own items OR items on trips they participate in
       return {
         whereClause: `(person_id = $${offset + 1} OR trip_id IN (
           SELECT trip_id FROM trip_participants WHERE person_id = $${offset + 2}
@@ -159,11 +158,16 @@ async function buildRlsClause(table, userId, existingParamCount = 0) {
       };
     }
     case 'shared_trip_items': {
-      // Items on trips the user participates in
       return {
         whereClause: `trip_id IN (
           SELECT trip_id FROM trip_participants WHERE person_id = $${offset + 1}
         )`,
+        params: [myPersonId],
+      };
+    }
+    case 'invite_links': {
+      return {
+        whereClause: `created_by_person_id = $${offset + 1}`,
         params: [myPersonId],
       };
     }
@@ -376,7 +380,7 @@ function validateSocialLinks(socialLinks) {
 const entityConfig = {
   Person: {
     table: 'people',
-    columns: ['id', 'name', 'first_name', 'middle_name', 'last_name', 'nickname', 'photo_url', 'birth_date', 'birth_year', 'death_date', 'role_type', 'household_id', 'household_status', 'linked_user_email', 'allergies', 'dietary_preferences', 'is_deceased', 'about', 'star_profile', 'guardian_ids', 'star_pattern', 'star_intensity', 'star_flare_count', 'user_id', 'address', 'city', 'state', 'is_memorial', 'memorial_date', 'privacy_level', 'parental_controls', 'onboarding_complete', 'created_by_user_id', 'social_links', 'created_at']
+    columns: ['id', 'name', 'first_name', 'middle_name', 'last_name', 'nickname', 'photo_url', 'birth_date', 'birth_year', 'death_date', 'role_type', 'household_id', 'household_status', 'allergies', 'dietary_preferences', 'is_deceased', 'about', 'star_profile', 'guardian_ids', 'star_pattern', 'star_intensity', 'star_flare_count', 'user_id', 'address', 'city', 'state', 'is_memorial', 'memorial_date', 'privacy_level', 'parental_controls', 'onboarding_complete', 'created_by_user_id', 'social_links', 'created_at']
   },
   Trip: {
     table: 'trips',
@@ -482,10 +486,25 @@ function isValidColumn(col) {
   return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(col);
 }
 
-function filterColumns(data, allowedColumns) {
+const WRITE_ONLY_COLUMNS = {
+  people: ['linked_user_email'],
+};
+
+function sanitizeResponse(row, tableName) {
+  const writeOnly = WRITE_ONLY_COLUMNS[tableName];
+  if (!writeOnly || !row) return row;
+  const sanitized = { ...row };
+  for (const col of writeOnly) {
+    delete sanitized[col];
+  }
+  return sanitized;
+}
+
+function filterColumns(data, allowedColumns, tableName) {
+  const writeOnly = WRITE_ONLY_COLUMNS[tableName] || [];
   const filtered = {};
   for (const [key, value] of Object.entries(data)) {
-    if (allowedColumns.includes(key) && key !== 'id') {
+    if ((allowedColumns.includes(key) || writeOnly.includes(key)) && key !== 'id') {
       filtered[key] = value;
     }
   }
@@ -551,6 +570,25 @@ router.get('/guardian/:wardPersonId/messages', requireAuth, async (req, res) => 
     res.json(rows);
   } catch (error) {
     console.error('Guardian messages error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/guardian/:wardPersonId/linked-email', requireAuth, async (req, res) => {
+  try {
+    const myPersonId = await getMyPersonId(req.session.userId);
+    if (!myPersonId) return res.status(403).json({ error: 'No linked person' });
+
+    const isGuardian = await verifyGuardianOf(myPersonId, req.params.wardPersonId);
+    if (!isGuardian) return res.status(403).json({ error: 'Not a guardian of this person' });
+
+    const { rows } = await pool.query(
+      `SELECT linked_user_email FROM people WHERE id = $1`,
+      [req.params.wardPersonId]
+    );
+    res.json({ linked_user_email: rows[0]?.linked_user_email || null });
+  } catch (error) {
+    console.error('Guardian linked-email error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -871,7 +909,7 @@ router.post('/:type', requireAuth, async (req, res) => {
       }
     }
 
-    const data = filterColumns(req.body, config.columns);
+    const data = filterColumns(req.body, config.columns, config.table);
     if (Object.keys(data).length === 0) {
       return res.status(400).json({ error: 'No valid columns provided' });
     }
@@ -938,7 +976,7 @@ router.post('/:type', requireAuth, async (req, res) => {
       }
     }
 
-    res.status(201).json(created);
+    res.status(201).json(sanitizeResponse(created, config.table));
   } catch (error) {
     if (error.code === '22P02' || error.code === '22007' || error.code === '22003') {
       return res.status(400).json({ error: `Invalid input: ${error.message.split('\n')[0]}` });
@@ -971,7 +1009,7 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
       }
     }
 
-    const data = filterColumns(req.body, config.columns);
+    const data = filterColumns(req.body, config.columns, config.table);
     delete data.created_by_user_id;
     if (Object.keys(data).length === 0) {
       return res.status(400).json({ error: 'No valid columns provided' });
@@ -1084,7 +1122,7 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
       }
     }
 
-    res.json(updated);
+    res.json(sanitizeResponse(updated, config.table));
   } catch (error) {
     if (error.code === '22P02' || error.code === '22007' || error.code === '22003') {
       return res.status(400).json({ error: `Invalid input: ${error.message.split('\n')[0]}` });
@@ -1123,7 +1161,7 @@ router.delete('/:type/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Entity not found' });
     }
 
-    res.json({ message: 'Entity deleted successfully', deleted: result.rows[0] });
+    res.json({ message: 'Entity deleted successfully', deleted: sanitizeResponse(result.rows[0], config.table) });
   } catch (error) {
     console.error('Delete entity error:', error);
     res.status(500).json({ error: 'Internal server error' });

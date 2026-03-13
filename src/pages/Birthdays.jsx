@@ -90,7 +90,7 @@ export default function Birthdays() {
             {birthdayData.upcoming.map(({ person, nextBirthday, daysUntil, age }) => (
               <Link
                 key={person.id}
-                to={createPageUrl("Family")}
+                to={`/star/${person.id}`}
                 className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors border border-slate-700/50 group"
               >
                 <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center overflow-hidden">
@@ -145,7 +145,7 @@ export default function Birthdays() {
             {birthdayData.thisMonth.map(({ person, nextBirthday, age }) => (
               <Link
                 key={person.id}
-                to={createPageUrl("Family")}
+                to={`/star/${person.id}`}
                 className="p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors border border-slate-700/50"
               >
                 <div className="flex items-center gap-3">
@@ -192,7 +192,7 @@ export default function Birthdays() {
                 <h3 className="text-sm font-semibold text-slate-400 mb-2">{month}</h3>
                 <div className="space-y-2">
                   {monthBirthdays.map(person => (
-                    <div key={person.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-800/30">
+                    <Link key={person.id} to={`/star/${person.id}`} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-800/30">
                       <div className="flex items-center gap-2">
                         <span className="text-slate-100">{person.name}</span>
                         {person.nickname && <span className="text-sm text-slate-500">"{person.nickname}"</span>}
@@ -200,7 +200,7 @@ export default function Birthdays() {
                       <span className="text-sm text-slate-400">
                         {format(new Date(person.birth_date), 'MMM d')}
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

@@ -251,6 +251,7 @@ export default function PersonForm({ person, households, people, onSuccess, onCa
     last_name: person?.last_name || "",
     nickname: person?.nickname || "",
     birth_date: person?.birth_date ? person.birth_date.split('T')[0] : "",
+    birth_year: person?.birth_year || "",
     role_type: defaultRole,
     is_deceased: person?.is_deceased || false,
     death_date: person?.death_date || "",
@@ -420,6 +421,7 @@ export default function PersonForm({ person, households, people, onSuccess, onCa
       const dataToSave = {
         ...formData,
         birth_date: formData.birth_date || null,
+        birth_year: formData.birth_year ? parseInt(formData.birth_year, 10) : null,
         death_date: formData.death_date || null,
       };
 
@@ -862,12 +864,27 @@ export default function PersonForm({ person, households, people, onSuccess, onCa
               setFormData({
                 ...formData,
                 birth_date: newDate,
+                birth_year: newDate ? parseInt(newDate.split('-')[0], 10) : formData.birth_year,
                 ...(autoRole && formData.role_type !== 'ancestor' ? { role_type: autoRole } : {}),
               });
             }}
             className="bg-slate-800 border-slate-700 text-slate-100"
           />
         </div>
+        {(!formData.birth_date || formData.role_type === 'ancestor') && (
+          <div className="space-y-2">
+            <Label className="text-slate-300">Birth Year (approximate)</Label>
+            <Input
+              type="number"
+              min={1800}
+              max={new Date().getFullYear()}
+              placeholder="e.g. 1942"
+              value={formData.birth_year}
+              onChange={(e) => { setFormData({ ...formData, birth_year: e.target.value }); markDirty(); }}
+              className="bg-slate-800 border-slate-700 text-slate-100"
+            />
+          </div>
+        )}
       </div>
 
       {/* Deceased toggle */}
