@@ -5360,7 +5360,46 @@ export default function GalaxyView({ people = [], relationships = [], households
   const wasdKeysPressed = useRef({ w: false, a: false, s: false, d: false });
   
   const qualityTier = useQualityTier();
-  const householdPositions = useOrganicClusterLayout(households, people, viewMode, relationships);
+  const rawHouseholdPositions = useOrganicClusterLayout(households, people, viewMode, relationships);
+
+  const householdPositions = useMemo(() => {
+    if (rawHouseholdPositions.size <= 1) return rawHouseholdPositions;
+    const MIN_DIST = 50;
+    const entries = [];
+    rawHouseholdPositions.forEach((pos, id) => {
+      entries.push({ id, x: pos.x, y: pos.y, z: pos.z, data: pos });
+    });
+    for (let iter = 0; iter < 12; iter++) {
+      let moved = false;
+      for (let i = 0; i < entries.length; i++) {
+        for (let j = i + 1; j < entries.length; j++) {
+          const a = entries[i], b = entries[j];
+          const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (dist < MIN_DIST && dist > 0.001) {
+            const overlap = (MIN_DIST - dist) * 0.55;
+            const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+            a.x -= nx * overlap; a.y -= ny * overlap; a.z -= nz * overlap;
+            b.x += nx * overlap; b.y += ny * overlap; b.z += nz * overlap;
+            moved = true;
+          } else if (dist <= 0.001) {
+            const angle = (i * 2.399 + j * 1.7);
+            a.x -= Math.cos(angle) * MIN_DIST * 0.5;
+            a.z -= Math.sin(angle) * MIN_DIST * 0.5;
+            b.x += Math.cos(angle) * MIN_DIST * 0.5;
+            b.z += Math.sin(angle) * MIN_DIST * 0.5;
+            moved = true;
+          }
+        }
+      }
+      if (!moved) break;
+    }
+    const result = new Map();
+    entries.forEach(e => {
+      result.set(e.id, { ...e.data, x: e.x, y: e.y, z: e.z });
+    });
+    return result;
+  }, [rawHouseholdPositions]);
 
   const myHomePosition = useMemo(() => {
     if (!myPerson || !myPerson.household_id || householdPositions.size === 0) return null;
