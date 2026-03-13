@@ -582,7 +582,7 @@ function buildPlanets({
 
 function MatchIndicator({ personId }) {
   const { data: suggestions = [] } = useQuery({
-    queryKey: ["identity-suggestions"],
+    queryKey: ["identity-suggestions", "all"],
     queryFn: async () => {
       const res = await fetch("/api/identity/suggestions", { credentials: "include" });
       if (!res.ok) return [];

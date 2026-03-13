@@ -38,7 +38,12 @@ export async function scoreNewPerson(personId) {
     if (rows.length === 0) return;
     const person = rows[0];
 
-    if (person.user_id) return;
+    if (person.user_id) {
+      rescoreForUser(person.user_id).catch(err =>
+        console.error('[ScoringTrigger] scoreNewPerson->rescoreForUser error:', err.message)
+      );
+      return;
+    }
 
     const personSignals = {
       name: person.name,

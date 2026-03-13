@@ -9,7 +9,7 @@ export default function SuggestedMatches() {
   const [loading, setLoading] = useState(null);
 
   const { data: suggestions = [], isLoading } = useQuery({
-    queryKey: ["identity-suggestions"],
+    queryKey: ["identity-suggestions", "own"],
     queryFn: async () => {
       const res = await fetch("/api/identity/suggestions?scope=own", { credentials: "include" });
       if (!res.ok) return [];
