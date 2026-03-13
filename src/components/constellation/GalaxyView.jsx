@@ -4854,8 +4854,8 @@ function TopBar({ level, selectedHousehold, cameraPos, onBackToGalaxy, starCount
     : '0.0 · 0.0 · 0.0';
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none hidden sm:block">
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3">
+    <div className="absolute top-12 left-0 right-0 z-40 pointer-events-none hidden sm:block">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-1 sm:py-2">
         <div className="pointer-events-auto flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={onBackToGalaxy}
@@ -4914,7 +4914,7 @@ function FilterToggles({
   const activeRelCount = (filters.relationshipTypes || []).length;
 
   return (
-    <div className="absolute top-12 sm:top-16 left-2 sm:left-4 z-50 hidden sm:block">
+    <div className="absolute top-20 sm:top-24 left-2 sm:left-4 z-40 hidden sm:block">
       <CornerBrackets className="bg-slate-950/80 backdrop-blur-md p-2.5 space-y-2.5">
         <button
           onClick={() => setExpanded(prev => !prev)}
