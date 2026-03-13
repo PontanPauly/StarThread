@@ -40,12 +40,6 @@ export async function scoreNewPerson(personId) {
 
     if (person.user_id) return;
 
-    const personSignals = {
-      name: person.name,
-      first_name: person.first_name,
-      last_name: person.last_name,
-    };
-
     const { rows: allUsers } = await pool.query(`
       SELECT u.id AS user_id, u.email, u.full_name, p.id AS person_id
       FROM users u
@@ -53,10 +47,11 @@ export async function scoreNewPerson(personId) {
     `);
 
     for (const user of allUsers) {
+      const userContextIds = user.person_id ? await getConfirmedContextPersonIds(user.person_id) : [];
       const userSignals = {
         name: user.full_name,
         email: user.email,
-        context_person_ids: user.person_id ? await getConfirmedContextPersonIds(user.person_id) : [],
+        context_person_ids: userContextIds,
       };
 
       const result = await computeMatchScore(person, userSignals);
@@ -79,24 +74,24 @@ export async function rescorePerson(personId) {
 
     if (person.user_id) return;
 
-    const { rows: existingSuggestions } = await pool.query(`
-      SELECT s.user_id, u.email, u.full_name, p.id AS person_id
-      FROM person_match_suggestions s
-      JOIN users u ON u.id = s.user_id
-      LEFT JOIN people p ON p.user_id = s.user_id
-      WHERE s.suggested_person_id = $1 AND s.status = 'pending'
-    `, [personId]);
+    const { rows: allUsers } = await pool.query(`
+      SELECT u.id AS user_id, u.email, u.full_name, p.id AS person_id
+      FROM users u
+      LEFT JOIN people p ON p.user_id = u.id
+    `);
 
-    for (const entry of existingSuggestions) {
-      const contextIds = entry.person_id ? await getConfirmedContextPersonIds(entry.person_id) : [];
+    for (const user of allUsers) {
+      const userContextIds = user.person_id ? await getConfirmedContextPersonIds(user.person_id) : [];
       const signals = {
-        name: entry.full_name,
-        email: entry.email,
-        context_person_ids: contextIds,
+        name: user.full_name,
+        email: user.email,
+        context_person_ids: userContextIds,
       };
 
       const result = await computeMatchScore(person, signals);
-      await upsertSuggestion(entry.user_id, personId, result.score, result.confidence, result.explanations, result.breakdown);
+      if (result.score >= MIN_SCORE_THRESHOLD) {
+        await upsertSuggestion(user.user_id, personId, result.score, result.confidence, result.explanations, result.breakdown);
+      }
     }
   } catch (err) {
     console.error('[ScoringTrigger] rescorePerson error:', err.message);
@@ -134,23 +129,22 @@ export async function rescoreForUser(userId) {
       `SELECT id FROM people WHERE user_id = $1`, [userId]
     );
 
+    const userContextIds = existingPerson.length > 0
+      ? await getConfirmedContextPersonIds(existingPerson[0].id)
+      : [];
+
     const signals = {
       name: user.full_name,
       first_name: user.full_name?.split(' ')[0],
       last_name: user.full_name?.split(' ').slice(1).join(' '),
       email: user.email,
+      context_person_ids: userContextIds,
     };
-
-    if (existingPerson.length > 0) {
-      signals.context_person_ids = await getConfirmedContextPersonIds(existingPerson[0].id);
-    }
 
     const candidates = await findCandidates(signals, { unclaimedOnly: true, limit: 25 });
 
     for (const candidate of candidates) {
-      const contextIds = await getConfirmedContextPersonIds(candidate.id);
-      const fullSignals = { ...signals, context_person_ids: contextIds };
-      const result = await computeMatchScore(candidate, fullSignals);
+      const result = await computeMatchScore(candidate, signals);
       await upsertSuggestion(userId, candidate.id, result.score, result.confidence, result.explanations, result.breakdown);
     }
   } catch (err) {

@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/suggestions', requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;
-    const includeFamily = req.query.include_family === 'true';
+    const excludeFamily = req.query.exclude_family === 'true';
 
     const { rows: ownSuggestions } = await pool.query(`
       SELECT s.*, p.name, p.first_name, p.last_name, p.photo_url, p.role_type,
@@ -25,7 +25,7 @@ router.get('/suggestions', requireAuth, async (req, res) => {
     `, [userId]);
 
     let familySuggestions = [];
-    if (includeFamily) {
+    if (!excludeFamily) {
       familySuggestions = await scoreFamilySuggestions(userId);
     }
 
