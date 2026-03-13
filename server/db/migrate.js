@@ -757,6 +757,10 @@ export async function runMigrations() {
       ALTER TABLE people ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}';
     `);
 
+    await client.query(`
+      ALTER TABLE person_match_suggestions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+    `);
+
     await client.query('COMMIT');
     console.log('Database migrations completed successfully');
   } catch (error) {

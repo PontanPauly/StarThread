@@ -580,6 +580,33 @@ function buildPlanets({
   return planets.slice(0, 9);
 }
 
+function MatchIndicator({ personId }) {
+  const { data: suggestions = [] } = useQuery({
+    queryKey: ["identity-suggestions"],
+    queryFn: async () => {
+      const res = await fetch("/api/identity/suggestions", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const match = suggestions.find(s => s.suggested_person_id === personId);
+  if (!match) return null;
+
+  return (
+    <div className="w-full max-w-2xl mx-auto mt-2 sm:mt-4 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center gap-3">
+      <Star className="w-4 h-4 text-cyan-400 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-cyan-300 font-medium">This might be your star</p>
+        <p className="text-[10px] text-slate-400">
+          {match.confidence === "high" ? "Strong match" : "Possible match"} based on {(match.explanations || []).slice(0, 2).join(", ").toLowerCase()}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function StarView() {
   const { personId } = useParams();
   const navigate = useNavigate();
@@ -1069,6 +1096,7 @@ export default function StarView() {
 
         {/* Scrollable content below the orbital view */}
         <div className="relative z-10 flex flex-col items-center px-3 sm:px-4 pb-12">
+          <MatchIndicator personId={personId} />
           {person.about && (
             <div className="w-full max-w-2xl mx-auto mt-2 sm:mt-6 p-4 sm:p-6 rounded-xl bg-slate-800/60 border border-slate-700/40">
               <h3 className="text-lg font-semibold text-slate-100 mb-3">

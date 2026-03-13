@@ -2,6 +2,7 @@ import express from 'express';
 import { pool } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { inferRelationships } from '../relationshipInference.js';
+import { rescoreNeighbors } from '../scoringTriggers.js';
 
 const router = express.Router();
 
@@ -194,6 +195,11 @@ router.post('/verify/:relationshipId', requireAuth, async (req, res) => {
           ['denied', reciprocal.rows[0].id]
         );
       }
+    }
+
+    if (action === 'confirm') {
+      rescoreNeighbors(rel.person_id).catch(err => console.error('[ScoringTrigger] rescoreNeighbors error:', err.message));
+      rescoreNeighbors(rel.related_person_id).catch(err => console.error('[ScoringTrigger] rescoreNeighbors error:', err.message));
     }
 
     res.json({ message: `Relationship ${action}ed successfully` });

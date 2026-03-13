@@ -24,6 +24,7 @@ import identityRoutes from './routes/identity.js';
 import { registerObjectStorageRoutes } from './replit_integrations/object_storage/routes.js';
 import http from 'http';
 import { setupWebSocket, broadcastToConversation } from './websocket.js';
+import { periodicRescore } from './scoringTriggers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -246,6 +247,11 @@ async function start() {
       console.log('Serving static files from dist/');
     }
   });
+
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+  setInterval(() => {
+    periodicRescore().catch(err => console.error('[PeriodicRescore] error:', err.message));
+  }, SIX_HOURS);
 }
 
 start();

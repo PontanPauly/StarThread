@@ -3,6 +3,7 @@ import { pool } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { computeMatchScore, findCandidates } from '../identityScoring.js';
 import { mergePeople } from '../mergeEngine.js';
+import { scoreFamilySuggestions } from '../scoringTriggers.js';
 
 const router = express.Router();
 
@@ -24,6 +25,16 @@ router.get('/suggestions', requireAuth, async (req, res) => {
     res.json(rows);
   } catch (error) {
     console.error('Get suggestions error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/family-suggestions', requireAuth, async (req, res) => {
+  try {
+    const suggestions = await scoreFamilySuggestions(req.session.userId);
+    res.json(suggestions);
+  } catch (error) {
+    console.error('Family suggestions error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -40,6 +40,7 @@ import HouseholdForm from "@/components/family/HouseholdForm";
 import LineageView from "@/components/family/LineageView";
 import GalaxyView from "@/components/constellation/GalaxyView";
 import WebGLErrorBoundary from "@/components/WebGLErrorBoundary";
+import FamilySuggestions from "@/components/identity/FamilySuggestions";
 
 export default function Family() {
   const navigate = useNavigate();
@@ -494,6 +495,8 @@ export default function Family() {
               </select>
             </div>
           </div>
+
+          <FamilySuggestions />
 
           {/* Households */}
           <div className="space-y-6">

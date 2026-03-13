@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { pool } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sendAccountReadyEmail } from '../email.js';
+import { scoreNewPerson, rescorePerson } from '../scoringTriggers.js';
 
 const router = express.Router();
 
@@ -946,6 +947,9 @@ router.post('/:type', requireAuth, async (req, res) => {
 
     if (config.table === 'people') {
       created = await autoCreateGalaxyIfNeeded(created);
+      if (!created.user_id) {
+        scoreNewPerson(created.id).catch(err => console.error('[ScoringTrigger] async scoreNewPerson error:', err.message));
+      }
     }
 
     if (config.table === 'messages' && created.conversation_id) {
@@ -1097,6 +1101,12 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
 
     if (config.table === 'people') {
       updated = await autoCreateGalaxyIfNeeded(updated);
+
+      if (data.city || data.state || data.birth_date || data.birth_year || data.first_name || data.last_name || data.name) {
+        if (!updated.user_id) {
+          rescorePerson(updated.id).catch(err => console.error('[ScoringTrigger] async rescorePerson error:', err.message));
+        }
+      }
 
       if (data.linked_user_email && updated.linked_user_email && updated.linked_user_email !== previousLinkedEmail) {
         try {
