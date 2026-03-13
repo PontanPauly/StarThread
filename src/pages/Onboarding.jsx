@@ -481,16 +481,13 @@ export default function Onboarding() {
         await base44.entities.InviteLink.create(inviteData);
         links.push({ name: member.name, type: member.type, url: `${baseUrl}/login?invite=${code}` });
       }
-      if (links.length === 0) {
-        const code = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-        await base44.entities.InviteLink.create({
-          code,
-          created_by_person_id: myPerson.id,
-          relationship_type: "extended",
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-        links.push({ name: "Family member", type: "extended", url: `${baseUrl}/login?invite=${code}` });
-      }
+      const genericCode = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+      await base44.entities.InviteLink.create({
+        code: genericCode,
+        created_by_person_id: myPerson.id,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+      links.push({ name: "Shareable link", type: "general", url: `${baseUrl}/login?invite=${genericCode}` });
       setInviteLinks(links);
     } catch (err) {
       toast({ title: "Failed to generate links", description: err.message, variant: "destructive" });
