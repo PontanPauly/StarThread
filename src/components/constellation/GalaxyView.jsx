@@ -2131,8 +2131,16 @@ function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff'
     };
   }, []);
 
+  const midpoint = useMemo(() => new THREE.Vector3(
+    (posA.x + posB.x) / 2, (posA.y + posB.y) / 2, (posA.z + posB.z) / 2
+  ), [posA, posB]);
+
+  const GALAXY_VIEW_DISTANCE = 20;
+
   useFrame((state) => {
     const t = state.clock.elapsedTime;
+    const camDist = state.camera.position.distanceTo(midpoint);
+    const distScale = Math.max(1.0, camDist / GALAXY_VIEW_DISTANCE);
 
     if (streamAtoB.current) {
       const children = streamAtoB.current.children;
@@ -2141,14 +2149,14 @@ function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff'
         const p = data[i];
         const progress = (p.offset + t * p.speed) % 1.0;
         const px = posA.x + (posB.x - posA.x) * progress;
-        const py = posA.y + (posB.y - posA.y) * progress + Math.sin(t * p.wobbleFreq + i * 5.0) * p.driftA;
-        const pz = posA.z + (posB.z - posA.z) * progress + Math.cos(t * p.wobbleFreq2 + i * 3.7) * p.driftB;
+        const py = posA.y + (posB.y - posA.y) * progress + Math.sin(t * p.wobbleFreq + i * 5.0) * p.driftA * distScale;
+        const pz = posA.z + (posB.z - posA.z) * progress + Math.cos(t * p.wobbleFreq2 + i * 3.7) * p.driftB * distScale;
         children[i].position.set(px, py, pz);
         const fade = Math.sin(progress * Math.PI);
         const glowPulse = 0.75 + 0.25 * Math.sin(t * p.glowSpeed + p.glowPhase);
         children[i].material.opacity = Math.min(p.brightness * fade * glowPulse * intensity, 1.0);
         const sizeGlow = 1.0 + 0.4 * Math.sin(t * p.glowSpeed * 0.7 + p.glowPhase + 1.0);
-        const s = p.size * (0.8 + fade * 0.6) * sizeGlow;
+        const s = p.size * (0.8 + fade * 0.6) * sizeGlow * distScale;
         children[i].scale.set(s, s, 1);
       }
     }
@@ -2160,14 +2168,14 @@ function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff'
         const p = data[i];
         const progress = (p.offset + t * p.speed) % 1.0;
         const px = posB.x + (posA.x - posB.x) * progress;
-        const py = posB.y + (posA.y - posB.y) * progress + Math.sin(t * p.wobbleFreq + i * 4.3) * p.driftA;
-        const pz = posB.z + (posA.z - posB.z) * progress + Math.cos(t * p.wobbleFreq2 + i * 6.1) * p.driftB;
+        const py = posB.y + (posA.y - posB.y) * progress + Math.sin(t * p.wobbleFreq + i * 4.3) * p.driftA * distScale;
+        const pz = posB.z + (posA.z - posB.z) * progress + Math.cos(t * p.wobbleFreq2 + i * 6.1) * p.driftB * distScale;
         children[i].position.set(px, py, pz);
         const fade = Math.sin(progress * Math.PI);
         const glowPulse = 0.75 + 0.25 * Math.sin(t * p.glowSpeed + p.glowPhase);
         children[i].material.opacity = Math.min(p.brightness * fade * glowPulse * intensity, 1.0);
         const sizeGlow = 1.0 + 0.4 * Math.sin(t * p.glowSpeed * 0.7 + p.glowPhase + 1.0);
-        const s = p.size * (0.8 + fade * 0.6) * sizeGlow;
+        const s = p.size * (0.8 + fade * 0.6) * sizeGlow * distScale;
         children[i].scale.set(s, s, 1);
       }
     }
@@ -3142,9 +3150,9 @@ function SystemMeshLines({ lines, colorIndex, opacity = 0.6, coupleCenter, coupl
 }
 
 function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 }) {
-  const { lines_data, coupleCenter, coupleRadius, hasCouple } = useMemo(() => {
+  const { lines_data, coupleCenter, coupleRadius, hasCouple, coupleStarA, coupleStarB } = useMemo(() => {
     if (!stars || stars.length < 2) {
-      return { lines_data: [], coupleCenter: [0,0,0], coupleRadius: 0, hasCouple: false };
+      return { lines_data: [], coupleCenter: [0,0,0], coupleRadius: 0, hasCouple: false, coupleStarA: null, coupleStarB: null };
     }
 
     const parentStars = stars.filter(s => s.isParent);
@@ -3207,6 +3215,8 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
       coupleCenter: [centerX, centerY, centerZ],
       coupleRadius: ringRadius,
       hasCouple: parentStars.length >= 2,
+      coupleStarA: parentStars.length >= 2 ? parentStars[0] : null,
+      coupleStarB: parentStars.length >= 2 ? parentStars[1] : null,
     };
   }, [stars, relationships, colorIndex]);
 
@@ -3220,6 +3230,15 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
           radius={coupleRadius}
           colorIndex={colorIndex}
           opacity={opacity * 0.85}
+        />
+      )}
+      {hasCouple && coupleStarA && coupleStarB && (
+        <UnionLightBridge
+          starA={coupleStarA.position}
+          starB={coupleStarB.position}
+          colorA={getStarPrimaryColor(coupleStarA.starProfile)}
+          colorB={getStarPrimaryColor(coupleStarB.starProfile)}
+          intensity={1.0}
         />
       )}
       {lines_data.length > 0 && (
