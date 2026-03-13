@@ -123,6 +123,9 @@ router.get('/google/callback', async (req, res) => {
       parent: 'child', child: 'parent', sibling: 'sibling', partner: 'partner',
       grandparent: 'grandchild', grandchild: 'grandparent', aunt_uncle: 'niece_nephew',
       niece_nephew: 'aunt_uncle', cousin: 'cousin', in_law: 'in_law',
+      step_parent: 'step_child', step_child: 'step_parent', step_sibling: 'step_sibling',
+      half_sibling: 'half_sibling', guardian: 'ward', ward: 'guardian',
+      godparent: 'godchild', godchild: 'godparent',
       chosen_family: 'chosen_family', extended: 'extended'
     };
 

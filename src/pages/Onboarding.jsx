@@ -98,6 +98,12 @@ const RELATIONSHIP_TYPES = [
   { type: "niece_nephew", label: "Niece / Nephew", icon: Star, reciprocal: "aunt_uncle" },
   { type: "cousin", label: "Cousin", icon: Users, reciprocal: "cousin" },
   { type: "in_law", label: "In-Law", icon: Users, reciprocal: "in_law" },
+  { type: "step_parent", label: "Step-Parent", icon: Users, reciprocal: "step_child" },
+  { type: "step_child", label: "Step-Child", icon: Star, reciprocal: "step_parent" },
+  { type: "step_sibling", label: "Step-Sibling", icon: Users, reciprocal: "step_sibling" },
+  { type: "half_sibling", label: "Half-Sibling", icon: Users, reciprocal: "half_sibling" },
+  { type: "guardian", label: "Guardian", icon: Shield, reciprocal: "ward" },
+  { type: "godparent", label: "Godparent", icon: Heart, reciprocal: "godchild" },
   { type: "chosen_family", label: "Chosen Family", icon: Heart, reciprocal: "chosen_family" },
   { type: "extended", label: "Extended", icon: Users, reciprocal: "extended" },
 ];
@@ -180,13 +186,18 @@ export default function Onboarding() {
     }
     setSaving(true);
     try {
-      await base44.entities.Person.update(myPerson.id, {
+      const updateData = {
         photo_url: profileData.photo_url || null,
         birth_date: profileData.birth_date || null,
         about: profileData.about || null,
         city: profileData.city.trim() || null,
         state: profileData.state.trim() || null,
-      });
+      };
+      if (profileData.birth_date) {
+        const yr = new Date(profileData.birth_date + "T00:00:00").getFullYear();
+        if (!isNaN(yr)) updateData.birth_year = yr;
+      }
+      await base44.entities.Person.update(myPerson.id, updateData);
       await refetchMyPerson();
       setStep(2);
     } catch (err) {
@@ -432,13 +443,26 @@ export default function Onboarding() {
     toast({ title: `Linked to ${existingPerson.name}` });
   };
 
+  const dismissReviewMatch = (memberTempId, matchId) => {
+    setReviewMatches((prev) =>
+      prev
+        .map((r) =>
+          r.member.tempId === memberTempId
+            ? { ...r, matches: r.matches.filter((m) => m.id !== matchId) }
+            : r
+        )
+        .filter((r) => r.matches.length > 0)
+    );
+  };
+
   const generateInviteLinks = async () => {
     if (!myPerson) return;
     setGeneratingLink(true);
     try {
       const links = [];
-      const nonLinkedMembers = addedMembers.filter((m) => !m.isExisting);
-      for (const member of nonLinkedMembers) {
+      const baseUrl = window.location.origin;
+      const membersWithEmail = addedMembers.filter((m) => !m.isExisting && m.email);
+      for (const member of membersWithEmail) {
         const code = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
         await base44.entities.InviteLink.create({
           code,
@@ -446,18 +470,29 @@ export default function Onboarding() {
           relationship_type: member.type,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         });
-        const baseUrl = window.location.origin;
         links.push({ name: member.name, type: member.type, url: `${baseUrl}/login?invite=${code}` });
       }
-      const genericCode = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-      await base44.entities.InviteLink.create({
-        code: genericCode,
-        created_by_person_id: myPerson.id,
-        relationship_type: "chosen_family",
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      });
-      const baseUrl = window.location.origin;
-      links.push({ name: "Anyone", type: "general", url: `${baseUrl}/login?invite=${genericCode}` });
+      const membersWithoutEmail = addedMembers.filter((m) => !m.isExisting && !m.email);
+      for (const member of membersWithoutEmail) {
+        const code = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+        await base44.entities.InviteLink.create({
+          code,
+          created_by_person_id: myPerson.id,
+          relationship_type: member.type,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        links.push({ name: member.name, type: member.type, url: `${baseUrl}/login?invite=${code}` });
+      }
+      if (links.length === 0) {
+        const code = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+        await base44.entities.InviteLink.create({
+          code,
+          created_by_person_id: myPerson.id,
+          relationship_type: "extended",
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        links.push({ name: "Family member", type: "extended", url: `${baseUrl}/login?invite=${code}` });
+      }
       setInviteLinks(links);
     } catch (err) {
       toast({ title: "Failed to generate links", description: err.message, variant: "destructive" });
@@ -894,15 +929,13 @@ export default function Onboarding() {
                           Matches for <span className="text-cyan-400">{member.name}</span>
                         </p>
                         {matches.map((match) => (
-                          <button
+                          <div
                             key={match.id}
-                            type="button"
-                            onClick={() => linkMemberToExisting(member.tempId, match)}
-                            className={`w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border transition-all text-left ${
+                            className={`flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border transition-all ${
                               match.confidence === "high"
-                                ? "border-amber-500/50 hover:border-amber-400"
-                                : "border-slate-600/50 hover:border-cyan-500/50"
-                            } hover:bg-cyan-500/10`}
+                                ? "border-amber-500/50"
+                                : "border-slate-600/50"
+                            }`}
                           >
                             <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center overflow-hidden shrink-0">
                               {match.photo_url ? (
@@ -929,8 +962,23 @@ export default function Onboarding() {
                                 </div>
                               )}
                             </div>
-                            <span className="text-xs text-cyan-400 shrink-0">Link</span>
-                          </button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => linkMemberToExisting(member.tempId, match)}
+                                className="px-2.5 py-1 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-xs font-medium transition-colors"
+                              >
+                                Link
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => dismissReviewMatch(member.tempId, match.id)}
+                                className="px-2 py-1 rounded hover:bg-slate-700/50 text-slate-500 hover:text-slate-300 text-xs transition-colors"
+                              >
+                                Dismiss
+                              </button>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     ))}

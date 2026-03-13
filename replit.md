@@ -18,7 +18,7 @@ The application follows a client-server architecture:
 
 ### Feature Specifications
 1.  **Family Universe (3D WebGL)**: Interactive 3D visualization of family relationships with dynamic star rendering, nebula effects, and search/filter, including protective measures for minor profiles.
-2.  **Onboarding Flow**: 5-step wizard for new users: (1) Profile setup (birthday required, city/state optional), (2) Add family (12 relationship types including grandparent, cousin, in-law, chosen family; captures middle name, birth year, city, state), (3) Review Matches (auto-skips if no medium+ confidence matches found via identity scoring), (4) Trusted contacts, (5) Per-member invite links with relationship-specific types.
+2.  **Onboarding Flow**: 5-step wizard for new users: (1) Profile setup (birthday required, city/state optional, auto-populates birth_year), (2) Add family (18 relationship types including grandparent, step-parent, half-sibling, guardian, godparent, chosen family; captures middle name, birth year, city, state), (3) Review Matches with link/dismiss actions (auto-skips if no medium+ confidence matches via identity scoring), (4) Trusted contacts, (5) Per-member invite links with relationship-specific types.
 3.  **Privacy & Visibility**: Granular control over privacy levels and per-relationship visibility.
 4.  **Relationship Verification**: System for managing pending relationship requests.
 5.  **Memorial Flow**: Secure process for memorializing profiles requiring multi-factor confirmation.
