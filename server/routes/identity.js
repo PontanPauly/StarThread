@@ -10,9 +10,11 @@ const router = express.Router();
 router.get('/suggestions', requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;
-    const { rows } = await pool.query(`
+    const includeFamily = req.query.include_family === 'true';
+
+    const { rows: ownSuggestions } = await pool.query(`
       SELECT s.*, p.name, p.first_name, p.last_name, p.photo_url, p.role_type,
-             p.birth_year, p.city, p.state
+             p.birth_year, p.city, p.state, NULL AS for_family_member_name, NULL AS for_family_member_id
       FROM person_match_suggestions s
       JOIN people p ON p.id = s.suggested_person_id
       WHERE s.user_id = $1
@@ -22,19 +24,14 @@ router.get('/suggestions', requireAuth, async (req, res) => {
       ORDER BY s.score DESC
     `, [userId]);
 
-    res.json(rows);
+    let familySuggestions = [];
+    if (includeFamily) {
+      familySuggestions = await scoreFamilySuggestions(userId);
+    }
+
+    res.json([...ownSuggestions, ...familySuggestions]);
   } catch (error) {
     console.error('Get suggestions error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.get('/family-suggestions', requireAuth, async (req, res) => {
-  try {
-    const suggestions = await scoreFamilySuggestions(req.session.userId);
-    res.json(suggestions);
-  } catch (error) {
-    console.error('Family suggestions error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

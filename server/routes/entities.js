@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { pool } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sendAccountReadyEmail } from '../email.js';
-import { scoreNewPerson, rescorePerson } from '../scoringTriggers.js';
+import { scoreNewPerson, rescorePerson, rescoreForUser } from '../scoringTriggers.js';
 
 const router = express.Router();
 
@@ -1105,6 +1105,8 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
       if (data.city || data.state || data.birth_date || data.birth_year || data.first_name || data.last_name || data.name) {
         if (!updated.user_id) {
           rescorePerson(updated.id).catch(err => console.error('[ScoringTrigger] async rescorePerson error:', err.message));
+        } else {
+          rescoreForUser(updated.user_id).catch(err => console.error('[ScoringTrigger] async rescoreForUser error:', err.message));
         }
       }
 

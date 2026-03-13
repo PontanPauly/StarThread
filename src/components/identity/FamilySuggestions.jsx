@@ -7,7 +7,7 @@ export default function FamilySuggestions() {
   const { data: suggestions = [], isLoading } = useQuery({
     queryKey: ["family-suggestions"],
     queryFn: async () => {
-      const res = await fetch("/api/identity/family-suggestions", { credentials: "include" });
+      const res = await fetch("/api/identity/suggestions?include_family=true", { credentials: "include" });
       if (!res.ok) return [];
       return res.json();
     },

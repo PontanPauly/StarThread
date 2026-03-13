@@ -2,12 +2,11 @@ import { pool } from './db/index.js';
 import { computeMatchScore, findCandidates } from './identityScoring.js';
 
 const MIN_SCORE_THRESHOLD = 20;
-const MAX_CANDIDATES_PER_TRIGGER = 20;
-const PERIODIC_BATCH_LIMIT = 100;
 
 async function upsertSuggestion(userId, suggestedPersonId, score, confidence, explanations, breakdown) {
   if (score < MIN_SCORE_THRESHOLD || confidence === 'none') return;
 
+  const explanationsArray = Array.isArray(explanations) ? explanations : [];
   await pool.query(`
     INSERT INTO person_match_suggestions (user_id, suggested_person_id, score, confidence, explanations, breakdown)
     VALUES ($1, $2, $3, $4, $5, $6)
@@ -16,7 +15,7 @@ async function upsertSuggestion(userId, suggestedPersonId, score, confidence, ex
                   explanations = EXCLUDED.explanations, breakdown = EXCLUDED.breakdown,
                   updated_at = NOW()
     WHERE person_match_suggestions.status = 'pending'
-  `, [userId, suggestedPersonId, score, confidence, JSON.stringify(explanations), JSON.stringify(breakdown)]);
+  `, [userId, suggestedPersonId, score, confidence, explanationsArray, JSON.stringify(breakdown)]);
 }
 
 async function getConfirmedContextPersonIds(personId) {
@@ -41,7 +40,7 @@ export async function scoreNewPerson(personId) {
 
     if (person.user_id) return;
 
-    const signals = {
+    const personSignals = {
       name: person.name,
       first_name: person.first_name,
       last_name: person.last_name,
@@ -51,7 +50,6 @@ export async function scoreNewPerson(personId) {
       SELECT u.id AS user_id, u.email, u.full_name, p.id AS person_id
       FROM users u
       LEFT JOIN people p ON p.user_id = u.id
-      LIMIT 200
     `);
 
     for (const user of allUsers) {
@@ -87,7 +85,6 @@ export async function rescorePerson(personId) {
       JOIN users u ON u.id = s.user_id
       LEFT JOIN people p ON p.user_id = s.user_id
       WHERE s.suggested_person_id = $1 AND s.status = 'pending'
-      LIMIT ${MAX_CANDIDATES_PER_TRIGGER}
     `, [personId]);
 
     for (const entry of existingSuggestions) {
@@ -110,17 +107,15 @@ export async function rescoreNeighbors(personId) {
   try {
     const neighborIds = await getConfirmedContextPersonIds(personId);
 
-    const unclaimed = [];
-    if (neighborIds.length > 0) {
-      const { rows } = await pool.query(
-        `SELECT id FROM people WHERE id = ANY($1::uuid[]) AND user_id IS NULL AND merged_into_id IS NULL`,
-        [neighborIds]
-      );
-      unclaimed.push(...rows.map(r => r.id));
-    }
+    if (neighborIds.length === 0) return;
 
-    for (const neighborId of unclaimed.slice(0, MAX_CANDIDATES_PER_TRIGGER)) {
-      await rescorePerson(neighborId);
+    const { rows: unclaimed } = await pool.query(
+      `SELECT id FROM people WHERE id = ANY($1::uuid[]) AND user_id IS NULL AND merged_into_id IS NULL`,
+      [neighborIds]
+    );
+
+    for (const row of unclaimed) {
+      await rescorePerson(row.id);
     }
   } catch (err) {
     console.error('[ScoringTrigger] rescoreNeighbors error:', err.message);
@@ -150,7 +145,7 @@ export async function rescoreForUser(userId) {
       signals.context_person_ids = await getConfirmedContextPersonIds(existingPerson[0].id);
     }
 
-    const candidates = await findCandidates(signals, { unclaimedOnly: true, limit: MAX_CANDIDATES_PER_TRIGGER });
+    const candidates = await findCandidates(signals, { unclaimedOnly: true, limit: 25 });
 
     for (const candidate of candidates) {
       const contextIds = await getConfirmedContextPersonIds(candidate.id);
@@ -175,8 +170,7 @@ export async function periodicRescore() {
         AND p.user_id IS NULL
         AND p.merged_into_id IS NULL
         AND s.score < 75
-      LIMIT $1
-    `, [PERIODIC_BATCH_LIMIT]);
+    `);
 
     let updated = 0;
     for (const suggestion of pendingSuggestions) {
