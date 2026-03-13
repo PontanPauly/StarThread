@@ -257,13 +257,7 @@ export default function LandingPage() {
       <div className="login-vignette" />
 
       <div className="relative z-10">
-        <nav className="flex items-center justify-between px-6 md:px-12 py-6 max-w-7xl mx-auto">
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/logo.png" alt="StarThread" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(0,200,255,0.4)]" />
-            <span className="text-xl font-bold bg-gradient-to-r from-amber-200 to-slate-100 bg-clip-text text-transparent">
-              StarThread
-            </span>
-          </Link>
+        <nav className="flex items-center justify-end px-6 md:px-12 py-6 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             <Link to="/login">
               <button className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white transition-colors">
@@ -279,12 +273,12 @@ export default function LandingPage() {
         </nav>
 
         <section className="px-6 md:px-12 pt-16 pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-3 mb-8">
-            <img src="/logo.png" alt="StarThread" className="w-14 h-14 object-contain drop-shadow-[0_0_12px_rgba(0,200,255,0.5)]" />
-            <span className="text-3xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent tracking-wide">StarThread</span>
+          <div className="inline-flex items-center gap-4 mb-10">
+            <img src="/logo.png" alt="StarThread" className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain drop-shadow-[0_0_16px_rgba(0,200,255,0.5)]" />
+            <span className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent tracking-wide">StarThread</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-amber-200 via-slate-100 to-purple-200 bg-clip-text text-transparent">
               Every Family Is a
             </span>
