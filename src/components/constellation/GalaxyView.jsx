@@ -2140,7 +2140,8 @@ function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff'
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     const camDist = state.camera.position.distanceTo(midpoint);
-    const distScale = Math.max(1.0, camDist / GALAXY_VIEW_DISTANCE);
+    const rawRatio = camDist / GALAXY_VIEW_DISTANCE;
+    const distScale = rawRatio <= 1.0 ? 1.0 : rawRatio * rawRatio;
 
     if (streamAtoB.current) {
       const children = streamAtoB.current.children;
@@ -3150,9 +3151,9 @@ function SystemMeshLines({ lines, colorIndex, opacity = 0.6, coupleCenter, coupl
 }
 
 function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 }) {
-  const { lines_data, coupleCenter, coupleRadius, hasCouple, coupleStarA, coupleStarB } = useMemo(() => {
+  const { lines_data, coupleCenter, coupleRadius, hasCouple } = useMemo(() => {
     if (!stars || stars.length < 2) {
-      return { lines_data: [], coupleCenter: [0,0,0], coupleRadius: 0, hasCouple: false, coupleStarA: null, coupleStarB: null };
+      return { lines_data: [], coupleCenter: [0,0,0], coupleRadius: 0, hasCouple: false };
     }
 
     const parentStars = stars.filter(s => s.isParent);
@@ -3215,8 +3216,6 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
       coupleCenter: [centerX, centerY, centerZ],
       coupleRadius: ringRadius,
       hasCouple: parentStars.length >= 2,
-      coupleStarA: parentStars.length >= 2 ? parentStars[0] : null,
-      coupleStarB: parentStars.length >= 2 ? parentStars[1] : null,
     };
   }, [stars, relationships, colorIndex]);
 
@@ -3230,15 +3229,6 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
           radius={coupleRadius}
           colorIndex={colorIndex}
           opacity={opacity * 0.85}
-        />
-      )}
-      {hasCouple && coupleStarA && coupleStarB && (
-        <UnionLightBridge
-          starA={coupleStarA.position}
-          starB={coupleStarB.position}
-          colorA={getStarPrimaryColor(coupleStarA.starProfile)}
-          colorB={getStarPrimaryColor(coupleStarB.starProfile)}
-          intensity={1.0}
         />
       )}
       {lines_data.length > 0 && (
