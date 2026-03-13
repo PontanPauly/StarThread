@@ -164,6 +164,26 @@ export default function Settings() {
                 href="/policies/safety"
               />
               <PolicyLink
+                title="Cookie Policy"
+                description="How we use cookies and local storage on StarThread."
+                href="/policies/cookies"
+              />
+              <PolicyLink
+                title="Data Retention Policy"
+                description="How long we keep your data and how to request deletion."
+                href="/policies/data-retention"
+              />
+              <PolicyLink
+                title="Acceptable Use Policy"
+                description="Rules and boundaries for using StarThread responsibly."
+                href="/policies/acceptable-use"
+              />
+              <PolicyLink
+                title="Accessibility Statement"
+                description="Our commitment to making StarThread accessible to everyone."
+                href="/policies/accessibility"
+              />
+              <PolicyLink
                 title="Beta Program"
                 description="StarThread is currently in beta. Learn about what that means and how to provide feedback."
                 href="/policies/beta"

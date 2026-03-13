@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, FileText, Shield, Users, Heart, Beaker } from "lucide-react";
+import { ArrowLeft, FileText, Shield, Users, Heart, Beaker, Cookie, Database, AlertOctagon, Accessibility } from "lucide-react";
 
 const POLICIES = {
   terms: {
@@ -197,6 +197,150 @@ const POLICIES = {
         body: "You can join or leave the beta program at any time from the Beta tab in Settings. Leaving the beta program will not affect your account or data, but you may lose access to premium features."
       }
     ]
+  },
+  cookies: {
+    title: "Cookie Policy",
+    icon: Cookie,
+    lastUpdated: "March 1, 2026",
+    sections: [
+      {
+        heading: "What Are Cookies",
+        body: "Cookies are small text files stored on your device when you visit a website. They help websites remember your preferences and improve your experience."
+      },
+      {
+        heading: "How StarThread Uses Cookies",
+        body: "StarThread uses only essential session cookies to keep you logged in securely. We use a single session cookie managed by our server to maintain your authenticated state across page visits."
+      },
+      {
+        heading: "Types of Cookies We Use",
+        body: "We use strictly necessary cookies only. Our session cookie (connect.sid) is required for authentication and cannot be disabled. We do not use analytics cookies, advertising cookies, or any third-party tracking cookies."
+      },
+      {
+        heading: "Local Storage",
+        body: "StarThread uses browser local storage to save your UI preferences such as 3D quality settings and sidebar state. This data never leaves your device and is not shared with any third party."
+      },
+      {
+        heading: "Cookie Duration",
+        body: "Our session cookie expires when your server session ends or after the configured session timeout. You can clear cookies at any time through your browser settings, which will log you out of StarThread."
+      },
+      {
+        heading: "Managing Cookies",
+        body: "You can configure your browser to block or delete cookies. However, blocking the essential session cookie will prevent you from logging into StarThread. For instructions on managing cookies, refer to your browser's help documentation."
+      }
+    ]
+  },
+  "data-retention": {
+    title: "Data Retention Policy",
+    icon: Database,
+    lastUpdated: "March 1, 2026",
+    sections: [
+      {
+        heading: "Overview",
+        body: "StarThread retains your personal data only for as long as necessary to provide our services, comply with legal obligations, and resolve disputes. This policy outlines how long we keep different types of data."
+      },
+      {
+        heading: "Account Data",
+        body: "Your account information (email, name, password hash) is retained for the duration of your account. Upon account deletion, your user credentials are permanently removed. Your associated person profile may be retained if other family members reference it, but it will be unlinked from your account."
+      },
+      {
+        heading: "Family Data",
+        body: "Content you create — including family stories, moments, love notes, trip plans, and traditions — is retained as long as your account is active. Shared content that involves other family members may be retained even after your account deletion to preserve the integrity of shared family records."
+      },
+      {
+        heading: "Messages",
+        body: "Messages are retained as part of conversation history for all participants. If you delete your account, your messages remain visible to other conversation participants but your identity may be anonymized."
+      },
+      {
+        heading: "Session & Security Data",
+        body: "Session records are automatically purged when they expire. Login attempts and security events are retained for 90 days for security monitoring purposes."
+      },
+      {
+        heading: "Memorial Profiles",
+        body: "Memorial profiles for deceased family members are retained indefinitely to preserve family history. The creator of a memorial profile retains permanent edit rights. Memorial profiles can only be removed by the creator or a system administrator."
+      },
+      {
+        heading: "Data Export",
+        body: "You can export all of your personal data at any time from the Settings page. The export includes your profile information, content you created, and your relationship connections in JSON format."
+      },
+      {
+        heading: "Deletion Requests",
+        body: "To request complete deletion of all your data, including shared content, contact us at privacy@starthread.app. We will process deletion requests within 30 days, subject to legal retention requirements."
+      }
+    ]
+  },
+  "acceptable-use": {
+    title: "Acceptable Use Policy",
+    icon: AlertOctagon,
+    lastUpdated: "March 1, 2026",
+    sections: [
+      {
+        heading: "Purpose",
+        body: "This Acceptable Use Policy defines the rules and boundaries for using StarThread. It supplements our Terms of Service and Community Guidelines to ensure a safe, respectful environment for all families."
+      },
+      {
+        heading: "Permitted Uses",
+        body: "StarThread is designed for legitimate family organization and connection. Permitted uses include managing family profiles and relationships, planning trips and family events, sharing photos and memories, sending love notes and messages to family members, preserving family stories and traditions, and tracking birthdays and milestones."
+      },
+      {
+        heading: "Prohibited Content",
+        body: "You may not upload, share, or create content that is sexually explicit or pornographic, promotes violence, self-harm, or illegal activities, contains hate speech or discrimination, infringes on intellectual property rights, contains malware or malicious code, or is deliberately misleading or fraudulent."
+      },
+      {
+        heading: "Prohibited Behavior",
+        body: "You may not use StarThread to harass, bully, stalk, or intimidate others, create fake profiles or impersonate real people, attempt to access other users' accounts or data, use automated tools to scrape or collect data, exploit vulnerabilities in the platform, or circumvent parental controls or safety features."
+      },
+      {
+        heading: "Account Integrity",
+        body: "Each user should maintain only one account. Creating multiple accounts to evade bans, manipulate features, or deceive others is prohibited. Sharing account credentials with others is not permitted."
+      },
+      {
+        heading: "Minor-Specific Rules",
+        body: "Adults must not attempt to contact minors outside of legitimate family relationships. Parental controls must not be circumvented. Content involving minors must be appropriate and shared only within verified family connections."
+      },
+      {
+        heading: "Enforcement",
+        body: "Violations of this policy may result in content removal, account suspension, or permanent account termination. Severe violations may be reported to law enforcement. We reserve the right to take action at our discretion to protect the safety of our community."
+      },
+      {
+        heading: "Reporting Violations",
+        body: "If you encounter content or behavior that violates this policy, report it immediately to abuse@starthread.app. Include as much detail as possible to help us investigate promptly."
+      }
+    ]
+  },
+  accessibility: {
+    title: "Accessibility Statement",
+    icon: Accessibility,
+    lastUpdated: "March 1, 2026",
+    sections: [
+      {
+        heading: "Our Commitment",
+        body: "StarThread is committed to ensuring digital accessibility for people of all abilities. We are continually improving the user experience for everyone and applying relevant accessibility standards."
+      },
+      {
+        heading: "Standards",
+        body: "We aim to conform to the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA. These guidelines help make web content more accessible to people with disabilities, including visual, auditory, physical, speech, cognitive, and neurological disabilities."
+      },
+      {
+        heading: "Accessibility Features",
+        body: "StarThread includes keyboard navigation support throughout the application, semantic HTML structure for screen reader compatibility, sufficient color contrast ratios for text readability, form labels and error messages for input fields, focus indicators for interactive elements, and responsive design that adapts to different screen sizes and zoom levels."
+      },
+      {
+        heading: "3D Visualization Accessibility",
+        body: "Our Family Universe 3D view may present challenges for users with certain disabilities. We provide a List View alternative that presents the same family data in a fully accessible table format. Users can switch between 3D and List views at any time."
+      },
+      {
+        heading: "Known Limitations",
+        body: "While we strive for full accessibility, some areas of StarThread are still being improved. The 3D WebGL Family Universe relies on visual rendering that may not be fully accessible to screen readers. We provide alternative views (List, Lineage) for all 3D content."
+      },
+      {
+        heading: "Feedback",
+        body: "We welcome your feedback on the accessibility of StarThread. If you encounter accessibility barriers or have suggestions for improvement, please contact us at accessibility@starthread.app. We take all feedback seriously and will work to address issues promptly."
+      },
+      {
+        heading: "Third-Party Content",
+        body: "While we strive to ensure accessibility of StarThread itself, we cannot guarantee the accessibility of third-party content or integrations (such as Google Calendar sync). We encourage third-party providers to maintain their own accessibility standards."
+      }
+    ]
   }
 };
 
@@ -205,6 +349,10 @@ const POLICY_LIST = [
   { key: 'privacy', title: 'Privacy Policy', description: 'Learn how we collect, use, and protect your personal information.', icon: Shield },
   { key: 'community', title: 'Community Guidelines', description: 'Standards for respectful, safe family interactions.', icon: Users },
   { key: 'safety', title: 'Safety Policy', description: 'How we protect you and your family, especially minors.', icon: Heart },
+  { key: 'cookies', title: 'Cookie Policy', description: 'How we use cookies and local storage on StarThread.', icon: Cookie },
+  { key: 'data-retention', title: 'Data Retention Policy', description: 'How long we keep your data and how to request deletion.', icon: Database },
+  { key: 'acceptable-use', title: 'Acceptable Use Policy', description: 'Rules and boundaries for using StarThread responsibly.', icon: AlertOctagon },
+  { key: 'accessibility', title: 'Accessibility Statement', description: 'Our commitment to making StarThread accessible to everyone.', icon: Accessibility },
   { key: 'beta', title: 'Beta Program', description: 'What the beta means and how to provide feedback.', icon: Beaker },
 ];
 
