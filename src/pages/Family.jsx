@@ -195,24 +195,23 @@ export default function Family() {
           {/* Floating Controls */}
           <div className="fixed top-[4.5rem] lg:top-4 left-3 sm:left-4 lg:left-68 right-3 sm:right-4 z-50 pointer-events-none">
             <div className="flex items-center justify-between gap-2">
-              <div className="glass-card rounded-xl px-3 py-1.5 border border-slate-700/50 pointer-events-auto flex-shrink-0">
+              <div className="glass-card rounded-xl px-3 py-1.5 border border-slate-700/50 pointer-events-auto flex-shrink-0 lg:hidden">
                 <h1 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
                   <Star className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <span className="hidden xl:inline">Family Universe</span>
-                  <span className="xl:hidden">Universe</span>
+                  Universe
                 </h1>
                 <p className="text-[10px] text-slate-500 mt-0.5">{people.length} stars · {relationships.length} connections</p>
               </div>
 
-              <div className="flex gap-1 pointer-events-auto items-center flex-shrink-0">
+              <div className="flex gap-1 pointer-events-auto items-center flex-shrink-0 ml-auto">
                 <Button
                   onClick={() => setMobileSearchOpen(true)}
-                  className="xl:hidden bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 backdrop-blur-md h-8 w-8 p-0"
+                  className="lg:hidden bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 backdrop-blur-md h-8 w-8 p-0"
                   size="icon"
                 >
                   <Search className="w-3.5 h-3.5" />
                 </Button>
-                <div className="relative hidden xl:block">
+                <div className="relative hidden lg:block">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     placeholder="Find a star..."
@@ -260,23 +259,23 @@ export default function Family() {
                 </div>
                 <Button 
                   onClick={() => setViewMode('list')}
-                  className="bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md h-8 w-8 xl:w-auto xl:px-3 p-0"
+                  className="bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md h-8 w-8 lg:w-auto lg:px-3 p-0"
                   size="sm"
                 >
-                  <Users className="w-3.5 h-3.5 xl:mr-1.5" />
-                  <span className="hidden xl:inline text-xs">List</span>
+                  <Users className="w-3.5 h-3.5 lg:mr-1.5" />
+                  <span className="hidden lg:inline text-xs">List</span>
                 </Button>
                 <Button 
                   onClick={() => setViewMode('connections')}
-                  className="hidden md:flex bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md h-8 w-8 xl:w-auto xl:px-3 p-0"
+                  className="bg-slate-700/90 hover:bg-slate-600 text-white border border-slate-500 backdrop-blur-md h-8 w-8 lg:w-auto lg:px-3 p-0"
                   size="sm"
                 >
-                  <Network className="w-3.5 h-3.5 xl:mr-1.5" />
-                  <span className="hidden xl:inline text-xs">Lineage</span>
+                  <Network className="w-3.5 h-3.5 lg:mr-1.5" />
+                  <span className="hidden lg:inline text-xs">Lineage</span>
                 </Button>
                 <Button 
                   onClick={() => { setAddingChild(true); setShowPersonForm(true); }}
-                  className="hidden xl:flex bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold backdrop-blur-md h-8 px-3"
+                  className="hidden lg:flex bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold backdrop-blur-md h-8 px-3"
                   size="sm"
                 >
                   <Baby className="w-3.5 h-3.5 mr-1.5" />
@@ -284,11 +283,11 @@ export default function Family() {
                 </Button>
                 <Button 
                   onClick={() => setShowPersonForm(true)}
-                  className="bg-amber-500/90 hover:bg-amber-600 text-slate-900 font-semibold backdrop-blur-md h-8 w-8 xl:w-auto xl:px-3 p-0"
+                  className="bg-amber-500/90 hover:bg-amber-600 text-slate-900 font-semibold backdrop-blur-md h-8 w-8 lg:w-auto lg:px-3 p-0"
                   size="sm"
                 >
-                  <Plus className="w-3.5 h-3.5 xl:mr-1.5" />
-                  <span className="hidden xl:inline text-xs">Add Star</span>
+                  <Plus className="w-3.5 h-3.5 lg:mr-1.5" />
+                  <span className="hidden lg:inline text-xs">Add Star</span>
                 </Button>
               </div>
             </div>
