@@ -251,7 +251,7 @@ export async function findCandidates(signals, options = {}) {
     return rows;
   } catch (err) {
     if (err.message && err.message.includes('similarity')) {
-      const fallbackParams = [`%${nameQuery}%`];
+      const fallbackParams = [`%${searchName}%`];
       let fbParamIdx = 2;
       let excludeClause = '';
       if (excludeIds.length > 0) {

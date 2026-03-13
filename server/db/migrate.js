@@ -446,7 +446,7 @@ export async function runMigrations() {
 
     await client.query(`ALTER TABLE relationships DROP CONSTRAINT IF EXISTS relationships_relationship_type_check`);
     await client.query(`ALTER TABLE relationships ADD CONSTRAINT relationships_relationship_type_check 
-      CHECK (relationship_type IN ('parent', 'child', 'partner', 'spouse', 'sibling', 'grandparent', 'grandchild', 'aunt_uncle', 'niece_nephew', 'cousin', 'in_law', 'chosen_family', 'step_parent', 'step_child', 'step_sibling', 'extended'))`);
+      CHECK (relationship_type IN ('parent', 'child', 'partner', 'spouse', 'sibling', 'grandparent', 'grandchild', 'aunt_uncle', 'niece_nephew', 'cousin', 'in_law', 'chosen_family', 'step_parent', 'step_child', 'step_sibling', 'half_sibling', 'guardian', 'ward', 'godparent', 'godchild', 'extended'))`);
 
     const reciprocalMap = {
       parent: 'child',
@@ -464,6 +464,11 @@ export async function runMigrations() {
       step_parent: 'step_child',
       step_child: 'step_parent',
       step_sibling: 'step_sibling',
+      half_sibling: 'half_sibling',
+      guardian: 'ward',
+      ward: 'guardian',
+      godparent: 'godchild',
+      godchild: 'godparent',
       extended: 'extended',
     };
 
