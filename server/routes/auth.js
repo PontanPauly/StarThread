@@ -101,6 +101,16 @@ router.post('/register', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
+    if (invite_code) {
+      const preCheck = await pool.query(
+        'SELECT relationship_type FROM invite_links WHERE code = $1 AND used_by_user_id IS NULL AND (expires_at IS NULL OR expires_at > NOW())',
+        [invite_code]
+      );
+      if (preCheck.rows.length > 0 && !preCheck.rows[0].relationship_type && !relationship_type) {
+        return res.status(400).json({ error: 'Please select your relationship to the person who invited you' });
+      }
+    }
+
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
@@ -135,13 +145,7 @@ router.post('/register', authLimiter, async (req, res) => {
       );
       if (inviteResult.rows.length > 0) {
         const invite = inviteResult.rows[0];
-        let relType = invite.relationship_type;
-        if (!relType) {
-          if (!relationship_type) {
-            return res.status(400).json({ error: 'Please select your relationship to the person who invited you' });
-          }
-          relType = relationship_type;
-        }
+        const relType = invite.relationship_type || relationship_type;
         const reciprocalType = RECIPROCAL_TYPES[relType] || relType;
 
         if (invite.for_person_id) {

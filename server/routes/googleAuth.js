@@ -149,6 +149,16 @@ router.get('/google/callback', async (req, res) => {
       return res.redirect('/');
     }
 
+    if (inviteCode) {
+      const preCheck = await pool.query(
+        'SELECT relationship_type FROM invite_links WHERE code = $1 AND used_by_user_id IS NULL AND (expires_at IS NULL OR expires_at > NOW())',
+        [inviteCode]
+      );
+      if (preCheck.rows.length > 0 && !preCheck.rows[0].relationship_type && !stateRelationshipType) {
+        return res.redirect('/login?error=google_failed&reason=relationship_required');
+      }
+    }
+
     const formattedName = formatProperName(name || email.split('@')[0]);
     const result = await pool.query(
       'INSERT INTO users (email, full_name, google_id) VALUES ($1, $2, $3) RETURNING id, email, full_name, created_at',
@@ -178,13 +188,7 @@ router.get('/google/callback', async (req, res) => {
       );
       if (inviteResult.rows.length > 0) {
         const invite = inviteResult.rows[0];
-        let relType = invite.relationship_type;
-        if (!relType) {
-          relType = stateRelationshipType || null;
-        }
-        if (!relType) {
-          return res.redirect('/login?error=google_failed&reason=relationship_required');
-        }
+        const relType = invite.relationship_type || stateRelationshipType;
         const reciprocalType = RECIPROCAL_TYPES[relType] || relType;
 
         if (invite.for_person_id) {
