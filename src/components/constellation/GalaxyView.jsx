@@ -4854,50 +4854,42 @@ function TopBar({ level, selectedHousehold, cameraPos, onBackToGalaxy, starCount
     : '0.0 · 0.0 · 0.0';
 
   return (
-    <div className="absolute top-12 left-0 right-0 z-40 pointer-events-none hidden lg:block">
-      <div className="flex items-center justify-between px-3 sm:px-4 py-1 sm:py-2">
-        <div className="pointer-events-auto flex items-center gap-2 sm:gap-3 min-w-0">
+    <div className="absolute top-3 left-4 z-40 pointer-events-none hidden lg:block">
+      <div className="pointer-events-auto glass-card rounded-xl px-3 py-1.5 border border-slate-700/50">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={onBackToGalaxy}
-            className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0"
+            className="flex items-center gap-1.5 group flex-shrink-0"
           >
             <Home className="w-4 h-4 text-amber-400/70 group-hover:text-amber-300 transition-colors" />
             <span
-              className={`text-xs uppercase tracking-[0.2em] font-medium transition-colors ${
-                level === 'galaxy' ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-300'
+              className={`text-sm font-bold transition-colors ${
+                level === 'galaxy' ? 'text-slate-100' : 'text-slate-400 group-hover:text-slate-200'
               }`}
             >
               Universe
             </span>
           </button>
-          {level === 'galaxy' && starCount > 0 && (
-            <span className="text-[10px] font-mono tracking-wider text-slate-500">
-              {starCount} {starCount === 1 ? 'star' : 'stars'}
-            </span>
-          )}
           {level === 'system' && selectedHousehold && (
             <>
-              <ChevronRight className="w-3 h-3 text-slate-600 flex-shrink-0" />
-              <span className="text-xs uppercase tracking-[0.2em] font-medium text-amber-400 truncate max-w-[120px] sm:max-w-none">
+              <ChevronRight className="w-3 h-3 text-slate-500 flex-shrink-0" />
+              <span className="text-sm font-bold text-slate-100 truncate max-w-[200px]">
                 {selectedHousehold.name}
               </span>
             </>
           )}
         </div>
-
-        <div className="hidden sm:flex items-center gap-4">
-          <div className="text-[10px] font-mono tracking-wider text-slate-500">
-            <span className="text-slate-600 mr-1">POS</span>
-            {coordStr}
-          </div>
-          {level === 'system' && selectedHousehold && (
-            <span className="text-[10px] uppercase tracking-[0.15em] text-amber-400/50 border border-amber-400/20 px-2 py-0.5 rounded">
-              {selectedHousehold.name}
+        <div className="flex items-center gap-3 mt-0.5">
+          {level === 'galaxy' && starCount > 0 && (
+            <span className="text-[10px] text-slate-500">
+              {starCount} {starCount === 1 ? 'star' : 'stars'}
             </span>
           )}
+          <span className="text-[10px] font-mono text-slate-600">
+            {coordStr}
+          </span>
         </div>
       </div>
-      <div className="h-px bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent" />
     </div>
   );
 }
@@ -4914,7 +4906,7 @@ function FilterToggles({
   const activeRelCount = (filters.relationshipTypes || []).length;
 
   return (
-    <div className="absolute top-20 lg:top-24 left-2 sm:left-4 z-40 hidden lg:block">
+    <div className="absolute top-16 left-4 z-40 hidden lg:block">
       <CornerBrackets className="bg-slate-950/80 backdrop-blur-md p-2.5 space-y-2.5">
         <button
           onClick={() => setExpanded(prev => !prev)}
