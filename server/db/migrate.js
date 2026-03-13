@@ -553,7 +553,7 @@ export async function runMigrations() {
         )
     `);
     for (const adult of adultsNeedingGalaxy) {
-      const householdName = `${adult.name}'s Galaxy`;
+      const householdName = `${adult.name} Galaxy`;
       const { rows: newH } = await client.query(
         `INSERT INTO households (name) VALUES ($1) RETURNING id`,
         [householdName]
@@ -566,6 +566,11 @@ export async function runMigrations() {
         console.log(`Auto-created galaxy "${householdName}" for ${adult.name}`);
       }
     }
+
+    await client.query(`
+      UPDATE households SET name = REPLACE(name, '''s Galaxy', ' Galaxy')
+      WHERE name LIKE '%''s Galaxy'
+    `);
 
     await client.query(`
       ALTER TABLE people ADD COLUMN IF NOT EXISTS parental_controls JSONB;

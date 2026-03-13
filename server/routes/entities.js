@@ -83,7 +83,7 @@ async function autoCreateGalaxyIfNeeded(person) {
   if (!needsOwnGalaxy) return person;
 
   try {
-    const householdName = `${person.name}'s Galaxy`;
+    const householdName = `${person.name} Galaxy`;
     const { rows: newH } = await pool.query(
       `INSERT INTO households (name) VALUES ($1) RETURNING id`,
       [householdName]
