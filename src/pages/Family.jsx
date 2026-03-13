@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -69,20 +69,68 @@ export default function Family() {
     }
   }, [myPerson, galaxyCenterId]);
 
-  const { data: people = [], isLoading: loadingPeople } = useQuery({
-    queryKey: ['people'],
-    queryFn: () => base44.entities.Person.list(),
+  const { data: universeData, isLoading: loadingUniverse } = useQuery({
+    queryKey: ['universe-members'],
+    queryFn: async () => {
+      const response = await fetch('/api/relationships/universe-members', { credentials: 'include' });
+      if (!response.ok) return { people: [], relationships: [], households: [] };
+      return response.json();
+    },
+    staleTime: 30000,
   });
 
-  const { data: households = [], isLoading: loadingHouseholds } = useQuery({
-    queryKey: ['households'],
-    queryFn: () => base44.entities.Household.list(),
-  });
+  const rawPeople = universeData?.people || [];
+  const rawHouseholds = universeData?.households || [];
+  const relationships = universeData?.relationships || [];
+  const loadingPeople = loadingUniverse;
+  const loadingHouseholds = loadingUniverse;
 
-  const { data: relationships = [] } = useQuery({
-    queryKey: ['relationships'],
-    queryFn: () => base44.entities.Relationship.list(),
-  });
+  const { people, households } = useMemo(() => {
+    const householdless = rawPeople.filter(p => !p.household_id);
+    if (householdless.length === 0) return { people: rawPeople, households: rawHouseholds };
+
+    const personHouseholdMap = {};
+    for (const p of rawPeople) {
+      if (p.household_id) personHouseholdMap[p.id] = p.household_id;
+    }
+
+    const assignments = {};
+    for (const person of householdless) {
+      let bestHouseholdId = null;
+      for (const rel of relationships) {
+        const otherId = rel.person_id === person.id ? rel.related_person_id : 
+                        rel.related_person_id === person.id ? rel.person_id : null;
+        if (otherId && personHouseholdMap[otherId]) {
+          bestHouseholdId = personHouseholdMap[otherId];
+          break;
+        }
+      }
+
+      if (bestHouseholdId) {
+        assignments[person.id] = bestHouseholdId;
+      } else {
+        assignments[person.id] = '__connected_family__';
+      }
+    }
+
+    const needsVirtualHousehold = Object.values(assignments).some(v => v === '__connected_family__');
+    const virtualHouseholds = [];
+    if (needsVirtualHousehold) {
+      virtualHouseholds.push({ id: '__connected_family__', name: 'Connected Family' });
+    }
+
+    const augmentedPeople = rawPeople.map(p => {
+      if (!p.household_id && assignments[p.id]) {
+        return { ...p, household_id: assignments[p.id] };
+      }
+      return p;
+    });
+
+    return {
+      people: augmentedPeople,
+      households: [...rawHouseholds, ...virtualHouseholds],
+    };
+  }, [rawPeople, rawHouseholds, relationships]);
 
   const { data: galaxyData } = useQuery({
     queryKey: ['galaxy', galaxyCenterId],
@@ -97,12 +145,12 @@ export default function Family() {
 
   const deletePerson = useMutation({
     mutationFn: (id) => base44.entities.Person.delete(id),
-    onSuccess: () => queryClient.invalidateQueries(['people']),
+    onSuccess: () => queryClient.invalidateQueries(['universe-members']),
   });
 
   const deleteHousehold = useMutation({
     mutationFn: (id) => base44.entities.Household.delete(id),
-    onSuccess: () => queryClient.invalidateQueries(['households']),
+    onSuccess: () => queryClient.invalidateQueries(['universe-members']),
   });
 
 
@@ -746,7 +794,7 @@ export default function Family() {
               setShowPersonForm(false);
               setAddingChild(false);
               setEditingPerson(null);
-              queryClient.invalidateQueries(['people']);
+              queryClient.invalidateQueries(['universe-members']);
             }}
             onCancel={() => {
               setShowPersonForm(false);
@@ -775,7 +823,7 @@ export default function Family() {
             onSuccess={() => {
               setShowHouseholdForm(false);
               setEditingHousehold(null);
-              queryClient.invalidateQueries(['households']);
+              queryClient.invalidateQueries(['universe-members']);
             }}
             onCancel={() => {
               setShowHouseholdForm(false);

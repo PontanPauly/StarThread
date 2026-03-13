@@ -21,11 +21,109 @@ function getRing(relType) {
   return 4;
 }
 
+const SAFE_PERSON_COLS = 'id, name, nickname, photo_url, birth_date, birth_year, death_date, role_type, is_deceased, is_memorial, memorial_date, star_profile, star_pattern, star_intensity, star_flare_count, privacy_level, about, household_id, user_id, household_status, address, city, state, onboarding_complete, social_links, created_at';
+
+router.get('/universe-members', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    const personResult = await pool.query(
+      `SELECT id FROM people WHERE user_id = $1`, [userId]
+    );
+    if (personResult.rows.length === 0) {
+      return res.json({ people: [], relationships: [], households: [] });
+    }
+    const rootPersonId = personResult.rows[0].id;
+
+    const { rows: allRels } = await pool.query(`
+      SELECT r.id, r.person_id, r.related_person_id, r.relationship_type, r.subtype,
+             r.status_from_person, r.status_from_related
+      FROM relationships r
+      WHERE (r.status_from_person IN ('confirmed', 'claimed')
+             AND r.status_from_related IN ('confirmed', 'claimed'))
+         OR (r.person_id = $1 OR r.related_person_id = $1)
+    `, [rootPersonId]);
+
+    const confirmedRels = allRels.filter(r =>
+      (r.status_from_person === 'confirmed' || r.status_from_person === 'claimed') &&
+      (r.status_from_related === 'confirmed' || r.status_from_related === 'claimed')
+    );
+
+    const adjacency = {};
+    for (const rel of confirmedRels) {
+      if (!adjacency[rel.person_id]) adjacency[rel.person_id] = [];
+      if (!adjacency[rel.related_person_id]) adjacency[rel.related_person_id] = [];
+      adjacency[rel.person_id].push(rel.related_person_id);
+      adjacency[rel.related_person_id].push(rel.person_id);
+    }
+
+    const visited = new Set([rootPersonId]);
+    let frontier = [rootPersonId];
+
+    for (let hop = 0; hop < 2; hop++) {
+      const nextFrontier = [];
+      for (const personId of frontier) {
+        const neighbors = adjacency[personId] || [];
+        for (const neighborId of neighbors) {
+          if (!visited.has(neighborId)) {
+            visited.add(neighborId);
+            nextFrontier.push(neighborId);
+          }
+        }
+      }
+      frontier = nextFrontier;
+    }
+
+    const personIds = Array.from(visited);
+
+    if (personIds.length === 0) {
+      return res.json({ people: [], relationships: [], households: [] });
+    }
+
+    const { rows: hiddenRels } = await pool.query(`
+      SELECT relationship_id FROM relationship_visibility
+      WHERE user_id = $1 AND is_visible = false
+    `, [userId]);
+    const hiddenRelIds = new Set(hiddenRels.map(r => r.relationship_id));
+
+    const { rows: people } = await pool.query(`
+      SELECT ${SAFE_PERSON_COLS}
+      FROM people
+      WHERE id = ANY($1::uuid[]) AND merged_into_id IS NULL
+    `, [personIds]);
+
+    const filteredPeople = people.map(p => {
+      if (p.privacy_level === 'private' && p.user_id !== userId) {
+        return { id: p.id, name: p.name, privacy_level: p.privacy_level, household_id: p.household_id, role_type: p.role_type, is_deceased: p.is_deceased, is_memorial: p.is_memorial };
+      }
+      return p;
+    });
+
+    const graphRelationships = confirmedRels.filter(r =>
+      visited.has(r.person_id) && visited.has(r.related_person_id) && !hiddenRelIds.has(r.id)
+    );
+
+    const householdIds = [...new Set(filteredPeople.map(p => p.household_id).filter(Boolean))];
+    let households = [];
+    if (householdIds.length > 0) {
+      const { rows } = await pool.query(
+        `SELECT id, name, description FROM households WHERE id = ANY($1::uuid[])`,
+        [householdIds]
+      );
+      households = rows;
+    }
+
+    res.json({ people: filteredPeople, relationships: graphRelationships, households });
+  } catch (error) {
+    console.error('Universe members endpoint error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/galaxy/:personId', requireAuth, async (req, res) => {
   try {
     const { personId } = req.params;
 
-    const SAFE_PERSON_COLS = 'id, name, nickname, photo_url, birth_date, birth_year, death_date, role_type, is_deceased, is_memorial, memorial_date, star_profile, star_pattern, star_intensity, star_flare_count, privacy_level, about, household_id, user_id, household_status, address, city, state, onboarding_complete, created_at';
     const centerResult = await pool.query(`SELECT ${SAFE_PERSON_COLS} FROM people WHERE id = $1`, [personId]);
     if (centerResult.rows.length === 0) {
       return res.status(404).json({ error: 'Person not found' });

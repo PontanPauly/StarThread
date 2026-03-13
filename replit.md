@@ -73,6 +73,7 @@ The application follows a client-server architecture:
 -   **Unread Message Badge**: Sidebar "Messages" nav item shows amber badge with unread count, polling every 60s.
 -   **Birth Year UI**: PersonForm shows "Birth Year (approximate)" number input when birth_date is empty or role_type is 'ancestor'. Auto-syncs from birth_date when set.
 -   **Birthday Links**: Birthday cards now link to `/star/:personId` (StarView) instead of `/family`.
+-   **Universe Membership (2-Degree Graph)**: `GET /api/relationships/universe-members` returns all people within 2 confirmed relationship hops from the user. Family page uses this instead of listing all people. People without households are assigned to their closest connected household's galaxy or a "Connected Family" virtual cluster. `computeHouseholdEdges` handles cross-household edges for all relationship types (not just parent/child). Visibility settings respected.
 
 ## External Dependencies
 -   **Database**: PostgreSQL
