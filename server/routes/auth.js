@@ -106,8 +106,13 @@ router.post('/register', authLimiter, async (req, res) => {
         'SELECT relationship_type FROM invite_links WHERE code = $1 AND used_by_user_id IS NULL AND (expires_at IS NULL OR expires_at > NOW())',
         [invite_code]
       );
-      if (preCheck.rows.length > 0 && !preCheck.rows[0].relationship_type && !relationship_type) {
-        return res.status(400).json({ error: 'Please select your relationship to the person who invited you' });
+      if (preCheck.rows.length > 0 && !preCheck.rows[0].relationship_type) {
+        if (!relationship_type) {
+          return res.status(400).json({ error: 'Please select your relationship to the person who invited you' });
+        }
+        if (!RECIPROCAL_TYPES[relationship_type]) {
+          return res.status(400).json({ error: 'Invalid relationship type' });
+        }
       }
     }
 

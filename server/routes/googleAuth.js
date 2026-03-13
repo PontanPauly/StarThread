@@ -154,8 +154,10 @@ router.get('/google/callback', async (req, res) => {
         'SELECT relationship_type FROM invite_links WHERE code = $1 AND used_by_user_id IS NULL AND (expires_at IS NULL OR expires_at > NOW())',
         [inviteCode]
       );
-      if (preCheck.rows.length > 0 && !preCheck.rows[0].relationship_type && !stateRelationshipType) {
-        return res.redirect('/login?error=google_failed&reason=relationship_required');
+      if (preCheck.rows.length > 0 && !preCheck.rows[0].relationship_type) {
+        if (!stateRelationshipType || !RECIPROCAL_TYPES[stateRelationshipType]) {
+          return res.redirect('/login?error=google_failed&reason=relationship_required');
+        }
       }
     }
 
