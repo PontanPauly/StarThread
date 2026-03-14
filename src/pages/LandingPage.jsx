@@ -373,20 +373,20 @@ function MobileConstellationLines({ containerRef }) {
 const features = [
   {
     icon: Users,
-    title: "Your Family, Mapped",
-    description: "See your whole family as a living constellation. Every person a star, every connection a thread between them.",
+    title: "Your People, Mapped",
+    description: "Every person you love exists as a star. See the full shape of who you're connected to, across generations.",
     gradient: "from-amber-500 to-orange-500",
   },
   {
     icon: MapPin,
     title: "Adventures On Deck",
-    description: "Dream up the next trip together. Build itineraries, share ideas, and watch the countdown as a family.",
+    description: "Dream up the next trip together. Build itineraries, share ideas, and watch the countdown with the people you love.",
     gradient: "from-blue-500 to-cyan-500",
   },
   {
     icon: Camera,
     title: "Moments That Stay",
-    description: "The first steps, the family dinners, the random Tuesday that turned into a core memory. All kept here.",
+    description: "The first steps, the Sunday dinners, the random Tuesday that turned into a core memory. All kept here.",
     gradient: "from-purple-500 to-pink-500",
   },
   {
@@ -398,13 +398,13 @@ const features = [
   {
     icon: BookOpen,
     title: "Stories Worth Keeping",
-    description: "Grandma's recipe. Dad's road trip story. The things that make your family yours, written down before they fade.",
+    description: "The recipes, the traditions, the stories only one person still remembers. Written down before they fade.",
     gradient: "from-emerald-500 to-teal-500",
   },
   {
     icon: Lightbulb,
-    title: "Nothing Slips Through",
-    description: "Birthdays, anniversaries, the things you always mean to remember. StarThread keeps track so you never miss one.",
+    title: "Birthdays & Rituals",
+    description: "Birthdays, anniversaries, the dates that matter. StarThread keeps track so you never miss one.",
     gradient: "from-violet-500 to-purple-500",
   },
 ];
@@ -413,17 +413,17 @@ const steps = [
   {
     number: "01",
     title: "Light Your Star",
-    description: "Sign up and take your place. Your family is already out there. Now they can find you.",
+    description: "Sign up and take your place. Your people are already out there. Now they can find you.",
   },
   {
     number: "02",
     title: "Draw the Lines",
-    description: "Add your people and watch your family take shape. Parents, siblings, partners, kids, all connected.",
+    description: "Add your people and watch the shape of your life appear. Parents, siblings, partners, kids, all connected.",
   },
   {
     number: "03",
     title: "Live In It",
-    description: "This is where your family happens now. Trips planned, stories told, moments kept, love sent.",
+    description: "This is where it all lives now. Trips planned, stories told, moments kept, love sent.",
   },
 ];
 
@@ -470,16 +470,16 @@ export default function LandingPage() {
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-amber-200 via-slate-100 to-purple-200 bg-clip-text text-transparent">
-              Your Family Has a Story.
+              Everyone You Love
             </span>
             <br />
             <span className="bg-gradient-to-r from-purple-300 via-amber-200 to-amber-400 bg-clip-text text-transparent">
-              This Is Where It Lives.
+              Is a Star
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            One place for everything that makes your family yours. The relationships,
+            One place for the people who matter most. The connections,
             the memories, the plans, the things you never want to forget.
           </p>
 
@@ -501,7 +501,7 @@ export default function LandingPage() {
         <section className="px-6 md:px-12 py-20 max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-amber-200 to-slate-100 bg-clip-text text-transparent">
-              Everything Your Family Needs, Nothing It Doesn't
+              Everything You Need to Stay Close
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto">
               No ads, no algorithms, no strangers. Just your people and the
@@ -540,7 +540,7 @@ export default function LandingPage() {
               How It Works
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto">
-              Three steps. A few minutes. Then your family has a home.
+              You're a few minutes away from seeing everyone you love in one place.
             </p>
           </div>
 
@@ -580,12 +580,10 @@ export default function LandingPage() {
             <div className="absolute bottom-4 left-4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl" />
             <div className="relative">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-amber-200 via-slate-100 to-purple-200 bg-clip-text text-transparent">
-                Your Family Is Already Connected.
-                <br className="hidden sm:block" />
-                Now You Can See It.
+                Your People Are Waiting.
               </h2>
               <p className="text-slate-400 max-w-lg mx-auto mb-8">
-                It takes two minutes to light your first star. Everything after that is just your family, being a family.
+                It takes about two minutes.
               </p>
               <Link to="/login?signup=true">
                 <button className="px-10 py-4 text-base font-semibold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 rounded-xl shadow-lg shadow-amber-500/25 transition-all inline-flex items-center gap-2">
