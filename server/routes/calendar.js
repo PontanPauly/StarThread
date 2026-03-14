@@ -244,7 +244,52 @@ router.patch('/events/:id', requireAuth, async (req, res) => {
       values
     );
 
-    res.json(result.rows[0]);
+    const updatedEvent = result.rows[0];
+
+    if (updatedEvent.google_event_id) {
+      try {
+        const connected = await isGoogleCalendarConnected();
+        if (connected) {
+          const calendar = await getUncachableGoogleCalendarClient();
+          const pushCalendarId = updatedEvent.google_calendar_id || 'primary';
+          const tz = req.body.timezone || 'America/New_York';
+
+          const googleEvent = {
+            summary: updatedEvent.title,
+            description: updatedEvent.description || '',
+            location: updatedEvent.location || '',
+          };
+
+          if (updatedEvent.start_time) {
+            googleEvent.start = { dateTime: `${updatedEvent.date}T${updatedEvent.start_time}`, timeZone: tz };
+            googleEvent.end = {
+              dateTime: `${updatedEvent.end_date || updatedEvent.date}T${updatedEvent.end_time || updatedEvent.start_time}`,
+              timeZone: tz
+            };
+          } else {
+            googleEvent.start = { date: updatedEvent.date };
+            const endDateStr = updatedEvent.end_date || updatedEvent.date;
+            const exclusiveEnd = new Date(endDateStr + 'T00:00:00');
+            exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+            const yyyy = exclusiveEnd.getFullYear();
+            const mm = String(exclusiveEnd.getMonth() + 1).padStart(2, '0');
+            const dd = String(exclusiveEnd.getDate()).padStart(2, '0');
+            googleEvent.end = { date: `${yyyy}-${mm}-${dd}` };
+          }
+
+          await calendar.events.update({
+            calendarId: pushCalendarId,
+            eventId: updatedEvent.google_event_id,
+            resource: googleEvent,
+          });
+        }
+      } catch (googleErr) {
+        console.error('Failed to update Google Calendar event:', googleErr);
+        updatedEvent.google_sync_error = true;
+      }
+    }
+
+    res.json(updatedEvent);
   } catch (error) {
     if (error.code === '22P02' || error.code === '22007' || error.code === '22003') {
       return res.status(400).json({ error: `Invalid input: ${error.message.split('\n')[0]}` });
@@ -262,7 +307,7 @@ router.delete('/events/:id', requireAuth, async (req, res) => {
     }
 
     const existing = await pool.query(
-      'SELECT created_by FROM calendar_events WHERE id = $1',
+      'SELECT created_by, google_event_id, google_calendar_id FROM calendar_events WHERE id = $1',
       [req.params.id]
     );
     if (existing.rows.length === 0) {
@@ -270,6 +315,23 @@ router.delete('/events/:id', requireAuth, async (req, res) => {
     }
     if (!existing.rows[0].created_by || existing.rows[0].created_by !== person.id) {
       return res.status(403).json({ error: 'You can only delete your own events' });
+    }
+
+    if (existing.rows[0].google_event_id) {
+      try {
+        const connected = await isGoogleCalendarConnected();
+        if (connected) {
+          const calendar = await getUncachableGoogleCalendarClient();
+          const pushCalendarId = existing.rows[0].google_calendar_id || 'primary';
+
+          await calendar.events.delete({
+            calendarId: pushCalendarId,
+            eventId: existing.rows[0].google_event_id,
+          });
+        }
+      } catch (googleErr) {
+        console.error('Failed to delete Google Calendar event:', googleErr);
+      }
     }
 
     await pool.query('DELETE FROM calendar_events WHERE id = $1', [req.params.id]);
@@ -362,7 +424,7 @@ router.put('/google/preferences', requireAuth, async (req, res) => {
 router.post('/google/disconnect', requireAuth, async (req, res) => {
   try {
     await pool.query(
-      `UPDATE users SET calendar_preferences = '{"google_disconnected": true}'::jsonb WHERE id = $1`,
+      `UPDATE users SET calendar_preferences = COALESCE(calendar_preferences, '{}'::jsonb) || '{"google_disconnected": true}'::jsonb WHERE id = $1`,
       [req.session.userId]
     );
     res.json({ success: true });
@@ -512,7 +574,13 @@ router.post('/google/push', requireAuth, async (req, res) => {
       };
     } else {
       googleEvent.start = { date: event.date };
-      googleEvent.end = { date: event.end_date || event.date };
+      const endDateStr = event.end_date || event.date;
+      const exclusiveEnd = new Date(endDateStr + 'T00:00:00');
+      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+      const yyyy = exclusiveEnd.getFullYear();
+      const mm = String(exclusiveEnd.getMonth() + 1).padStart(2, '0');
+      const dd = String(exclusiveEnd.getDate()).padStart(2, '0');
+      googleEvent.end = { date: `${yyyy}-${mm}-${dd}` };
     }
 
     const response = await calendar.events.insert({
@@ -521,8 +589,8 @@ router.post('/google/push', requireAuth, async (req, res) => {
     });
 
     await pool.query(
-      'UPDATE calendar_events SET google_event_id = $1 WHERE id = $2',
-      [response.data.id, event_id]
+      'UPDATE calendar_events SET google_event_id = $1, google_calendar_id = $2 WHERE id = $3',
+      [response.data.id, pushCalendarId, event_id]
     );
 
     res.json({ success: true, google_event_id: response.data.id });

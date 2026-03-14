@@ -406,6 +406,7 @@ CREATE TABLE calendar_events (
   visibility      TEXT    DEFAULT 'galaxy' CHECK (visibility IN ('private', 'galaxy', 'universe', 'custom')),
   shared_with     UUID[],
   google_event_id TEXT,
+  google_calendar_id TEXT,
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -392,6 +392,7 @@ export async function runMigrations() {
       ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS end_date DATE;
       ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS location TEXT;
       ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS google_event_id TEXT;
+      ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS google_calendar_id TEXT;
       ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS recurrence_rule TEXT;
     `);
 

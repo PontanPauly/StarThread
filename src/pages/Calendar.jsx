@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import ParentalGate from "@/components/ParentalGate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 import { useMyPerson } from "@/hooks/useMyPerson";
 import {
   Calendar as CalendarIcon, Cake, Plus, Edit, Trash2, ChevronLeft, ChevronRight,
@@ -122,10 +121,16 @@ export default function Calendar() {
   const startDate = format(startOfWeek(monthStart), 'yyyy-MM-dd');
   const endDate = format(endOfWeek(monthEnd), 'yyyy-MM-dd');
 
-  const { data: people = [] } = useQuery({
-    queryKey: ['people'],
-    queryFn: () => base44.entities.Person.list(),
+  const { data: universeData } = useQuery({
+    queryKey: ['universe-members'],
+    queryFn: async () => {
+      const response = await fetch('/api/family/universe-members', { credentials: 'include' });
+      if (!response.ok) return { people: [], relationships: [], households: [] };
+      return response.json();
+    },
+    staleTime: 30000,
   });
+  const people = universeData?.people || [];
 
   const { data: events = [], isLoading: loadingEvents } = useQuery({
     queryKey: ['calendarEvents', scope, startDate, endDate],
@@ -833,14 +838,18 @@ function EventForm({ open, onClose, event, people, defaultDate, googleConnected 
         result = await response.json();
         toast({ title: 'Event imported to StarThread' });
       } else if (event?.id) {
+        payload.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         result = await updateCalendarEvent(event.id, payload);
+        if (result?.google_sync_error) {
+          toast({ title: 'Event saved but failed to update Google Calendar copy', variant: 'destructive' });
+        }
       } else {
         result = await createCalendarEvent(payload);
       }
 
       if (!isGoogleImport && formData.sync_to_google && googleConnected && result?.id) {
         try {
-          await fetch(`${API_BASE}/calendar/google/push`, {
+          const pushResponse = await fetch(`${API_BASE}/calendar/google/push`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -849,8 +858,12 @@ function EventForm({ open, onClose, event, people, defaultDate, googleConnected 
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             }),
           });
+          if (!pushResponse.ok) {
+            throw new Error('Push failed');
+          }
         } catch (err) {
           console.error('Failed to sync to Google:', err);
+          toast({ title: 'Event saved but failed to sync to Google Calendar', variant: 'destructive' });
         }
       }
 
