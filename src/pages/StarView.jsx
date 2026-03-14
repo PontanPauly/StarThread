@@ -48,7 +48,7 @@ const STAR_BG_DOTS = Array.from({ length: 50 }).map((_, i) => ({
 
 const StarViewBackground = React.memo(function StarViewBackground({ primaryColor }) {
   return (
-    <div className="fixed inset-0 pointer-events-none">
+    <div className="fixed inset-0 pointer-events-none" style={{ willChange: 'transform' }}>
       <div
         className="absolute inset-0"
         style={{
@@ -734,31 +734,37 @@ export default function StarView() {
   const { data: moments = [] } = useQuery({
     queryKey: ["moments"],
     queryFn: () => base44.entities.Moment.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: calendarEvents = [] } = useQuery({
     queryKey: ["calendar-events"],
     queryFn: () => base44.entities.CalendarEvent.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: loveNotes = [], isError: loveNotesError } = useQuery({
     queryKey: ["love-notes", "star-view"],
     queryFn: () => base44.entities.LoveNote.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: familyStories = [], isError: storiesError } = useQuery({
     queryKey: ["family-stories", "star-view"],
     queryFn: () => base44.entities.FamilyStory.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: trips = [], isError: tripsError } = useQuery({
     queryKey: ["trips", "star-view"],
     queryFn: () => base44.entities.Trip.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: tripParticipants = [], isError: participantsError } = useQuery({
     queryKey: ["trip-participants", "star-view"],
     queryFn: () => base44.entities.TripParticipant.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const planets = useMemo(() => {
@@ -788,6 +794,11 @@ export default function StarView() {
     });
   }, []);
 
+  const starProfile = person?.star_profile || DEFAULT_STAR_PROFILE;
+  const primaryColor = useMemo(() => {
+    const visuals = getStarVisuals(starProfile, personId);
+    return visuals.colors.primary || "#FBBF24";
+  }, [starProfile, personId]);
 
   if (loadingPeople) {
     return (
@@ -917,10 +928,6 @@ export default function StarView() {
       </div>
     );
   }
-
-  const starProfile = person.star_profile || DEFAULT_STAR_PROFILE;
-  const visuals = getStarVisuals(starProfile, personId);
-  const primaryColor = visuals.colors.primary || "#FBBF24";
 
   return (
     <div className="min-h-screen bg-slate-900 relative overflow-x-clip">
