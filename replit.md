@@ -63,6 +63,7 @@ The application follows a client-server architecture. The backend is built with 
 -   New database tables include `person_match_suggestions`, `merge_history`, `merge_conflicts`, and `merged_into_id` on people. `pg_trgm` extension is used for trigram indexing.
 -   An API test suite uses Vitest and Supertest for integration testing.
 -   GPU resource management ensures proper disposal of Three.js materials and geometries.
+-   **Ref-based hover optimization**: Hover state (`hoveredHouseholdId`, `hoveredStarId`) is mirrored to refs and passed through the 3D scene tree (NebulaScene, UnifiedGalaxyScene, AnimatedHouseholdGroup, HouseholdConnectionLines, StarInstanced/Star) to prevent React re-render cascades on every hover interaction. Hover effects are computed imperatively in `useFrame`. NebulaScene is wrapped in `React.memo`. Canvas config objects are memoized.
 -   A unified custom toast system is used for notifications.
 -   Form dirty tracking prompts users before discarding unsaved changes.
 -   Invite link RLS ensures users can only see their own invite links.

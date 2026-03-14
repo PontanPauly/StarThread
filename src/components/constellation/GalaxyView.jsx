@@ -1950,7 +1950,7 @@ function RelationshipSystemView({
   centerPosition,
   onStarClick,
   onStarHover,
-  hoveredStarId,
+  hoveredStarIdRef,
   focusedStarId,
   fadeOpacity = 1,
   bloomScale = 1,
@@ -2031,7 +2031,7 @@ function RelationshipSystemView({
         stars={starsWithProfiles}
         onStarClick={onStarClick}
         onStarHover={onStarHover}
-        hoveredId={hoveredStarId}
+        hoveredIdRef={hoveredStarIdRef}
         focusedId={focusedStarId}
         globalOpacity={fadeOpacity}
         globalScale={bloomScale}
@@ -2265,7 +2265,7 @@ function SystemLevelScene({
   household,
   people,
   relationships,
-  hoveredStarId,
+  hoveredStarIdRef,
   focusedStarId,
   onStarClick,
   onStarHover,
@@ -2365,7 +2365,7 @@ function SystemLevelScene({
         stars={starsWithProfiles}
         onStarClick={onStarClick}
         onStarHover={onStarHover}
-        hoveredId={hoveredStarId}
+        hoveredIdRef={hoveredStarIdRef}
         focusedId={focusedStarId}
         globalOpacity={fadeOpacity}
         globalScale={bloomScale}
@@ -2378,19 +2378,19 @@ function AnimatedHouseholdGroup({
   household, 
   basePosition, 
   colorIndex, 
-  isHovered, 
+  hoveredHouseholdIdRef,
+  connectedToHoveredRef,
   isFocused,
-  isConnectedToHovered = false,
   transitionProgressRef,
   transitionDirectionRef,
   level,
   focusedHouseholdId,
-  hoveredPos,
+  householdPositions,
   stars,
   relationships = [],
   onStarClick,
   onStarHover,
-  hoveredStarId,
+  hoveredStarIdRef,
   focusedStarId,
   onClick, 
   onPointerOver, 
@@ -2411,6 +2411,8 @@ function AnimatedHouseholdGroup({
   });
   const renderOpacityRef = useRef(1.0);
   const starRenderOpacityRef = useRef(1);
+  const [isHoveredSelf, setIsHoveredSelf] = useState(false);
+  const prevIsHoveredSelf = useRef(false);
   
   const localStars = useMemo(() => {
     return stars.map(star => ({
@@ -2460,7 +2462,7 @@ function AnimatedHouseholdGroup({
       targetOpacity = 0.8 - fadeAmount * 0.7;
       targetStarOpacity = 1 - fadeAmount * 0.85;
       targetScale = 1 - fadeAmount * 0.15;
-    } else if (isHovered) {
+    } else if (hoveredHouseholdIdRef.current != null && String(hoveredHouseholdIdRef.current) === String(household.id)) {
       const towardCamera = cameraForward.clone().multiplyScalar(-6);
       targetOffsetX = towardCamera.x;
       targetOffsetY = towardCamera.y;
@@ -2468,8 +2470,9 @@ function AnimatedHouseholdGroup({
       targetScale = 1.5;
       targetOpacity = 1;
       targetStarOpacity = 1;
-    } else if (hoveredPos) {
-      if (isConnectedToHovered) {
+    } else if (hoveredHouseholdIdRef.current) {
+      const connected = connectedToHoveredRef.current;
+      if (connected && connected.has(String(household.id))) {
         targetOpacity = 0.9;
         targetStarOpacity = 1;
         targetScale = 1.05;
@@ -2509,6 +2512,12 @@ function AnimatedHouseholdGroup({
     
     renderOpacityRef.current = curr.opacity;
     starRenderOpacityRef.current = curr.starOpacity;
+    
+    const nowHovered = hoveredHouseholdIdRef.current != null && String(hoveredHouseholdIdRef.current) === String(household.id);
+    if (nowHovered !== prevIsHoveredSelf.current) {
+      prevIsHoveredSelf.current = nowHovered;
+      setIsHoveredSelf(nowHovered);
+    }
   });
   
   const isOtherFocused = focusedHouseholdId && !isFocused;
@@ -2536,7 +2545,7 @@ function AnimatedHouseholdGroup({
         household={household}
         memberCount={memberCount}
         starClass={starClass}
-        isHovered={isHovered && !focusedHouseholdId}
+        isHovered={isHoveredSelf && !focusedHouseholdId}
         isSystemView={!!focusedHouseholdId}
         onClick={onClick}
         onPointerOver={onPointerOver}
@@ -2544,7 +2553,7 @@ function AnimatedHouseholdGroup({
         showLabels={showLabels}
         householdColor={householdColor}
       />
-      {showLabels && !focusedHouseholdId && !isHovered && (
+      {showLabels && !focusedHouseholdId && !isHoveredSelf && (
         <GalaxyLabel household={household} householdColor={householdColor} opacityRef={renderOpacityRef} />
       
       )}
@@ -2566,7 +2575,7 @@ function AnimatedHouseholdGroup({
           intensityRef={renderOpacityRef}
         />
       )}
-      {!focusedHouseholdId && isHovered && galaxyCoupleRing && (
+      {!focusedHouseholdId && isHoveredSelf && galaxyCoupleRing && (
         <HoverSphere
           colorIndex={colorIndex}
           radius={GALAXY_RING_RADIUS}
@@ -2586,7 +2595,7 @@ function AnimatedHouseholdGroup({
           stars={localStars}
           onStarClick={focusedHouseholdId ? onStarClick : (star) => onClick()}
           onStarHover={focusedHouseholdId ? onStarHover : () => {}}
-          hoveredId={focusedHouseholdId ? hoveredStarId : null}
+          hoveredIdRef={focusedHouseholdId ? hoveredStarIdRef : null}
           focusedId={focusedHouseholdId ? focusedStarId : null}
           globalOpacityRef={starRenderOpacityRef}
           globalScale={1}
@@ -3333,7 +3342,7 @@ const _ringCorrUp = new THREE.Vector3();
 const _ringTarget = new THREE.Vector3();
 const _ringFrom = new THREE.Vector3();
 
-function HouseholdConnectionLines({ edges, householdPositions, hoveredHouseholdId, starsByHousehold, householdGroupRefs, coupleHouseholds }) {
+function HouseholdConnectionLines({ edges, householdPositions, hoveredHouseholdIdRef, starsByHousehold, householdGroupRefs, coupleHouseholds }) {
   const meshRef = useRef();
   const timeUniform = useRef({ value: 0 });
   const resolutionUniform = useRef({ value: new THREE.Vector2(1920, 1080) });
@@ -3563,7 +3572,8 @@ function HouseholdConnectionLines({ edges, householdPositions, hoveredHouseholdI
         fromZ += (_ringRight.z * nR + _ringCorrUp.z * nU) * fromR;
       }
 
-      const isHighlighted = hoveredHouseholdId && (String(hoverMask[i]?.from) === String(hoveredHouseholdId) || String(hoverMask[i]?.to) === String(hoveredHouseholdId));
+      const hhi = hoveredHouseholdIdRef.current;
+      const isHighlighted = hhi && (String(hoverMask[i]?.from) === String(hhi) || String(hoverMask[i]?.to) === String(hhi));
       const hlVal = isHighlighted ? 1.0 : 0.05;
 
       const edgeColors = HOUSEHOLD_COLORS[edge.fromColorIndex % HOUSEHOLD_COLORS.length];
@@ -3620,7 +3630,8 @@ function HouseholdConnectionLines({ edges, householdPositions, hoveredHouseholdI
                 ngColAttr.array[(nodeIdx + 1) * 3 + ci] = colAttr.array[svi + ci];
               }
             }
-            const isHl = hoveredHouseholdId && (String(hoverMask[i]?.from) === String(hoveredHouseholdId) || String(hoverMask[i]?.to) === String(hoveredHouseholdId));
+            const hhi2 = hoveredHouseholdIdRef.current;
+            const isHl = hhi2 && (String(hoverMask[i]?.from) === String(hhi2) || String(hoverMask[i]?.to) === String(hhi2));
             const alpha = isHl ? 0.6 : 0.2;
             ngAlphaAttr.array[nodeIdx] = alpha;
             ngAlphaAttr.array[nodeIdx + 1] = alpha;
@@ -3807,8 +3818,8 @@ function UnifiedGalaxyScene({
   people,
   relationships = [],
   focusedHouseholdId,
-  hoveredHouseholdId,
-  hoveredStarId,
+  hoveredHouseholdIdRef,
+  hoveredStarIdRef,
   focusedStarId,
   onHouseholdClick,
   onHouseholdHover,
@@ -3914,21 +3925,29 @@ function UnifiedGalaxyScene({
     return set;
   }, [starsByHousehold]);
 
-  const hoveredPos = useMemo(() => {
-    if (!hoveredHouseholdId) return null;
-    return householdPositions.get(hoveredHouseholdId);
-  }, [hoveredHouseholdId, householdPositions]);
-
-  const connectedToHovered = useMemo(() => {
-    if (!hoveredHouseholdId || !householdEdges) return null;
-    const connected = new Set();
-    connected.add(hoveredHouseholdId);
-    householdEdges.forEach(edge => {
-      if (edge.from === hoveredHouseholdId) connected.add(edge.to);
-      if (edge.to === hoveredHouseholdId) connected.add(edge.from);
-    });
-    return connected;
-  }, [hoveredHouseholdId, householdEdges]);
+  const connectedToHoveredRef = useRef(null);
+  const prevHoveredIdRef = useRef(null);
+  const prevEdgesRef = useRef(null);
+  
+  useFrame(() => {
+    const hid = hoveredHouseholdIdRef.current;
+    const edgesChanged = householdEdges !== prevEdgesRef.current;
+    if (hid !== prevHoveredIdRef.current || edgesChanged) {
+      prevHoveredIdRef.current = hid;
+      prevEdgesRef.current = householdEdges;
+      if (!hid || !householdEdges) {
+        connectedToHoveredRef.current = null;
+      } else {
+        const connected = new Set();
+        connected.add(String(hid));
+        householdEdges.forEach(edge => {
+          if (String(edge.from) === String(hid)) connected.add(String(edge.to));
+          if (String(edge.to) === String(hid)) connected.add(String(edge.from));
+        });
+        connectedToHoveredRef.current = connected;
+      }
+    }
+  });
   
   return (
     <group>
@@ -3936,7 +3955,7 @@ function UnifiedGalaxyScene({
         <HouseholdConnectionLines
           edges={matchingHouseholdIds ? householdEdges.filter(e => matchingHouseholdIds.has(e.from) && matchingHouseholdIds.has(e.to)) : householdEdges}
           householdPositions={householdPositions}
-          hoveredHouseholdId={hoveredHouseholdId}
+          hoveredHouseholdIdRef={hoveredHouseholdIdRef}
           starsByHousehold={starsByHousehold}
           householdGroupRefs={householdGroupRefs}
           coupleHouseholds={coupleHouseholds}
@@ -3947,9 +3966,7 @@ function UnifiedGalaxyScene({
         if (!pos) return null;
         
         const isFocused = household.id === focusedHouseholdId;
-        const isHovered = household.id === hoveredHouseholdId;
         const householdStars = starsByHousehold.get(household.id) || [];
-        const isConnectedToHovered = connectedToHovered ? connectedToHovered.has(household.id) : false;
         
         const mc = pos.memberCount || 0;
         const sc = classifyHousehold(mc);
@@ -3963,19 +3980,19 @@ function UnifiedGalaxyScene({
             household={household}
             basePosition={pos}
             colorIndex={index}
-            isHovered={isHovered}
+            hoveredHouseholdIdRef={hoveredHouseholdIdRef}
+            connectedToHoveredRef={connectedToHoveredRef}
             isFocused={isFocused}
-            isConnectedToHovered={isConnectedToHovered}
             transitionProgressRef={transitionProgressRef}
             transitionDirectionRef={transitionDirectionRef}
             level={level}
             focusedHouseholdId={focusedHouseholdId}
-            hoveredPos={hoveredPos}
+            householdPositions={householdPositions}
             stars={householdStars}
             relationships={relationships}
             onStarClick={onStarClick}
             onStarHover={onStarHover}
-            hoveredStarId={hoveredStarId}
+            hoveredStarIdRef={hoveredStarIdRef}
             focusedStarId={focusedStarId}
             onClick={() => !focusedHouseholdId && onHouseholdClick(household)}
             onPointerOver={() => !focusedHouseholdId && onHouseholdHover(household.id)}
@@ -4629,15 +4646,15 @@ function PolarStabilizer() {
   return null;
 }
 
-function NebulaScene({
+const NebulaScene = React.memo(function NebulaScene({
   level,
   households,
   people,
   relationships,
   selectedHousehold,
   householdPositions,
-  hoveredHouseholdId,
-  hoveredStarId,
+  hoveredHouseholdIdRef,
+  hoveredStarIdRef,
   focusedStarId,
   onHouseholdClick,
   onHouseholdHover,
@@ -4752,8 +4769,8 @@ function NebulaScene({
           people={people}
           relationships={relationships}
           focusedHouseholdId={effectiveFocusedId}
-          hoveredHouseholdId={hoveredHouseholdId}
-          hoveredStarId={hoveredStarId}
+          hoveredHouseholdIdRef={hoveredHouseholdIdRef}
+          hoveredStarIdRef={hoveredStarIdRef}
           focusedStarId={focusedStarId}
           onHouseholdClick={onHouseholdClick}
           onHouseholdHover={onHouseholdHover}
@@ -4773,7 +4790,7 @@ function NebulaScene({
           household={selectedHousehold}
           people={people}
           relationships={relationships}
-          hoveredStarId={hoveredStarId}
+          hoveredStarIdRef={hoveredStarIdRef}
           focusedStarId={focusedStarId}
           onStarClick={onStarClick}
           onStarHover={onStarHover}
@@ -4817,7 +4834,7 @@ function NebulaScene({
       <PolarStabilizer controlsRef={controlsRef} active={false} />
     </>
   );
-}
+});
 
 function CameraTracker({ onCameraUpdate }) {
   const { camera } = useThree();
@@ -5275,9 +5292,19 @@ function personHasOwnGalaxy(personId, relationships) {
 const GalaxyView = React.memo(function GalaxyView({ people = [], relationships = [], households = [], galaxyData = null, onPersonClick, onRecenterGalaxy, onNavigateToStar, onNavigateToGalaxy, myPerson = null, initialGalaxyId = null, navigateToPersonId = null }) {
   const [level, setLevel] = useState('galaxy');
   const [selectedHousehold, setSelectedHousehold] = useState(null);
-  const [hoveredHouseholdId, setHoveredHouseholdId] = useState(null);
-  const [hoveredStarId, setHoveredStarId] = useState(null);
+  const [hoveredHouseholdId, _setHoveredHouseholdId] = useState(null);
+  const [hoveredStarId, _setHoveredStarId] = useState(null);
   const [focusedStarId, setFocusedStarId] = useState(null);
+  const hoveredHouseholdIdRef = useRef(null);
+  const hoveredStarIdRef = useRef(null);
+  const setHoveredHouseholdId = useCallback((id) => {
+    hoveredHouseholdIdRef.current = id;
+    _setHoveredHouseholdId(id);
+  }, []);
+  const setHoveredStarId = useCallback((id) => {
+    hoveredStarIdRef.current = id;
+    _setHoveredStarId(id);
+  }, []);
   const [autoRotateEnabled, setAutoRotateEnabled] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -5317,6 +5344,17 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
   }, []);
 
   const qualityTier = useQualityTier();
+
+  const canvasCamera = useMemo(() => ({ position: [50, 35, 70], fov: 55 }), []);
+  const canvasGl = useMemo(() => ({
+    antialias: qualityTier.tier !== 'low',
+    alpha: false,
+    powerPreference: qualityTier.tier === 'low' ? 'low-power' : 'high-performance',
+    failIfMajorPerformanceCaveat: false,
+    preserveDrawingBuffer: false,
+  }), [qualityTier.tier]);
+  const canvasStyle = useMemo(() => ({ background: '#060410' }), []);
+
   const rawHouseholdPositions = useOrganicClusterLayout(households, people, viewMode, relationships);
 
   const householdPositions = useMemo(() => {
@@ -5675,15 +5713,9 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
         </div>
       )}
       <Canvas
-        camera={{ position: [50, 35, 70], fov: 55 }}
-        gl={{ 
-          antialias: qualityTier.tier !== 'low', 
-          alpha: false, 
-          powerPreference: qualityTier.tier === 'low' ? 'low-power' : 'high-performance',
-          failIfMajorPerformanceCaveat: false,
-          preserveDrawingBuffer: false,
-        }}
-        style={{ background: '#060410' }}
+        camera={canvasCamera}
+        gl={canvasGl}
+        style={canvasStyle}
         dpr={qualityTier.dpr}
         onCreated={handleCanvasCreated}
         frameloop="always"
@@ -5696,8 +5728,8 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
           relationships={relationships}
           selectedHousehold={selectedHousehold}
           householdPositions={householdPositions}
-          hoveredHouseholdId={hoveredHouseholdId}
-          hoveredStarId={hoveredStarId}
+          hoveredHouseholdIdRef={hoveredHouseholdIdRef}
+          hoveredStarIdRef={hoveredStarIdRef}
           focusedStarId={focusedStarId}
           onHouseholdClick={handleHouseholdClick}
           onHouseholdHover={setHoveredHouseholdId}

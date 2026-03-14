@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -232,7 +232,8 @@ export default function Star({
   starProfile = DEFAULT_STAR_PROFILE,
   personId = 'default',
   personName = '',
-  isHovered = false,
+  isHovered: isHoveredProp,
+  hoveredIdRef,
   isFocused = false,
   isMemorial = false,
   globalOpacity = 1,
@@ -312,17 +313,13 @@ export default function Star({
     };
   }, [material]);
 
-  const targetScale = useMemo(() => {
-    let base = visuals.scale;
-    if (isFocused) base = visuals.scale * 1.3;
-    else if (isHovered) base = visuals.scale * 1.2;
-    return base * globalScale;
-  }, [isHovered, isFocused, visuals.scale, globalScale]);
-
   const baseScale = visuals.scale * globalScale;
+  const isHoveredSelfRef = useRef(false);
+  const [showLabel, setShowLabel] = useState(false);
+  const prevShowLabel = useRef(false);
 
   if (scaleRef.current === null) {
-    scaleRef.current = targetScale;
+    scaleRef.current = baseScale;
   }
 
   const hitboxScale = 0.6 * baseScale;
@@ -336,12 +333,19 @@ export default function Star({
     }
     material.uniforms.globalOpacity.value = globalOpacityRef ? globalOpacityRef.current : globalOpacity;
 
+    const isHovered = isHoveredProp !== undefined ? isHoveredProp : (hoveredIdRef ? hoveredIdRef.current === personId : false);
+    isHoveredSelfRef.current = isHovered;
+
     const hoverTarget = (isHovered || isFocused) ? 1.0 : 0.0;
     const hoverSpeed = hoverTarget > hoverRef.current ? 8.0 : 5.0;
     hoverRef.current += (hoverTarget - hoverRef.current) * Math.min(1, hoverSpeed * delta);
     if (Math.abs(hoverRef.current - hoverTarget) < 0.001) hoverRef.current = hoverTarget;
     material.uniforms.isHovered.value = hoverRef.current;
 
+    let targetScale = visuals.scale * globalScale;
+    if (isFocused) targetScale = visuals.scale * 1.3 * globalScale;
+    else if (isHovered) targetScale = visuals.scale * 1.2 * globalScale;
+    
     const scaleSpeed = targetScale > scaleRef.current ? 8.0 : 5.0;
     scaleRef.current += (targetScale - scaleRef.current) * Math.min(1, scaleSpeed * delta);
     if (Math.abs(scaleRef.current - targetScale) < 0.001) scaleRef.current = targetScale;
@@ -350,6 +354,12 @@ export default function Star({
       const s = scaleRef.current / baseScale;
       meshRef.current.scale.set(s, s, 1);
       meshRef.current.lookAt(state.camera.position);
+    }
+    
+    const shouldShow = isHovered || isFocused;
+    if (shouldShow !== prevShowLabel.current) {
+      prevShowLabel.current = shouldShow;
+      setShowLabel(shouldShow);
     }
   });
 
@@ -391,7 +401,7 @@ export default function Star({
 
   return (
     <group ref={groupRef} position={position}>
-      <StarLabel name={personName} isVisible={isHovered || isFocused} />
+      <StarLabel name={personName} isVisible={showLabel} />
 
       <mesh ref={meshRef}>
         <planeGeometry args={[baseGeoSize, baseGeoSize, 16, 16]} />
@@ -413,7 +423,7 @@ export default function Star({
   );
 }
 
-export function StarInstanced({ stars, onStarClick, onStarHover, hoveredId, focusedId, globalOpacity = 1, globalOpacityRef, globalScale = 1, animated = true }) {
+export function StarInstanced({ stars, onStarClick, onStarHover, hoveredId, hoveredIdRef, focusedId, globalOpacity = 1, globalOpacityRef, globalScale = 1, animated = true }) {
   return (
     <group>
       {stars.map((star) => (
@@ -423,7 +433,8 @@ export function StarInstanced({ stars, onStarClick, onStarHover, hoveredId, focu
           starProfile={star.starProfile}
           personId={star.id}
           personName={star.person?.name || star.person?.first_name || ''}
-          isHovered={hoveredId === star.id}
+          isHovered={hoveredId != null ? hoveredId === star.id : undefined}
+          hoveredIdRef={hoveredIdRef}
           isFocused={focusedId === star.id}
           isMemorial={!!star.person?.is_memorial}
           globalOpacity={globalOpacity}
