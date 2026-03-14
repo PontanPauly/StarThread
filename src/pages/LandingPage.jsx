@@ -207,23 +207,45 @@ function MobileConstellationLines({ containerRef }) {
     resize();
     window.addEventListener("resize", resize);
 
-    function buildCurvePath(from, to, bendDir, containerW) {
-      const midY = (from.y + to.y) / 2;
-      const bendAmount = containerW * 0.28;
-      const offsetX = bendDir === "right" ? bendAmount : -bendAmount;
-      const cx = from.x + offsetX;
-      const cp1 = { x: cx, y: from.y + (midY - from.y) * 0.5 };
-      const cp2 = { x: cx, y: midY + (to.y - midY) * 0.5 };
-      const points = [];
-      const segments = 120;
+    function sampleCubic(p0, p1, p2, p3, segments) {
+      const pts = [];
       for (let s = 0; s <= segments; s++) {
         const t = s / segments;
         const u = 1 - t;
-        const x = u*u*u*from.x + 3*u*u*t*cp1.x + 3*u*t*t*cp2.x + t*t*t*to.x;
-        const y = u*u*u*from.y + 3*u*u*t*cp1.y + 3*u*t*t*cp2.y + t*t*t*to.y;
-        points.push({ x, y });
+        pts.push({
+          x: u*u*u*p0.x + 3*u*u*t*p1.x + 3*u*t*t*p2.x + t*t*t*p3.x,
+          y: u*u*u*p0.y + 3*u*u*t*p1.y + 3*u*t*t*p2.y + t*t*t*p3.y,
+        });
       }
-      return points;
+      return pts;
+    }
+
+    function buildPath(fromCenter, toCenter, bendDir, containerW) {
+      const fromY = fromCenter.y + NODE_RADIUS;
+      const toY = toCenter.y - NODE_RADIUS;
+      const cx = fromCenter.x;
+      const totalDY = toY - fromY;
+
+      const sideOffset = bendDir === "right"
+        ? Math.min(containerW * 0.18, 70)
+        : -Math.min(containerW * 0.18, 70);
+
+      const exitLen = totalDY * 0.18;
+      const entryLen = totalDY * 0.18;
+
+      const p0 = { x: cx, y: fromY };
+      const p1 = { x: cx, y: fromY + exitLen };
+      const midX = cx + sideOffset;
+      const midY = (fromY + toY) / 2;
+      const p2 = { x: midX, y: midY - totalDY * 0.12 };
+      const p3 = { x: midX, y: midY + totalDY * 0.12 };
+      const p4 = { x: cx, y: toY - entryLen };
+      const p5 = { x: cx, y: toY };
+
+      const seg1 = sampleCubic(p0, p1, p2, { x: midX, y: midY }, 60);
+      const seg2 = sampleCubic({ x: midX, y: midY }, p3, p4, p5, 60);
+      seg2.shift();
+      return seg1.concat(seg2);
     }
 
     const draw = (time) => {
@@ -252,12 +274,7 @@ function MobileConstellationLines({ containerRef }) {
       const curves = [];
       const directions = ["right", "left"];
       for (let i = 0; i < centers.length - 1; i++) {
-        const startY = centers[i].y + NODE_RADIUS;
-        const endY = centers[i + 1].y - NODE_RADIUS;
-        const from = { x: centers[i].x, y: startY };
-        const to = { x: centers[i + 1].x, y: endY };
-        const pts = buildCurvePath(from, to, directions[i % 2], w);
-        curves.push(pts);
+        curves.push(buildPath(centers[i], centers[i + 1], directions[i % 2], w));
       }
 
       for (const pts of curves) {
@@ -266,8 +283,8 @@ function MobileConstellationLines({ containerRef }) {
         for (let j = 1; j < pts.length; j++) {
           ctx.lineTo(pts[j].x, pts[j].y);
         }
-        ctx.strokeStyle = "rgba(56, 189, 186, 0.25)";
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "rgba(56, 189, 186, 0.18)";
+        ctx.lineWidth = 1;
         ctx.lineCap = "round";
         ctx.stroke();
       }
@@ -293,7 +310,7 @@ function MobileConstellationLines({ containerRef }) {
 
       const nodePos = centers.map((_, i) => i / (centers.length - 1));
       const glowR = 0.08;
-      const pw = 0.14;
+      const pw = 0.12;
 
       for (let i = 0; i < centers.length; i++) {
         const dist = Math.abs(energyPos - nodePos[i]);
@@ -303,12 +320,12 @@ function MobileConstellationLines({ containerRef }) {
         if (sm < 0.01) continue;
         const cx = centers[i].x;
         const cy = centers[i].y;
-        const maxExpand = 12;
+        const maxExpand = 10;
         const r = NODE_RADIUS + sm * maxExpand;
         const grad = ctx.createRadialGradient(cx, cy, NODE_RADIUS - 2, cx, cy, r);
         grad.addColorStop(0, `rgba(56, 189, 186, 0)`);
-        grad.addColorStop(0.3, `rgba(56, 189, 186, ${sm * 0.2})`);
-        grad.addColorStop(0.6, `rgba(160, 235, 230, ${sm * 0.12})`);
+        grad.addColorStop(0.3, `rgba(56, 189, 186, ${sm * 0.18})`);
+        grad.addColorStop(0.6, `rgba(160, 235, 230, ${sm * 0.1})`);
         grad.addColorStop(1, `rgba(56, 189, 186, 0)`);
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -316,8 +333,8 @@ function MobileConstellationLines({ containerRef }) {
         ctx.fill();
         ctx.beginPath();
         ctx.arc(cx, cy, NODE_RADIUS + 1, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(160, 235, 230, ${sm * 0.35})`;
-        ctx.lineWidth = 1.5 + sm * 1;
+        ctx.strokeStyle = `rgba(160, 235, 230, ${sm * 0.3})`;
+        ctx.lineWidth = 1.5 + sm * 0.8;
         ctx.stroke();
       }
 
@@ -337,9 +354,9 @@ function MobileConstellationLines({ containerRef }) {
           ctx.beginPath();
           ctx.moveTo(pts[j-1].x, pts[j-1].y);
           ctx.lineTo(pts[j].x, pts[j].y);
-          ctx.strokeStyle = `rgba(160, 235, 230, ${sm * 0.6})`;
-          ctx.lineWidth = 1.5 + sm * 2;
-          ctx.lineCap = "butt";
+          ctx.strokeStyle = `rgba(160, 235, 230, ${sm * 0.55})`;
+          ctx.lineWidth = 1.5 + sm * 1.8;
+          ctx.lineCap = "round";
           ctx.stroke();
         }
       }
