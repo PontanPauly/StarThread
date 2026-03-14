@@ -244,7 +244,7 @@ const POLICIES = {
       },
       {
         heading: "Family Data",
-        body: "Content you create — including family stories, moments, love notes, trip plans, and traditions — is retained as long as your account is active. Shared content that involves other family members may be retained even after your account deletion to preserve the integrity of shared family records."
+        body: "Content you create, including family stories, moments, love notes, trip plans, and traditions, is retained as long as your account is active. Shared content that involves other family members may be retained even after your account deletion to preserve the integrity of shared family records."
       },
       {
         heading: "Messages",

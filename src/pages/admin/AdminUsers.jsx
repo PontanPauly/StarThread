@@ -171,7 +171,7 @@ export default function AdminUsers() {
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className="text-xs text-slate-400 capitalize">{u.subscription_tier || "free"}</span>
                   </td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-xs text-slate-500">{u.household_name || "—"}</td>
+                  <td className="px-4 py-3 hidden lg:table-cell text-xs text-slate-500">{u.household_name || "-"}</td>
                   <td className="px-4 py-3 hidden lg:table-cell text-xs text-slate-600">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
@@ -266,7 +266,7 @@ export default function AdminUsers() {
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <div className="text-xs text-slate-500 mb-1">Person</div>
-                    <div className="text-slate-200">{selectedUser.name || "—"}</div>
+                    <div className="text-slate-200">{selectedUser.name || "-"}</div>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <div className="text-xs text-slate-500 mb-1">Joined</div>

@@ -342,7 +342,7 @@ function SupportTokenSection() {
       )}
 
       <p className="text-xs text-slate-500">
-        Your support code is valid for 1 hour. You can revoke it at any time. Support staff can only view your account information — they cannot access your password or private messages.
+        Your support code is valid for 1 hour. You can revoke it at any time. Support staff can only view your account information - they cannot access your password or private messages.
       </p>
     </div>
   );

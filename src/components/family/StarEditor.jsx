@@ -380,7 +380,7 @@ export default function StarEditor({ value, onChange }) {
               Essence
             </Label>
             <p className="text-xs text-slate-500">
-              A short statement that captures who you are — this appears on your star.
+              A short statement that captures who you are. This appears on your star.
             </p>
             <textarea
               value={starProfile.essence || ""}
@@ -401,7 +401,7 @@ export default function StarEditor({ value, onChange }) {
               Interests
             </Label>
             <p className="text-xs text-slate-500">
-              Pick your interests — they'll orbit your star as planets.
+              Pick your interests. They'll orbit your star as planets.
             </p>
             {(starProfile.interests || []).length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">

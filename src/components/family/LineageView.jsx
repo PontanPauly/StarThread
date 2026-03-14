@@ -58,7 +58,7 @@ export default function LineageView({ people, relationships, onPersonClick }) {
     return map;
   }, [relationships]);
 
-  // Find root people (no parents) — suppress partner if they'll render inline under their partner
+  // Find root people (no parents) - suppress partner if they'll render inline under their partner
   const roots = useMemo(() => {
     const noParents = people.filter(p => !relationshipMap.parents.has(p.id));
     const rootIds = new Set(noParents.map(p => p.id));

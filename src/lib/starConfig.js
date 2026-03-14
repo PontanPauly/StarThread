@@ -22,7 +22,7 @@ export const CORE_SHAPES = {
   classic: {
     id: 'classic',
     name: 'Classic',
-    description: 'Balanced radiance — visible surface with moderate corona',
+    description: 'Balanced radiance - visible surface with moderate corona',
     flareCount: 5,
     flareLength: 0.15,
     haloEmphasis: 1.0,
@@ -33,7 +33,7 @@ export const CORE_SHAPES = {
   nova: {
     id: 'nova',
     name: 'Nova',
-    description: 'Explosive burst — roiling surface, fiery corona, intense hot spots',
+    description: 'Explosive burst - roiling surface, fiery corona, intense hot spots',
     flareCount: 8,
     flareLength: 0.2,
     haloEmphasis: 0.8,
@@ -44,7 +44,7 @@ export const CORE_SHAPES = {
   crystal: {
     id: 'crystal',
     name: 'Crystal',
-    description: 'Precise gem — smooth tight core, hard edge, minimal atmosphere',
+    description: 'Precise gem - smooth tight core, hard edge, minimal atmosphere',
     flareCount: 4,
     flareLength: 0.05,
     haloEmphasis: 0.6,
@@ -55,7 +55,7 @@ export const CORE_SHAPES = {
   nebula: {
     id: 'nebula',
     name: 'Nebula',
-    description: 'Dreamy cloud — soft diffuse core, massive fiery atmosphere',
+    description: 'Dreamy cloud - soft diffuse core, massive fiery atmosphere',
     flareCount: 2,
     flareLength: 0.06,
     haloEmphasis: 1.4,

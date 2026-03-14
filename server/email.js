@@ -105,9 +105,9 @@ export async function sendAccountReadyEmail(toEmail, childName, parentName, regi
 
   if (!mailer) {
     if (process.env.NODE_ENV === 'production') {
-      console.warn('[EMAIL] SMTP not configured in production — account ready email not sent.');
+      console.warn('[EMAIL] SMTP not configured in production - account ready email not sent.');
     } else {
-      console.warn('[EMAIL] SMTP not configured — logging account ready email to console (dev only).');
+      console.warn('[EMAIL] SMTP not configured - logging account ready email to console (dev only).');
       console.log(`[ACCOUNT READY] Email for ${childName} (${toEmail}): ${registerUrl}`);
     }
     return false;
@@ -124,7 +124,7 @@ export async function sendAccountReadyEmail(toEmail, childName, parentName, regi
       <strong style="color:#E2E8F0;">${parentName}</strong> has created a place for you on StarThread.
     </p>
     <p style="margin:0;font-size:15px;color:#94A3B8;line-height:1.7;text-align:center;">
-      Your family is already connected and your star is shining in the universe &mdash; now it's time to make it yours.
+      Your family is already connected and your star is shining in the universe. Now it's time to make it yours.
     </p>
     ${ctaButton(registerUrl, 'Join Your Family')}
   </td></tr>
@@ -134,7 +134,7 @@ export async function sendAccountReadyEmail(toEmail, childName, parentName, regi
     from: `"StarThread" <${fromAddress}>`,
     to: toEmail,
     subject: `${childName}, your family is waiting for you on StarThread`,
-    text: `Hi ${childName}!\n\n${parentName} has created a place for you on StarThread. Your family is already connected and your star is shining in the universe — now it's time to make it yours.\n\nJoin your family here:\n${registerUrl}\n\nSee you among the stars!\n— StarThread`,
+    text: `Hi ${childName}!\n\n${parentName} has created a place for you on StarThread. Your family is already connected and your star is shining in the universe. Now it's time to make it yours.\n\nJoin your family here:\n${registerUrl}\n\nSee you among the stars!\n- StarThread`,
     html: emailWrapper(bodyContent),
   });
 
@@ -146,9 +146,9 @@ export async function sendPasswordResetEmail(toEmail, resetUrl) {
 
   if (!mailer) {
     if (process.env.NODE_ENV === 'production') {
-      console.warn('[EMAIL] SMTP not configured in production — password reset email not sent.');
+      console.warn('[EMAIL] SMTP not configured in production - password reset email not sent.');
     } else {
-      console.warn('[EMAIL] SMTP not configured — logging reset link to console (dev only).');
+      console.warn('[EMAIL] SMTP not configured - logging reset link to console (dev only).');
       console.log(`[PASSWORD RESET] Reset link for ${toEmail}: ${resetUrl}`);
     }
     return false;
@@ -177,7 +177,7 @@ export async function sendPasswordResetEmail(toEmail, resetUrl) {
     from: `"StarThread" <${fromAddress}>`,
     to: toEmail,
     subject: 'Reset your StarThread password',
-    text: `You requested a password reset for your StarThread account.\n\nClick the link below to set a new password (expires in 1 hour):\n${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.\n— StarThread`,
+    text: `You requested a password reset for your StarThread account.\n\nClick the link below to set a new password (expires in 1 hour):\n${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.\n- StarThread`,
     html: emailWrapper(bodyContent),
   });
 

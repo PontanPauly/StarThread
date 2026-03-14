@@ -662,7 +662,7 @@ export default function Onboarding() {
                 <div className="text-center mb-4">
                   <h2 className="text-xl font-semibold text-slate-100">Add Your Family</h2>
                   <p className="text-sm text-slate-400 mt-1">
-                    Connect with family members — you can always add more later
+                    Connect with family members - you can always add more later
                   </p>
                 </div>
 
@@ -1140,7 +1140,7 @@ export default function Onboarding() {
           </div>
 
           <p className="text-center text-slate-600 text-xs mt-4">
-            Step {step} of 5 — {STEP_LABELS[step - 1]}
+            Step {step} of 5 - {STEP_LABELS[step - 1]}
           </p>
         </div>
       </div>

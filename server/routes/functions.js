@@ -209,7 +209,7 @@ const functionHandlers = {
         insights.push(`It's been a while since someone sent a love note. A small note of gratitude can brighten someone's day.`);
       }
     } else {
-      insights.push(`No love notes have been shared yet. Start a tradition of gratitude — send someone in your family a note today.`);
+      insights.push(`No love notes have been shared yet. Start a tradition of gratitude. Send someone in your family a note today.`);
     }
 
     const chosen = insights[Math.floor(Math.random() * insights.length)];

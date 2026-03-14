@@ -328,7 +328,7 @@ router.get('/my-person', requireAuth, async (req, res) => {
   }
 });
 
-// Secure endpoint — only returns medical_notes for the authenticated user's own record.
+// Secure endpoint - only returns medical_notes for the authenticated user's own record.
 // medical_notes is intentionally excluded from the public entities API.
 router.get('/my-medical-notes', requireAuth, async (req, res) => {
   try {

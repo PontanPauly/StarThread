@@ -826,7 +826,7 @@ export default function PersonForm({ person, households, people, onSuccess, onCa
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-700">
               <SelectItem value="adult">Adult (18+)</SelectItem>
-              <SelectItem value="teen">Teen (13–17)</SelectItem>
+              <SelectItem value="teen">Teen (13-17)</SelectItem>
               <SelectItem value="child">Child (under 13)</SelectItem>
               <SelectItem value="ancestor">Ancestor</SelectItem>
             </SelectContent>

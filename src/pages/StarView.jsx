@@ -1041,7 +1041,7 @@ export default function StarView() {
           </div>
         )}
 
-        {/* Orbital view — centered in viewport */}
+        {/* Orbital view - centered in viewport */}
         <div className={`flex flex-col items-center ${isMobile ? 'justify-start' : 'justify-center'}`} style={{ minHeight: isMobile ? undefined : 'calc(100vh - 60px)', paddingTop: isMobile ? '70px' : '48px', paddingBottom: isMobile ? '16px' : undefined }}>
           <div
             ref={orbitContainerRef}

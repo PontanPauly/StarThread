@@ -532,7 +532,7 @@ function filterColumns(data, allowedColumns, tableName) {
 }
 
 // ---------------------------------------------------------------------------
-// Guardian message view — read-only access to ward's conversations & messages
+// Guardian message view - read-only access to ward's conversations & messages
 // ---------------------------------------------------------------------------
 
 async function verifyGuardianOf(guardianPersonId, wardPersonId) {

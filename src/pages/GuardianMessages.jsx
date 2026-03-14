@@ -176,7 +176,7 @@ export default function GuardianMessages() {
                 <div className="p-3 border-t border-slate-700/50">
                   <p className="text-xs text-center text-slate-500 flex items-center justify-center gap-1">
                     <Eye className="w-3 h-3" />
-                    Read-only view — you cannot send messages in this view
+                    Read-only view - you cannot send messages in this view
                   </p>
                 </div>
               </>

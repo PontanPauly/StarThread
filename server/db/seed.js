@@ -13,7 +13,7 @@ export async function seedFamilyData({ force = false } = {}) {
     await client.query('BEGIN');
 
     if (force) {
-      console.log('Force seeding — clearing existing data...');
+      console.log('Force seeding - clearing existing data...');
       const tablesToClean = [
         'messages', 'conversations', 'calendar_events', 'love_notes', 'moments',
         'family_stories', 'rituals', 'packing_items', 'shared_trip_items',
@@ -88,7 +88,7 @@ export async function seedFamilyData({ force = false } = {}) {
       );
     }
 
-    await createHousehold('randy_nancy', 'Randy & Nancy Nash', 'The Nash family homestead — where it all began');
+    await createHousehold('randy_nancy', 'Randy & Nancy Nash', 'The Nash family homestead - where it all began');
     await createHousehold('angela_brian', 'Angela & Brian Goldsberry', 'The Goldsberry household');
     await createHousehold('james_lisa', 'James & Lisa Nash', 'The James Nash family');
     await createHousehold('jonathan_nicole', 'Jonathan & Nicole Nash', 'Jonathan and Nicole\'s place');
@@ -97,8 +97,8 @@ export async function seedFamilyData({ force = false } = {}) {
     await createHousehold('paul', 'Paul Nash', 'Paul\'s place');
     await createHousehold('craig_annie', 'Craig & Annie Nash', 'The Craig Nash household');
     await createHousehold('karen_lynn', 'Karen & Lynn Humpert', 'The Humpert household');
-    await createHousehold('clark_sandra', 'Clark & Sandra Nash', 'The Nash grandparents — Randy\'s parents');
-    await createHousehold('herbert_miriam', 'Herbert & Miriam Pitzenberger', 'The Pitzenberger grandparents — Nancy\'s parents');
+    await createHousehold('clark_sandra', 'Clark & Sandra Nash', 'The Nash grandparents - Randy\'s parents');
+    await createHousehold('herbert_miriam', 'Herbert & Miriam Pitzenberger', 'The Pitzenberger grandparents - Nancy\'s parents');
     await createHousehold('charlie', 'Charlie Pitzenberger', 'Charlie\'s place');
     await createHousehold('joyce', 'Joyce Pitzenberger', 'Joyce\'s place');
     await createHousehold('anne_roger', 'Anne & Roger Toon', 'The Toon household');
@@ -111,7 +111,7 @@ export async function seedFamilyData({ force = false } = {}) {
       name: 'Randy Nash', nickname: 'Dad', birth_date: '1963-03-15',
       role_type: 'adult', household: 'randy_nancy',
       about: 'Patriarch of the Nash family. The oldest of three siblings.',
-      medical_notes: 'Blood pressure medication — lisinopril 10mg daily',
+      medical_notes: 'Blood pressure medication - lisinopril 10mg daily',
       allergies: ['sulfa drugs'],
       star_profile: {
         shape: 'classic',
@@ -389,7 +389,7 @@ export async function seedFamilyData({ force = false } = {}) {
       name: 'Nicole Nash', birth_date: '1986-08-12',
       role_type: 'adult', household: 'jonathan_nicole',
       about: 'Jonathan\'s wife.',
-      medical_notes: 'Seasonal allergies — cetirizine as needed',
+      medical_notes: 'Seasonal allergies - cetirizine as needed',
       allergies: ['pollen', 'dust mites'],
       star_profile: {
         shape: 'nebula',
@@ -471,7 +471,7 @@ export async function seedFamilyData({ force = false } = {}) {
           { name: 'Cooking', icon: '👨‍🍳', color: '#f59e0b' },
         ],
         favorites: {
-          food: 'Tacos — any kind, any time',
+          food: 'Tacos - any kind, any time',
           music: 'Hip hop and EDM',
           movie: 'The Dark Knight',
           place: 'The gym',
@@ -498,7 +498,7 @@ export async function seedFamilyData({ force = false } = {}) {
         size: 'standard',
         brightness: 0.78,
         customColor: null,
-        essence: 'The free spirit twin — spontaneous, funny, always up for anything',
+        essence: 'The free spirit twin - spontaneous, funny, always up for anything',
         interests: [
           { name: 'Music', icon: '🎵', color: '#a78bfa' },
           { name: 'Skateboarding', icon: '🛹', color: '#f97316' },
@@ -724,10 +724,10 @@ export async function seedFamilyData({ force = false } = {}) {
         'Merry Christmas, Dad. You taught me what it means to work hard and love harder. I hope I make you proud.', pIds['james'], pIds['randy'],
         'Happy Birthday, Dad! You\'re the best fishing buddy, grill master, and advice-giver a kid could ask for.', pIds['jonathan'], pIds['randy'],
         'New year, same amazing mom. Here\'s to another year of your chicken and dumplings and your endless love.', pIds['andrew'], pIds['nancy'],
-        'Mom & Dad — Thanksgiving wouldn\'t be Thanksgiving without you two. Grateful for this family every single day.', pIds['matthew'], pIds['nancy'],
+        'Mom & Dad, Thanksgiving wouldn\'t be Thanksgiving without you two. Grateful for this family every single day.', pIds['matthew'], pIds['nancy'],
         'Happy birthday to my other half. Being your twin is the best thing that ever happened to me.', pIds['paul'], pIds['matthew'],
-        'Drew — you\'re the strongest person I know. Those kids are lucky to have you. We all are.', pIds['nancy'], pIds['andrew'],
-        'To my beautiful wife — your garden, your cooking, your heart. Everything you touch blooms.', pIds['randy'], pIds['nancy'],
+        'Drew, you\'re the strongest person I know. Those kids are lucky to have you. We all are.', pIds['nancy'], pIds['andrew'],
+        'To my beautiful wife. Your garden, your cooking, your heart. Everything you touch blooms.', pIds['randy'], pIds['nancy'],
         'Angela, watching you plan every family gathering reminds me where you got it from. You\'re just like your mother. ❤️', pIds['randy'], pIds['angela'],
       ]
     );
@@ -741,19 +741,19 @@ export async function seedFamilyData({ force = false } = {}) {
         ($21, $22, $23, $24, $25, '2025-03-05')`,
       [
         'How Mom and Dad Met',
-        'It was the summer of 1982 at a church picnic in Dayton. Dad says he noticed Mom across the field and told his buddy Craig he was going to marry that girl. Mom says he tripped over a cooler trying to introduce himself. Either way, by the end of the afternoon they\'d exchanged numbers, and the rest — as Dad loves to say — is history. They were married in June of 1983, and forty years later, he still looks at her the same way.',
+        'It was the summer of 1982 at a church picnic in Dayton. Dad says he noticed Mom across the field and told his buddy Craig he was going to marry that girl. Mom says he tripped over a cooler trying to introduce himself. Either way, by the end of the afternoon they\'d exchanged numbers, and the rest, as Dad loves to say, is history. They were married in June of 1983, and forty years later, he still looks at her the same way.',
         pIds['angela'], [pIds['randy'], pIds['nancy']], '1980s',
 
         'The Great Road Trip of \'98',
-        'In the summer of 1998, Dad packed all six of us into the old Suburban and drove from Ohio to Yellowstone. No GPS, no iPads — just a paper atlas and Mom\'s snack bag. Jonathan got carsick in Wyoming. Matthew and Paul fought over the middle seat for 2,000 miles. Andrew kept a journal the whole trip that we still have somewhere. Angela was in charge of the radio. James navigated. Mom says it was chaos. Dad says it was perfect. We all agree it was both.',
+        'In the summer of 1998, Dad packed all six of us into the old Suburban and drove from Ohio to Yellowstone. No GPS, no iPads, just a paper atlas and Mom\'s snack bag. Jonathan got carsick in Wyoming. Matthew and Paul fought over the middle seat for 2,000 miles. Andrew kept a journal the whole trip that we still have somewhere. Angela was in charge of the radio. James navigated. Mom says it was chaos. Dad says it was perfect. We all agree it was both.',
         pIds['nancy'], [pIds['randy'], pIds['nancy'], pIds['angela'], pIds['james'], pIds['jonathan'], pIds['andrew'], pIds['matthew'], pIds['paul']], '1990s',
 
         'Grandpa Clark\'s Fishing Stories',
-        'Grandpa Clark passed away young, in 1979, when Dad was just 16. But the stories he left behind are legendary. He\'d take the boys to Indian Lake before dawn and tell them tales about catfish the size of canoes. Craig swears one of them was true. Dad keeps Grandpa\'s old tackle box in the garage — won\'t let anyone touch it. Every time we go fishing as a family, Dad tells at least one of Grandpa\'s stories, and for a moment, it feels like he\'s still with us.',
+        'Grandpa Clark passed away young, in 1979, when Dad was just 16. But the stories he left behind are legendary. He\'d take the boys to Indian Lake before dawn and tell them tales about catfish the size of canoes. Craig swears one of them was true. Dad keeps Grandpa\'s old tackle box in the garage and won\'t let anyone touch it. Every time we go fishing as a family, Dad tells at least one of Grandpa\'s stories, and for a moment, it feels like he\'s still with us.',
         pIds['randy'], [pIds['clark'], pIds['randy'], pIds['craig']], '1970s',
 
         'The Night the Twins Arrived',
-        'February 7, 1995 — the night Matthew and Paul decided to show up three weeks early. Dad was at a work dinner. Mom was home with Angela, James, Jonathan, and Andrew — who was seven and reportedly very unhelpful. Angela, barely eleven, called 911 while James tried to keep the younger kids calm. By the time Dad got to the hospital, both boys were already here, screaming their lungs out. Mom still says it was the most terrifying and beautiful night of her life.',
+        'February 7, 1995, the night Matthew and Paul decided to show up three weeks early. Dad was at a work dinner. Mom was home with Angela, James, Jonathan, and Andrew, who was seven and reportedly very unhelpful. Angela, barely eleven, called 911 while James tried to keep the younger kids calm. By the time Dad got to the hospital, both boys were already here, screaming their lungs out. Mom still says it was the most terrifying and beautiful night of her life.',
         pIds['nancy'], [pIds['matthew'], pIds['paul'], pIds['nancy'], pIds['randy'], pIds['angela']], '1990s',
 
         'Aunt Karen\'s Last Thanksgiving',
@@ -783,7 +783,7 @@ export async function seedFamilyData({ force = false } = {}) {
     await createTrip('lakehouse', {
       name: 'Lake House Weekend',
       location: 'Indian Lake, Ohio',
-      description: 'A quick weekend getaway — just the core crew. Fishing, bonfires, and Dad\'s famous burgers.',
+      description: 'A quick weekend getaway. Just the core crew. Fishing, bonfires, and Dad\'s famous burgers.',
       start_date: '2025-05-23',
       end_date: '2025-05-25',
       status: 'confirmed',

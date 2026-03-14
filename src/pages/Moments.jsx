@@ -167,7 +167,7 @@ export default function Moments() {
                       </Badge>
                     )}
                   </div>
-                  {/* Inline edit button — stopPropagation prevents opening the detail view */}
+                  {/* Inline edit button - stopPropagation prevents opening the detail view */}
                   <button
                     className="absolute top-2 left-2 p-1.5 rounded-lg bg-black/60 hover:bg-amber-500/80 transition-colors"
                     onClick={(e) => {
@@ -205,7 +205,7 @@ export default function Moments() {
           <Star className="w-16 h-16 text-slate-700 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-slate-200 mb-2">Capture Your First Moment</h2>
           <p className="text-slate-500 mb-6 max-w-md mx-auto">
-            Start documenting your family's journey – photos, videos, or just a few words about a special memory.
+            Start documenting your family's journey. Photos, videos, or just a few words about a special memory.
           </p>
           <Button 
             onClick={() => setShowMomentForm(true)}

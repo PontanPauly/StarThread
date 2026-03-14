@@ -37,7 +37,7 @@ function EssenceDetail({ data, personName }) {
             "{essence}"
           </blockquote>
           {personName && (
-            <p className="text-sm text-amber-400/60 uppercase tracking-[0.2em]">— {personName}</p>
+            <p className="text-sm text-amber-400/60 uppercase tracking-[0.2em]">- {personName}</p>
           )}
         </div>
       ) : (
@@ -523,7 +523,7 @@ function TripDetailView({ data, personName }) {
             <Clock className="w-3 h-3 text-slate-500" />
             <p className="text-xs text-slate-500">
               {trip.start_date ? formatShortDate(trip.start_date) : "TBD"}
-              {trip.end_date ? ` — ${formatShortDate(trip.end_date)}` : ""}
+              {trip.end_date ? ` - ${formatShortDate(trip.end_date)}` : ""}
             </p>
           </div>
           {trip.status && (

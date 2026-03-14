@@ -121,7 +121,7 @@ const fragmentShader = `
     float coreMask = smoothstep(0.32, 0.03, dist);
     float glowMask = smoothstep(0.5, 0.1, dist);
 
-    // Chromatic shift — color temperature varies over time and radius
+    // Chromatic shift - color temperature varies over time and radius
     float colorShift = sin(t * 0.25 + dist * 5.0 + uniqueOffset * 50.0) * 0.5 + 0.5;
     vec3 hotColor = tintColor * 1.3;
     vec3 tint = mix(glowColor, tintColor, coreMask);

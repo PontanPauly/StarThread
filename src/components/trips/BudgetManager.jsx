@@ -172,7 +172,7 @@ function ExpenseCard({ expense, people, onEdit, onDelete }) {
       {expanded && splitIds.length > 0 && (
         <div className="px-4 pb-4 border-t border-slate-700/50 pt-3">
           <p className="text-xs text-slate-500 mb-2">
-            Split among {splitCount} {splitCount === 1 ? 'person' : 'people'} — ${perPerson.toFixed(2)} each
+            Split among {splitCount} {splitCount === 1 ? 'person' : 'people'} - ${perPerson.toFixed(2)} each
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {splitIds.map(personId => {

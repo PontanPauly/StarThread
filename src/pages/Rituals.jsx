@@ -255,7 +255,7 @@ export default function Rituals() {
           <Calendar className="w-16 h-16 text-slate-700 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-slate-200 mb-2">Start Your Family Traditions</h2>
           <p className="text-slate-500 mb-6 max-w-md mx-auto">
-            Document the traditions that bring your family together – from annual reunions to weekly calls.
+            Document the traditions that bring your family together, from annual reunions to weekly calls.
           </p>
           <Button 
             onClick={() => setShowRitualForm(true)}
