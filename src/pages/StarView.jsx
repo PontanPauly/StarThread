@@ -685,11 +685,13 @@ export default function StarView() {
       return response.json();
     },
     enabled: !!personId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: households = [] } = useQuery({
     queryKey: ["households"],
     queryFn: () => base44.entities.Household.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const person = galaxyData?.centerPerson || null;
