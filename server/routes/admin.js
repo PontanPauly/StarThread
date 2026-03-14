@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { getBetaStatus } from '../betaConfig.js';
+import { sendDatabaseWipeCode } from '../email.js';
 
 const router = Router();
 
@@ -462,6 +463,140 @@ router.get('/beta-stats', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Beta stats error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+const wipeStore = new Map();
+
+const wipeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many attempts. Please try again later.' },
+});
+
+router.post('/database-wipe/request-code', requireAuth, requireAdmin, wipeLimiter, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT email FROM users WHERE id = $1', [req.session.userId]);
+    const email = rows[0]?.email;
+    if (!email || email.toLowerCase() !== 'support@starthread.app') {
+      return res.status(403).json({ error: 'Only the primary admin can perform this action' });
+    }
+
+    const code = crypto.randomInt(100000, 999999).toString();
+    wipeStore.set(req.session.userId, {
+      code,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      attempts: 0,
+    });
+
+    const sent = await sendDatabaseWipeCode(email, code);
+    if (!sent) {
+      return res.status(500).json({ error: 'Failed to send verification email. Check SMTP configuration.' });
+    }
+
+    res.json({ success: true, message: 'Verification code sent to your email' });
+  } catch (error) {
+    console.error('Wipe code request error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/database-wipe/execute', requireAuth, requireAdmin, wipeLimiter, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ error: 'Verification code is required' });
+    }
+
+    const { rows } = await pool.query('SELECT email FROM users WHERE id = $1', [req.session.userId]);
+    const email = rows[0]?.email;
+    if (!email || email.toLowerCase() !== 'support@starthread.app') {
+      return res.status(403).json({ error: 'Only the primary admin can perform this action' });
+    }
+
+    const stored = wipeStore.get(req.session.userId);
+    if (!stored) {
+      return res.status(400).json({ error: 'No verification code requested. Please start over.' });
+    }
+
+    if (Date.now() > stored.expiresAt) {
+      wipeStore.delete(req.session.userId);
+      return res.status(400).json({ error: 'Verification code expired. Please request a new one.' });
+    }
+
+    stored.attempts += 1;
+    if (stored.attempts > 5) {
+      wipeStore.delete(req.session.userId);
+      return res.status(400).json({ error: 'Too many failed attempts. Please request a new code.' });
+    }
+
+    if (stored.code !== code.trim()) {
+      return res.status(400).json({ error: `Invalid code. ${5 - stored.attempts} attempts remaining.` });
+    }
+
+    wipeStore.delete(req.session.userId);
+
+    const adminId = req.session.userId;
+
+    const tablesToClear = [
+      'support_access_tokens',
+      'memorial_confirmations',
+      'merge_conflicts',
+      'merge_history',
+      'person_match_suggestions',
+      'relationship_visibility',
+      'packing_items',
+      'shared_trip_items',
+      'expenses',
+      'meals',
+      'trip_comments',
+      'trip_participants',
+      'activities',
+      'trips',
+      'messages',
+      'conversations',
+      'love_notes',
+      'moments',
+      'family_stories',
+      'rituals',
+      'calendar_events',
+      'rooms',
+      'invite_links',
+      'join_requests',
+      'trusted_contacts',
+      'password_reset_tokens',
+      'family_plan_members',
+      'family_plans',
+      'family_settings',
+      'relationships',
+      'people',
+      'households',
+      'session',
+    ];
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      for (const table of tablesToClear) {
+        await client.query(`DELETE FROM ${table}`);
+      }
+
+      await client.query('DELETE FROM users WHERE id != $1', [adminId]);
+
+      await client.query('COMMIT');
+
+      console.log(`[ADMIN] Database wipe executed by ${email} at ${new Date().toISOString()}`);
+      res.json({ success: true, message: 'Database cleared successfully. Only admin account remains.' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Database wipe error:', error);
+    res.status(500).json({ error: 'Database wipe failed. Please try again or contact support.' });
   }
 });
 

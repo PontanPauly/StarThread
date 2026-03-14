@@ -141,6 +141,56 @@ export async function sendAccountReadyEmail(toEmail, childName, parentName, regi
   return true;
 }
 
+export async function sendDatabaseWipeCode(toEmail, code) {
+  const mailer = getTransporter();
+
+  if (!mailer) {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[EMAIL] SMTP not configured in production - wipe code email not sent.');
+    } else {
+      console.warn('[EMAIL] SMTP not configured - logging wipe code to console (dev only).');
+      console.log(`[DATABASE WIPE] Code for ${toEmail}: ${code}`);
+    }
+    return false;
+  }
+
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  const bodyContent = `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#1E293B;border-radius:12px;">
+  <tr><td style="padding:32px;">
+    <h2 style="margin:0 0 6px;font-size:21px;color:#EF4444;font-weight:600;text-align:center;">Database Wipe Verification</h2>
+    <p style="margin:0 0 24px;font-size:13px;color:#F87171;text-align:center;letter-spacing:1px;">DESTRUCTIVE ACTION CONFIRMATION</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#CBD5E1;line-height:1.7;text-align:center;">
+      A request was made to <strong style="color:#EF4444;">permanently delete all data</strong> from the StarThread database. This action cannot be undone.
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px auto;">
+      <tr>
+        <td align="center" style="border-radius:10px;background-color:#1E293B;border:2px solid #EF4444;padding:16px 40px;">
+          <span style="font-size:32px;font-weight:700;color:#F1F5F9;letter-spacing:8px;font-family:monospace;">${code}</span>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:20px 0 0;font-size:13px;color:#94A3B8;text-align:center;">
+      This code expires in <strong style="color:#FBBF24;">10 minutes</strong>.
+    </p>
+    <p style="margin:8px 0 0;font-size:12px;color:#475569;text-align:center;">
+      If you did not request this, someone may have access to your admin account. Change your password immediately.
+    </p>
+  </td></tr>
+</table>`;
+
+  await mailer.sendMail({
+    from: `"StarThread" <${fromAddress}>`,
+    to: toEmail,
+    subject: 'CRITICAL: Database Wipe Verification Code',
+    text: `DATABASE WIPE VERIFICATION\n\nA request was made to permanently delete all data from the StarThread database. This action cannot be undone.\n\nYour verification code: ${code}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, change your admin password immediately.\n\n- StarThread`,
+    html: emailWrapper(bodyContent),
+  });
+
+  return true;
+}
+
 export async function sendPasswordResetEmail(toEmail, resetUrl) {
   const mailer = getTransporter();
 
