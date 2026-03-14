@@ -114,7 +114,17 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       visited.has(r.person_id) && visited.has(r.related_person_id)
     );
 
-    res.json({ people: filteredPeople, relationships: graphRelationships });
+    const householdIds = [...new Set(filteredPeople.map(p => p.household_id).filter(Boolean))];
+    let households = [];
+    if (householdIds.length > 0) {
+      const { rows } = await pool.query(
+        `SELECT * FROM households WHERE id = ANY($1::uuid[])`,
+        [householdIds]
+      );
+      households = rows;
+    }
+
+    res.json({ people: filteredPeople, relationships: graphRelationships, households });
   } catch (error) {
     console.error('Universe members endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
