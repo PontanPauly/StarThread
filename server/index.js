@@ -52,7 +52,12 @@ const allowedOrigins = (() => {
     const depUrl = process.env.REPLIT_DEPLOYMENT_URL;
     origins.push(depUrl.startsWith('http') ? depUrl : `https://${depUrl}`);
   }
-  const filtered = origins.filter(Boolean);
+  if (process.env.CUSTOM_DOMAIN) {
+    origins.push(`https://${process.env.CUSTOM_DOMAIN}`);
+  }
+  origins.push('https://starthread.app');
+  origins.push('https://www.starthread.app');
+  const filtered = [...new Set(origins.filter(Boolean))];
   console.log('Production allowed origins:', filtered);
   return filtered;
 })();
