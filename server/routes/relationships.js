@@ -36,7 +36,7 @@ const RECIPROCAL_TYPES = {
   chosen_family: 'chosen_family', extended: 'extended'
 };
 
-const SAFE_PERSON_COLS = 'id, name, nickname, photo_url, birth_date, birth_year, death_date, role_type, is_deceased, is_memorial, memorial_date, star_profile, star_pattern, star_intensity, star_flare_count, privacy_level, about, household_id, user_id, household_status, address, city, state, onboarding_complete, social_links, created_at';
+const SAFE_PERSON_COLS = 'id, name, nickname, photo_url, birth_date, birth_year, death_date, role_type, is_deceased, is_memorial, memorial_date, star_profile, star_pattern, star_intensity, star_flare_count, privacy_level, about, household_id, user_id, household_status, city, state, onboarding_complete, social_links, created_at';
 
 router.get('/universe-members', requireAuth, async (req, res) => {
   try {
@@ -46,7 +46,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       `SELECT id FROM people WHERE user_id = $1`, [userId]
     );
     if (personResult.rows.length === 0) {
-      return res.json({ people: [], relationships: [] });
+      return res.json({ people: [], relationships: [], households: [] });
     }
     const rootPersonId = personResult.rows[0].id;
 
@@ -94,7 +94,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
     const personIds = Array.from(visited);
 
     if (personIds.length === 0) {
-      return res.json({ people: [], relationships: [] });
+      return res.json({ people: [], relationships: [], households: [] });
     }
 
     const { rows: people } = await pool.query(`

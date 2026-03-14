@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Cake, Gift, Calendar, Star, Users } from "lucide-react";
@@ -9,10 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { format, differenceInYears, isBefore, isAfter, startOfDay, addDays } from "date-fns";
 
 export default function Birthdays() {
-  const { data: people = [], isLoading } = useQuery({
-    queryKey: ['people'],
-    queryFn: () => base44.entities.Person.list(),
+  const { data: universeData, isLoading } = useQuery({
+    queryKey: ['universe-members'],
+    queryFn: async () => {
+      const res = await fetch('/api/family/universe-members', { credentials: 'include' });
+      if (!res.ok) return { people: [], relationships: [], households: [] };
+      return res.json();
+    },
+    staleTime: 30000,
   });
+  const people = universeData?.people || [];
 
   // Calculate upcoming birthdays
   const birthdayData = useMemo(() => {

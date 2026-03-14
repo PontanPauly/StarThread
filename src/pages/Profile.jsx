@@ -190,15 +190,17 @@ export default function Profile() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: people = [] } = useQuery({
-    queryKey: ['people'],
-    queryFn: () => base44.entities.Person.list(),
+  const { data: universeData } = useQuery({
+    queryKey: ['universe-members'],
+    queryFn: async () => {
+      const res = await fetch('/api/family/universe-members', { credentials: 'include' });
+      if (!res.ok) return { people: [], relationships: [], households: [] };
+      return res.json();
+    },
+    staleTime: 30000,
   });
-
-  const { data: households = [] } = useQuery({
-    queryKey: ['households'],
-    queryFn: () => base44.entities.Household.list(),
-  });
+  const people = universeData?.people || [];
+  const households = universeData?.households || [];
 
   const { data: myProfile, isLoading: loadingProfile } = useMyPerson();
 

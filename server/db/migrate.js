@@ -642,6 +642,7 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_relationships_related_person_id ON relationships(related_person_id);
       CREATE INDEX IF NOT EXISTS idx_relationships_person_type ON relationships(person_id, relationship_type);
       CREATE INDEX IF NOT EXISTS idx_relationships_related_type ON relationships(related_person_id, relationship_type);
+      CREATE INDEX IF NOT EXISTS idx_relationships_status ON relationships(status_from_person, status_from_related) WHERE status_from_person IN ('confirmed', 'claimed') AND status_from_related IN ('confirmed', 'claimed');
       CREATE INDEX IF NOT EXISTS idx_moments_author ON moments(author_person_id);
       CREATE INDEX IF NOT EXISTS idx_love_notes_from ON love_notes(from_person_id);
       CREATE INDEX IF NOT EXISTS idx_love_notes_to ON love_notes(to_person_id);

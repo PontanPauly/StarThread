@@ -23,10 +23,16 @@ export default function FamilyStories() {
     queryFn: () => base44.entities.FamilyStory.list('-created_date'),
   });
 
-  const { data: people = [] } = useQuery({
-    queryKey: ['people'],
-    queryFn: () => base44.entities.Person.list(),
+  const { data: universeData } = useQuery({
+    queryKey: ['universe-members'],
+    queryFn: async () => {
+      const res = await fetch('/api/family/universe-members', { credentials: 'include' });
+      if (!res.ok) return { people: [], relationships: [], households: [] };
+      return res.json();
+    },
+    staleTime: 30000,
   });
+  const people = universeData?.people || [];
 
   const deleteStory = useMutation({
     mutationFn: (id) => base44.entities.FamilyStory.delete(id),

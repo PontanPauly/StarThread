@@ -31,7 +31,16 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
-router.post('/login', async (req, res) => {
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many admin login attempts. Please wait 15 minutes.' },
+  validate: { xForwardedForHeader: false },
+});
+
+router.post('/login', adminLoginLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });

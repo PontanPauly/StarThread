@@ -545,6 +545,7 @@ export default function Onboarding() {
     if (step === 5 && inviteLinks.length === 0 && !generatingLink && addedMembers.length > 0) {
       generateInviteLinks();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   const copyInviteLink = async (url, idx) => {

@@ -72,7 +72,8 @@ The application follows a client-server architecture. The backend is built with 
 -   Unread message badge on the sidebar, polling every 60 seconds.
 -   Birth Year UI allows approximate birth year input when birth_date is empty or for ancestors.
 -   Birthday cards link directly to StarView profiles.
--   **Universe Membership (Connected Graph)**: `GET /api/family/universe-members` (also at `/api/relationships/universe-members`) returns all people connected to the user via relationships (at least one side confirmed/claimed) or household co-membership, using full BFS traversal. Hidden relationships excluded before traversal. People without households assigned to nearest connected household or virtual "Connected Family" cluster. `ConstellationLines` renders `UnionLightBridge` between couple stars in universe view (matching galaxy view).
+-   **Universe Membership (Connected Graph)**: `GET /api/family/universe-members` (also at `/api/relationships/universe-members`) returns `{ people, relationships, households }` for all people connected to the user via confirmed/claimed relationships, using full BFS traversal (no hop limit). Hidden relationships excluded before traversal. People without households assigned to nearest connected household or virtual "Connected Family" cluster. `ConstellationLines` renders `UnionLightBridge` between couple stars in universe view (matching galaxy view). Address field excluded from SAFE_PERSON_COLS for privacy.
+-   **Data Fetching Pattern**: All pages use `universe-members` endpoint with shared `queryKey: ['universe-members']` and `staleTime: 30000` for family member data. No pages use `Person.list()` (which fetched all DB records).
 
 ## External Dependencies
 -   **Database**: PostgreSQL
