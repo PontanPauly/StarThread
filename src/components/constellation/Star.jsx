@@ -94,9 +94,9 @@ const fragmentShader = `
     lum *= 0.7 + plasmaMix * 0.6;
 
     // --- Multi-frequency breathing pulse ---
-    float pulse1 = 0.85 + 0.15 * sin(t * 0.15 + uniqueOffset * 6.28);
-    float pulse2 = 0.92 + 0.08 * sin(t * 0.4 + uniqueOffset * 12.0);
-    float pulse3 = 0.96 + 0.04 * sin(t * 0.9 + uniqueOffset * 25.0);
+    float pulse1 = 0.82 + 0.18 * sin(t * 0.5 + uniqueOffset * 6.28);
+    float pulse2 = 0.9 + 0.1 * sin(t * 1.7 + uniqueOffset * 12.0);
+    float pulse3 = 0.95 + 0.05 * sin(t * 4.1 + uniqueOffset * 25.0);
     float pulse = pulse1 * pulse2 * pulse3;
     lum *= pulse;
 
