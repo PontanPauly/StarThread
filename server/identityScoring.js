@@ -125,13 +125,34 @@ async function scoreParentSpouseOverlap(candidate, signals) {
   return rows.length > 0 ? 1 : 0;
 }
 
+function scoreMiddleNameMatch(candidate, signals) {
+  const sigMiddle = (signals.middle_name || signals.middleName || '').toLowerCase().trim();
+  const candMiddle = (candidate.middle_name || candidate.middleName || '').toLowerCase().trim();
+  if (!sigMiddle || !candMiddle) return 0;
+  if (sigMiddle === candMiddle) return 1;
+  if (sigMiddle.charAt(0) === candMiddle.charAt(0) && (sigMiddle.length === 1 || candMiddle.length === 1)) return 0.5;
+  return -0.5;
+}
+
+function scoreRoleTypeCompatibility(candidate, signals) {
+  const expected = (signals.role_type || signals.roleType || '').toLowerCase().trim();
+  const actual = (candidate.role_type || candidate.roleType || '').toLowerCase().trim();
+  if (!expected || !actual) return 0;
+  if (expected === actual) return 1;
+  const incompatible = (expected === 'adult' && actual === 'child') || (expected === 'child' && actual === 'adult');
+  if (incompatible) return -1;
+  return 0;
+}
+
 const WEIGHTS = {
-  name: 35,
+  name: 30,
   email: 25,
-  birthYear: 15,
-  location: 10,
-  familyCluster: 10,
+  birthYear: 12,
+  location: 8,
+  familyCluster: 8,
   relationships: 5,
+  middleName: 7,
+  roleType: 5,
 };
 
 export async function computeMatchScore(candidate, signals) {
@@ -141,6 +162,8 @@ export async function computeMatchScore(candidate, signals) {
   const locationScore = scoreLocation(candidate, signals);
   const clusterResult = await scoreFamilyCluster(candidate, signals);
   const relScore = await scoreParentSpouseOverlap(candidate, signals);
+  const middleNameScore = scoreMiddleNameMatch(candidate, signals);
+  const roleTypeScore = scoreRoleTypeCompatibility(candidate, signals);
 
   const breakdown = {
     name: Math.round(nameScore * 100),
@@ -149,6 +172,8 @@ export async function computeMatchScore(candidate, signals) {
     location: Math.round(locationScore * 100),
     familyCluster: Math.round(clusterResult.score * 100),
     relationships: Math.round(relScore * 100),
+    middleName: Math.round(middleNameScore * 100),
+    roleType: Math.round(roleTypeScore * 100),
   };
 
   let totalScore = (
@@ -157,14 +182,16 @@ export async function computeMatchScore(candidate, signals) {
     birthYearScore * WEIGHTS.birthYear +
     locationScore * WEIGHTS.location +
     clusterResult.score * WEIGHTS.familyCluster +
-    relScore * WEIGHTS.relationships
+    relScore * WEIGHTS.relationships +
+    middleNameScore * WEIGHTS.middleName +
+    roleTypeScore * WEIGHTS.roleType
   );
 
   if (emailScore === 1) {
     totalScore = Math.max(totalScore, 95);
   }
 
-  totalScore = Math.round(Math.min(100, totalScore));
+  totalScore = Math.round(Math.max(0, Math.min(100, totalScore)));
 
   const explanations = [];
   if (nameScore >= 0.9) {
@@ -192,6 +219,16 @@ export async function computeMatchScore(candidate, signals) {
   if (relScore > 0) {
     explanations.push('Shares a close family connection');
   }
+  if (middleNameScore === 1) {
+    explanations.push('Same middle name');
+  } else if (middleNameScore < 0) {
+    explanations.push('Different middle name');
+  }
+  if (roleTypeScore === 1) {
+    explanations.push('Same role type');
+  } else if (roleTypeScore < 0) {
+    explanations.push('Role type mismatch');
+  }
 
   let confidence;
   if (totalScore >= 75) confidence = 'high';
@@ -214,7 +251,7 @@ export async function findCandidates(signals, options = {}) {
   if (searchName && searchName.length >= 2) {
     const likeTerm = `%${searchName}%`;
     query = `
-      SELECT id, name, first_name, last_name, nickname, role_type, photo_url,
+      SELECT id, name, first_name, middle_name, last_name, nickname, role_type, photo_url,
              birth_date, birth_year, city, state, household_id, user_id, linked_user_email,
              is_deceased, is_memorial, merged_into_id
       FROM people
@@ -260,7 +297,7 @@ export async function findCandidates(signals, options = {}) {
         fbParamIdx++;
       }
       const fallbackQuery = `
-        SELECT id, name, first_name, last_name, nickname, role_type, photo_url,
+        SELECT id, name, first_name, middle_name, last_name, nickname, role_type, photo_url,
                birth_date, birth_year, city, state, household_id, user_id, linked_user_email,
                is_deceased, is_memorial, merged_into_id
         FROM people

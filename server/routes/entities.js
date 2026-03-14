@@ -986,6 +986,29 @@ router.post('/:type', requireAuth, async (req, res) => {
       if (!created.user_id) {
         scoreNewPerson(created.id).catch(err => console.error('[ScoringTrigger] async scoreNewPerson error:', err.message));
       }
+
+      if (data.linked_user_email && created.linked_user_email) {
+        try {
+          const parentPersonRow = await pool.query(
+            `SELECT name FROM people WHERE user_id = $1`, [req.session.userId]
+          );
+          const parentName = parentPersonRow.rows[0]?.name || 'Your family';
+          const childName = created.name || 'there';
+
+          const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
+          const host = req.get('host');
+          const baseUrl = `${protocol}://${host}`;
+          const registerUrl = `${baseUrl}/?register=true&email=${encodeURIComponent(created.linked_user_email)}`;
+
+          sendAccountReadyEmail(created.linked_user_email, childName, parentName, registerUrl)
+            .then(sent => {
+              if (sent) console.log(`[EMAIL] Account ready email sent to ${created.linked_user_email}`);
+            })
+            .catch(err => console.error('[EMAIL] Failed to send account ready email:', err));
+        } catch (emailErr) {
+          console.error('[EMAIL] Error preparing account ready email:', emailErr);
+        }
+      }
     }
 
     if (config.table === 'messages' && created.conversation_id) {

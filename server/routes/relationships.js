@@ -23,6 +23,19 @@ function getRing(relType) {
   return 4;
 }
 
+const RECIPROCAL_TYPES = {
+  parent: 'child', child: 'parent',
+  sibling: 'sibling', partner: 'partner', spouse: 'spouse',
+  grandparent: 'grandchild', grandchild: 'grandparent',
+  aunt_uncle: 'niece_nephew', niece_nephew: 'aunt_uncle',
+  cousin: 'cousin', in_law: 'in_law',
+  step_parent: 'step_child', step_child: 'step_parent',
+  step_sibling: 'step_sibling', half_sibling: 'half_sibling',
+  guardian: 'ward', ward: 'guardian',
+  godparent: 'godchild', godchild: 'godparent',
+  chosen_family: 'chosen_family', extended: 'extended'
+};
+
 const SAFE_PERSON_COLS = 'id, name, nickname, photo_url, birth_date, birth_year, death_date, role_type, is_deceased, is_memorial, memorial_date, star_profile, star_pattern, star_intensity, star_flare_count, privacy_level, about, household_id, user_id, household_status, address, city, state, onboarding_complete, social_links, created_at';
 
 router.get('/universe-members', requireAuth, async (req, res) => {
@@ -33,7 +46,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       `SELECT id FROM people WHERE user_id = $1`, [userId]
     );
     if (personResult.rows.length === 0) {
-      return res.json({ people: [], relationships: [], households: [] });
+      return res.json({ people: [], relationships: [] });
     }
     const rootPersonId = personResult.rows[0].id;
 
@@ -61,7 +74,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       adjacency[rel.related_person_id].push(rel.person_id);
     }
 
-    const MAX_HOPS = 3;
+    const MAX_HOPS = 2;
     const visited = new Set([rootPersonId]);
     let frontier = [rootPersonId];
     let hops = 0;
@@ -84,7 +97,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
     const personIds = Array.from(visited);
 
     if (personIds.length === 0) {
-      return res.json({ people: [], relationships: [], households: [] });
+      return res.json({ people: [], relationships: [] });
     }
 
     const { rows: people } = await pool.query(`
@@ -104,17 +117,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       visited.has(r.person_id) && visited.has(r.related_person_id)
     );
 
-    const householdIds = [...new Set(filteredPeople.map(p => p.household_id).filter(Boolean))];
-    let households = [];
-    if (householdIds.length > 0) {
-      const { rows } = await pool.query(
-        `SELECT id, name, description FROM households WHERE id = ANY($1::uuid[])`,
-        [householdIds]
-      );
-      households = rows;
-    }
-
-    res.json({ people: filteredPeople, relationships: graphRelationships, households });
+    res.json({ people: filteredPeople, relationships: graphRelationships });
   } catch (error) {
     console.error('Universe members endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -165,7 +168,12 @@ router.get('/galaxy/:personId', requireAuth, async (req, res) => {
       if (seenPersonIds.has(row.related_id)) continue;
       seenPersonIds.add(row.related_id);
 
-      const ring = getRing(row.relationship_type);
+      const isCenterPerson = row.person_id === personId;
+      const effectiveType = isCenterPerson
+        ? row.relationship_type
+        : (RECIPROCAL_TYPES[row.relationship_type] || row.relationship_type);
+
+      const ring = getRing(effectiveType);
 
       let person;
       if (row.privacy_level === 'private' && row.user_id !== req.session.userId) {
@@ -198,12 +206,16 @@ router.get('/galaxy/:personId', requireAuth, async (req, res) => {
         };
       }
 
+      const confirmationStatus = isCenterPerson
+        ? row.status_from_person
+        : row.status_from_related;
+
       const relationship = {
         id: row.id,
-        relationship_type: row.relationship_type,
+        relationship_type: effectiveType,
         subtype: row.subtype,
-        status_from_person: row.status_from_person,
-        status_from_related: row.status_from_related
+        status_from_person: isCenterPerson ? row.status_from_person : row.status_from_related,
+        status_from_related: isCenterPerson ? row.status_from_related : row.status_from_person
       };
 
       rings[ring - 1].people.push({ person, relationship });
@@ -211,9 +223,9 @@ router.get('/galaxy/:personId', requireAuth, async (req, res) => {
       edges.push({
         from: personId,
         to: row.related_id,
-        relationship_type: row.relationship_type,
-        status: row.status_from_related === 'confirmed' ? 'confirmed' :
-                row.status_from_related === 'pending' ? 'pending' : 'claimed'
+        relationship_type: effectiveType,
+        status: confirmationStatus === 'confirmed' ? 'confirmed' :
+                confirmationStatus === 'pending' ? 'pending' : 'claimed'
       });
     }
 
@@ -223,19 +235,6 @@ router.get('/galaxy/:personId', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-const RECIPROCAL_TYPES = {
-  parent: 'child', child: 'parent',
-  sibling: 'sibling', partner: 'partner', spouse: 'spouse',
-  grandparent: 'grandchild', grandchild: 'grandparent',
-  aunt_uncle: 'niece_nephew', niece_nephew: 'aunt_uncle',
-  cousin: 'cousin', in_law: 'in_law',
-  step_parent: 'step_child', step_child: 'step_parent',
-  step_sibling: 'step_sibling', half_sibling: 'half_sibling',
-  guardian: 'ward', ward: 'guardian',
-  godparent: 'godchild', godchild: 'godparent',
-  chosen_family: 'chosen_family', extended: 'extended'
-};
 
 router.post('/verify/:relationshipId', requireAuth, async (req, res) => {
   try {
