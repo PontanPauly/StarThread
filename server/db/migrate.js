@@ -818,6 +818,30 @@ export async function runMigrations() {
       console.log(`Migrated ${migratedIds.length} trip text-comments from moments to trip_comments`);
     }
 
+    const { rowCount: pendingRepairCount } = await client.query(`
+      UPDATE relationships r
+      SET
+        status_from_person = CASE WHEN r.status_from_person = 'pending' THEN 'confirmed' ELSE r.status_from_person END,
+        status_from_related = CASE WHEN r.status_from_related = 'pending' THEN 'confirmed' ELSE r.status_from_related END
+      WHERE (r.status_from_person = 'pending' OR r.status_from_related = 'pending')
+        AND NOT EXISTS (
+          SELECT 1 FROM invite_links il
+          WHERE il.for_person_id = r.person_id OR il.for_person_id = r.related_person_id
+        )
+        AND (
+          (r.status_from_person = 'pending' AND NOT EXISTS (
+            SELECT 1 FROM people p WHERE p.id = r.person_id AND p.user_id IS NOT NULL
+          ))
+          OR
+          (r.status_from_related = 'pending' AND NOT EXISTS (
+            SELECT 1 FROM people p WHERE p.id = r.related_person_id AND p.user_id IS NOT NULL
+          ))
+        )
+    `);
+    if (pendingRepairCount > 0) {
+      console.log(`Repaired ${pendingRepairCount} relationships with pending status (user-added, not invite-based)`);
+    }
+
     await client.query('COMMIT');
     console.log('Database migrations completed successfully');
   } catch (error) {
