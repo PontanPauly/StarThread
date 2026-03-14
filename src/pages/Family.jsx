@@ -214,6 +214,11 @@ export default function Family() {
     return householdColors[index % householdColors.length];
   };
 
+  const handlePersonClick = useCallback((person) => navigate(`/star/${person.id}`), [navigate]);
+  const handleRecenterGalaxy = useCallback((personId) => setGalaxyCenterId(personId), []);
+  const handleNavigateToStar = useCallback((person, householdId) => navigate(`/star/${person.id}${householdId ? `?from=galaxy&household=${householdId}` : ''}`), [navigate]);
+  const handleNavigateToGalaxy = useCallback((person) => setGalaxyCenterId(person.id), []);
+
   if (loadingPeople || loadingHouseholds) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -221,11 +226,6 @@ export default function Family() {
       </div>
     );
   }
-
-  const handlePersonClick = useCallback((person) => navigate(`/star/${person.id}`), [navigate]);
-  const handleRecenterGalaxy = useCallback((personId) => setGalaxyCenterId(personId), []);
-  const handleNavigateToStar = useCallback((person, householdId) => navigate(`/star/${person.id}${householdId ? `?from=galaxy&household=${householdId}` : ''}`), [navigate]);
-  const handleNavigateToGalaxy = useCallback((person) => setGalaxyCenterId(person.id), []);
 
   return (
     <>
