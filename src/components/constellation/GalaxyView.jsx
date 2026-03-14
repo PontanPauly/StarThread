@@ -5310,6 +5310,10 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionProgress, setTransitionProgress] = useState(0);
   const [transitioningHousehold, setTransitioningHousehold] = useState(null);
+  const transitioningHouseholdRef = useRef(null);
+  useEffect(() => {
+    transitioningHouseholdRef.current = transitioningHousehold;
+  }, [transitioningHousehold]);
   const [warpDirection, setWarpDirection] = useState(null);
   const [viewMode, setViewMode] = useState('nebula');
   const mousePosRef = useRef(null);
@@ -5322,6 +5326,13 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
   });
   const controlsRef = useRef(null);
   const rendererRef = useRef(null);
+  const normalizeDpr = useCallback((dpr) => {
+    if (Array.isArray(dpr)) {
+      const deviceDpr = window.devicePixelRatio || 1;
+      return Math.min(dpr[1], Math.max(dpr[0], deviceDpr));
+    }
+    return dpr;
+  }, []);
   const cameraRef = useRef(null);
   const cameraPosRef = useRef(null);
   const wasdKeysPressed = useRef({ w: false, a: false, s: false, d: false });
@@ -5330,13 +5341,17 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
     if (!isTouchDevice) return false;
     try { return !localStorage.getItem('starthread_gesture_hint_seen'); } catch (e) { return true; }
   });
+  const showGestureHintRef = useRef(showGestureHint);
+  useEffect(() => {
+    showGestureHintRef.current = showGestureHint;
+  }, [showGestureHint]);
 
   const handleTouchInteraction = useCallback(() => {
-    if (showGestureHint) {
+    if (showGestureHintRef.current) {
       setShowGestureHint(false);
       try { localStorage.setItem('starthread_gesture_hint_seen', '1'); } catch (e) {}
     }
-  }, [showGestureHint]);
+  }, []);
 
   const dismissGestureHint = useCallback(() => {
     setShowGestureHint(false);
@@ -5344,15 +5359,20 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
   }, []);
 
   const qualityTier = useQualityTier();
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setPixelRatio(normalizeDpr(qualityTier.dpr));
+    }
+  }, [qualityTier.dpr, normalizeDpr]);
 
   const canvasCamera = useMemo(() => ({ position: [50, 35, 70], fov: 55 }), []);
   const canvasGl = useMemo(() => ({
-    antialias: qualityTier.tier !== 'low',
+    antialias: true,
     alpha: false,
-    powerPreference: qualityTier.tier === 'low' ? 'low-power' : 'high-performance',
+    powerPreference: 'high-performance',
     failIfMajorPerformanceCaveat: false,
     preserveDrawingBuffer: false,
-  }), [qualityTier.tier]);
+  }), []);
   const canvasStyle = useMemo(() => ({ background: '#060410' }), []);
 
   const rawHouseholdPositions = useOrganicClusterLayout(households, people, viewMode, relationships);
@@ -5524,6 +5544,7 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
   const handleCanvasCreated = useCallback(({ gl, camera }) => {
     rendererRef.current = gl;
     cameraRef.current = camera;
+    gl.setPixelRatio(normalizeDpr(qualityTier.dpr));
     if (myHomePosition && !cameraInitializedRef.current) {
       const hx = myHomePosition.x || 0;
       const hy = myHomePosition.y || 0;
@@ -5601,12 +5622,12 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
   const handleTransitionComplete = useCallback(() => {
     setIsTransitioning(false);
     setWarpDirection(null);
-    if (transitioningHousehold) {
-      setSelectedHousehold(transitioningHousehold);
+    if (transitioningHouseholdRef.current) {
+      setSelectedHousehold(transitioningHouseholdRef.current);
       setLevel('system');
     }
     setTransitioningHousehold(null);
-  }, [transitioningHousehold]);
+  }, []);
   
   const handleStarClick = useCallback((star) => {
     const person = star.person;
@@ -5716,7 +5737,6 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
         camera={canvasCamera}
         gl={canvasGl}
         style={canvasStyle}
-        dpr={qualityTier.dpr}
         onCreated={handleCanvasCreated}
         frameloop="always"
       >
