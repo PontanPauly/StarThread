@@ -559,7 +559,6 @@ router.delete('/account', requireAuth, async (req, res) => {
     const person = personRows[0];
 
     if (person && (person.role_type === 'child' || person.role_type === 'teen')) {
-      client.release();
       return res.status(403).json({ error: 'Minor accounts are managed by a parent. Please ask your parent to manage this account.' });
     }
 
