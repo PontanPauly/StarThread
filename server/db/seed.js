@@ -571,7 +571,6 @@ export async function seedFamilyData({ force = false } = {}) {
     });
 
     await createRelationship('clark', 'sandra', 'partner');
-    await createRelationship('sandra', 'clark', 'partner');
     await createRelationship('clark', 'randy', 'parent');
     await createRelationship('sandra', 'randy', 'parent');
     await createRelationship('clark', 'craig', 'parent');
@@ -580,7 +579,6 @@ export async function seedFamilyData({ force = false } = {}) {
     await createRelationship('sandra', 'aunt_karen', 'parent');
 
     await createRelationship('herbert', 'miriam', 'partner');
-    await createRelationship('miriam', 'herbert', 'partner');
     await createRelationship('herbert', 'charlie', 'parent');
     await createRelationship('miriam', 'charlie', 'parent');
     await createRelationship('herbert', 'joyce', 'parent');
@@ -593,20 +591,16 @@ export async function seedFamilyData({ force = false } = {}) {
     for (let i = 0; i < pitzChildren.length; i++) {
       for (let j = i + 1; j < pitzChildren.length; j++) {
         await createRelationship(pitzChildren[i], pitzChildren[j], 'sibling');
-        await createRelationship(pitzChildren[j], pitzChildren[i], 'sibling');
       }
     }
 
     await createRelationship('anne', 'roger', 'partner');
-    await createRelationship('roger', 'anne', 'partner');
     await createRelationship('anne', 'nathan', 'parent');
     await createRelationship('roger', 'nathan', 'parent');
     await createRelationship('anne', 'philip', 'parent');
     await createRelationship('roger', 'philip', 'parent');
     await createRelationship('nathan', 'philip', 'sibling');
-    await createRelationship('philip', 'nathan', 'sibling');
     await createRelationship('nathan', 'charity', 'partner');
-    await createRelationship('charity', 'nathan', 'partner');
     await createRelationship('nathan', 'henry_t', 'parent');
     await createRelationship('charity', 'henry_t', 'parent');
     await createRelationship('nathan', 'teagan', 'parent');
@@ -614,29 +608,19 @@ export async function seedFamilyData({ force = false } = {}) {
     await createRelationship('nathan', 'emerson', 'parent');
     await createRelationship('charity', 'emerson', 'parent');
     await createRelationship('henry_t', 'teagan', 'sibling');
-    await createRelationship('teagan', 'henry_t', 'sibling');
     await createRelationship('henry_t', 'emerson', 'sibling');
-    await createRelationship('emerson', 'henry_t', 'sibling');
     await createRelationship('teagan', 'emerson', 'sibling');
-    await createRelationship('emerson', 'teagan', 'sibling');
     await createRelationship('philip', 'katy', 'partner');
-    await createRelationship('katy', 'philip', 'partner');
 
     await createRelationship('randy', 'nancy', 'partner');
-    await createRelationship('nancy', 'randy', 'partner');
 
     await createRelationship('randy', 'aunt_karen', 'sibling');
-    await createRelationship('aunt_karen', 'randy', 'sibling');
     await createRelationship('randy', 'craig', 'sibling');
-    await createRelationship('craig', 'randy', 'sibling');
     await createRelationship('aunt_karen', 'craig', 'sibling');
-    await createRelationship('craig', 'aunt_karen', 'sibling');
     await createRelationship('craig', 'annie', 'partner');
-    await createRelationship('annie', 'craig', 'partner');
     await createRelationship('craig', 'maddison', 'parent');
     await createRelationship('annie', 'maddison', 'parent');
     await createRelationship('aunt_karen', 'lynn', 'partner');
-    await createRelationship('lynn', 'aunt_karen', 'partner');
 
     const nashChildren = ['angela', 'james', 'jonathan', 'andrew', 'matthew', 'paul'];
     for (const child of nashChildren) {
@@ -646,12 +630,10 @@ export async function seedFamilyData({ force = false } = {}) {
     for (let i = 0; i < nashChildren.length; i++) {
       for (let j = i + 1; j < nashChildren.length; j++) {
         await createRelationship(nashChildren[i], nashChildren[j], 'sibling');
-        await createRelationship(nashChildren[j], nashChildren[i], 'sibling');
       }
     }
 
     await createRelationship('angela', 'brian', 'partner');
-    await createRelationship('brian', 'angela', 'partner');
     await createRelationship('angela', 'martin', 'parent');
     await createRelationship('brian', 'martin', 'parent', 'step');
     for (const child of ['ava', 'nash_g']) {
@@ -659,14 +641,10 @@ export async function seedFamilyData({ force = false } = {}) {
       await createRelationship('brian', child, 'parent', 'step');
     }
     await createRelationship('martin', 'ava', 'sibling');
-    await createRelationship('ava', 'martin', 'sibling');
     await createRelationship('martin', 'nash_g', 'sibling');
-    await createRelationship('nash_g', 'martin', 'sibling');
     await createRelationship('ava', 'nash_g', 'sibling');
-    await createRelationship('nash_g', 'ava', 'sibling');
 
     await createRelationship('james', 'lisa', 'partner');
-    await createRelationship('lisa', 'james', 'partner');
     const jamesKids = ['mason', 'harvey', 'vivian', 'ethan'];
     for (const child of jamesKids) {
       await createRelationship('james', child, 'parent');
@@ -675,24 +653,19 @@ export async function seedFamilyData({ force = false } = {}) {
     for (let i = 0; i < jamesKids.length; i++) {
       for (let j = i + 1; j < jamesKids.length; j++) {
         await createRelationship(jamesKids[i], jamesKids[j], 'sibling');
-        await createRelationship(jamesKids[j], jamesKids[i], 'sibling');
       }
     }
 
     await createRelationship('jonathan', 'nicole', 'partner');
-    await createRelationship('nicole', 'jonathan', 'partner');
 
     for (const child of ['emmett', 'ella']) {
       await createRelationship('andrew', child, 'parent');
     }
     await createRelationship('emmett', 'ella', 'sibling');
-    await createRelationship('ella', 'emmett', 'sibling');
 
     await createRelationship('matthew', 'megan', 'partner');
-    await createRelationship('megan', 'matthew', 'partner');
 
     await createRelationship('ava', 'austin', 'partner');
-    await createRelationship('austin', 'ava', 'partner');
 
     await createCalendarEvent('Randy\'s Birthday', '2026-03-15', 'birthday', ['randy'], '#f59e0b');
     await createCalendarEvent('Nancy\'s Birthday', '2026-07-22', 'birthday', ['nancy'], '#ec4899');
