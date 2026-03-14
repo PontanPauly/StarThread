@@ -43,8 +43,8 @@ export default function PendingRelationships({ onCountChange }) {
         onCountChange?.(next.length);
         return next;
       });
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('Relationship verify failed:', err);
     } finally {
       setActionLoading((prev) => ({ ...prev, [relationshipId]: null }));
     }
@@ -69,21 +69,21 @@ export default function PendingRelationships({ onCountChange }) {
             className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/60 border border-slate-700/50"
           >
             <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-cyan-400/30 shrink-0">
-              {rel.person_photo ? (
+              {(rel.from_person_photo || rel.person_photo) ? (
                 <img
-                  src={rel.person_photo}
+                  src={rel.from_person_photo || rel.person_photo}
                   alt=""
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <span className="text-lg font-medium text-slate-400">
-                  {rel.person_name?.charAt(0) || "?"}
+                  {(rel.from_person_name || rel.person_name)?.charAt(0) || "?"}
                 </span>
               )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-slate-100 font-medium truncate">
-                {rel.person_name || "Unknown"}
+                {rel.from_person_name || rel.person_name || "Unknown"}
               </p>
               <p className="text-sm text-cyan-300 capitalize">
                 {rel.relationship_type?.replace(/_/g, " ") || "Relationship"}

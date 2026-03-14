@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
@@ -33,6 +33,29 @@ function PrivacyVisibilitySection({ myProfile, people, queryClient, userId }) {
     queryKey: ['reverse-relationships', myProfile.id],
     queryFn: () => base44.entities.Relationship.filter({ related_person_id: myProfile.id }),
     enabled: !!myProfile.id,
+  });
+
+  const relatedPersonIds = useMemo(() => {
+    const allRels = [...relationships, ...reverseRelationships];
+    const ids = new Set();
+    for (const rel of allRels) {
+      if (rel.person_id !== myProfile?.id) ids.add(rel.person_id);
+      if (rel.related_person_id !== myProfile?.id) ids.add(rel.related_person_id);
+    }
+    return [...ids];
+  }, [relationships, reverseRelationships, myProfile?.id]);
+
+  const { data: relatedPeople = [] } = useQuery({
+    queryKey: ['related-people', relatedPersonIds],
+    queryFn: async () => {
+      if (relatedPersonIds.length === 0) return [];
+      const results = await Promise.all(
+        relatedPersonIds.map(id => base44.entities.Person.get(id).catch(() => null))
+      );
+      return results.filter(Boolean);
+    },
+    enabled: relatedPersonIds.length > 0,
+    staleTime: 30000,
   });
 
   const allRelationshipsMerged = [
@@ -95,10 +118,16 @@ function PrivacyVisibilitySection({ myProfile, people, queryClient, userId }) {
     in_law: 'in-law',
   };
 
+  const allPeopleLookup = useMemo(() => {
+    const map = {};
+    for (const p of people) map[p.id] = p;
+    for (const p of relatedPeople) if (!map[p.id]) map[p.id] = p;
+    return map;
+  }, [people, relatedPeople]);
+
   const getRelatedPersonName = (rel) => {
     const relatedId = rel.person_id === myProfile.id ? rel.related_person_id : rel.person_id;
-    const person = people.find(p => p.id === relatedId);
-    return person?.name || 'Unknown';
+    return allPeopleLookup[relatedId]?.name || 'Unknown';
   };
 
   const getRelationshipLabel = (rel) => {
