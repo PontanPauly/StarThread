@@ -225,21 +225,17 @@ function MobileConstellationLines({ containerRef }) {
 
       const startX = fromCenter.x + dir * NODE_RADIUS;
       const startY = fromCenter.y;
-      const endX = toCenter.x + dir * NODE_RADIUS;
+      const endX = toCenter.x - dir * NODE_RADIUS;
       const endY = toCenter.y;
 
       const totalDY = endY - startY;
 
-      const edgeDist = dir > 0
-        ? containerW - fromCenter.x
-        : fromCenter.x;
-      const swingOut = edgeDist * 0.75;
-
-      const farX = fromCenter.x + dir * swingOut;
+      const edgePad = 12;
+      const farX = dir > 0 ? containerW - edgePad : edgePad;
 
       const p0 = { x: startX, y: startY };
-      const p1 = { x: farX, y: startY + totalDY * 0.15 };
-      const p2 = { x: farX, y: endY - totalDY * 0.15 };
+      const p1 = { x: farX, y: startY + totalDY * 0.2 };
+      const p2 = { x: farX, y: endY - totalDY * 0.2 };
       const p3 = { x: endX, y: endY };
 
       return sampleCubic(p0, p1, p2, p3, 100);
