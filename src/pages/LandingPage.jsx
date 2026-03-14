@@ -231,11 +231,11 @@ function MobileConstellationLines({ containerRef }) {
       const pad = 10;
       const farX = goRight ? containerW - pad : pad;
 
-      const dy = ey - sy;
+      const midY = (sy + ey) / 2;
 
       const p0 = { x: sx, y: sy };
-      const p1 = { x: farX, y: sy + dy * 0.15 };
-      const p2 = { x: farX, y: ey - dy * 0.15 };
+      const p1 = { x: farX, y: midY };
+      const p2 = { x: farX, y: midY };
       const p3 = { x: ex, y: ey };
 
       return sampleCubic(p0, p1, p2, p3, 120);
