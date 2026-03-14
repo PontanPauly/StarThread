@@ -1,7 +1,7 @@
 import { pool } from './db/index.js';
 import { computeMatchScore, findCandidates } from './identityScoring.js';
 
-const MIN_SCORE_THRESHOLD = 20;
+const MIN_SCORE_THRESHOLD = 45;
 
 async function upsertSuggestion(userId, suggestedPersonId, score, confidence, explanations, breakdown) {
   if (score < MIN_SCORE_THRESHOLD || confidence === 'none') return;

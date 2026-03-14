@@ -23,6 +23,7 @@ router.get('/suggestions', requireAuth, async (req, res) => {
         JOIN people p ON p.id = s.suggested_person_id
         WHERE s.user_id = $1
           AND s.status = 'pending'
+          AND s.score >= 45
           AND p.user_id IS NULL
           AND p.merged_into_id IS NULL
         ORDER BY s.score DESC
