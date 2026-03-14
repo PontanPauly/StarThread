@@ -163,6 +163,7 @@ export default function Onboarding() {
   const [generatingLink, setGeneratingLink] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(-1);
   const [persistedMemberIds, setPersistedMemberIds] = useState(null);
+  const persistStagedMembersRef = useRef(null);
 
   useEffect(() => {
     if (myPerson) {
@@ -367,9 +368,13 @@ export default function Onboarding() {
     setShowDuplicatePrompt(false);
   };
 
-  const persistStagedMembers = async () => {
-    if (!myPerson || addedMembers.length === 0) return {};
+  const persistStagedMembers = () => {
+    if (!myPerson || addedMembers.length === 0) return Promise.resolve({});
 
+    if (persistStagedMembersRef.current) return persistStagedMembersRef.current;
+
+    const promise = (async () => {
+    try {
     const idMap = {};
 
     for (const member of addedMembers) {
@@ -413,6 +418,14 @@ export default function Onboarding() {
     }
 
     return idMap;
+    } catch (err) {
+      persistStagedMembersRef.current = null;
+      throw err;
+    }
+    })();
+
+    persistStagedMembersRef.current = promise;
+    return promise;
   };
 
   const toggleTrustedContact = (memberId) => {
@@ -1039,7 +1052,7 @@ export default function Onboarding() {
                     onClick={() => setStep(4)}
                     className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white font-semibold"
                   >
-                    {reviewMatches.length === 0 ? "Continue" : "Skip & Create New"}
+                    {reviewMatches.length === 0 ? "Continue" : "Skip Suggestions"}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
