@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,15 +12,25 @@ export default function TripComments({ tripId, currentUser, people }) {
 
   const { data: comments = [] } = useQuery({
     queryKey: ['trip-comments', tripId],
-    queryFn: () => base44.entities.Moment.filter({ 
-      trip_id: tripId,
-      media_type: 'text'
-    }),
+    queryFn: async () => {
+      const response = await fetch(`/api/trips/${tripId}/comments`, { credentials: 'include' });
+      if (!response.ok) return [];
+      return response.json();
+    },
     enabled: !!tripId,
   });
 
   const createComment = useMutation({
-    mutationFn: (data) => base44.entities.Moment.create(data),
+    mutationFn: async (data) => {
+      const response = await fetch(`/api/trips/${tripId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to create comment');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['trip-comments', tripId]);
       setCommentText("");
@@ -30,7 +39,14 @@ export default function TripComments({ tripId, currentUser, people }) {
   });
 
   const deleteComment = useMutation({
-    mutationFn: (id) => base44.entities.Moment.delete(id),
+    mutationFn: async (id) => {
+      const response = await fetch(`/api/trips/comments/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to delete comment');
+      return response.json();
+    },
     onSuccess: () => queryClient.invalidateQueries(['trip-comments', tripId]),
   });
 
@@ -45,14 +61,8 @@ export default function TripComments({ tripId, currentUser, people }) {
   const handleSendComment = () => {
     if (!commentText.trim() || !currentUser) return;
 
-    const myPerson = people.find(p => p.user_id === currentUser.id);
-    
     createComment.mutate({
-      trip_id: tripId,
       content: commentText.trim(),
-      media_type: 'text',
-      author_person_id: myPerson?.id,
-      captured_date: new Date().toISOString().split('T')[0],
     });
   };
 
@@ -74,7 +84,6 @@ export default function TripComments({ tripId, currentUser, people }) {
   return (
     <div className="space-y-4">
       <div className="glass-card rounded-2xl overflow-hidden flex flex-col h-[500px]">
-        {/* Comments List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {sortedComments.length === 0 ? (
             <div className="flex items-center justify-center h-full text-center">
@@ -116,7 +125,7 @@ export default function TripComments({ tripId, currentUser, people }) {
                       onClick={() => deleteComment.mutate(comment.id)}
                       className="text-slate-500 hover:text-red-400 h-6 w-6 p-0"
                     >
-                      ✕
+                      x
                     </Button>
                   )}
                 </div>
@@ -126,7 +135,6 @@ export default function TripComments({ tripId, currentUser, people }) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Comment Input */}
         <div className="p-4 border-t border-slate-700/50">
           <div className="flex gap-2">
             <Input

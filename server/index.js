@@ -21,6 +21,7 @@ import googleAuthRoutes from './routes/googleAuth.js';
 import subscriptionRoutes from './routes/subscription.js';
 import adminRoutes from './routes/admin.js';
 import identityRoutes from './routes/identity.js';
+import tripCommentRoutes from './routes/tripComments.js';
 import { registerObjectStorageRoutes } from './replit_integrations/object_storage/routes.js';
 import http from 'http';
 import { setupWebSocket, broadcastToConversation } from './websocket.js';
@@ -131,6 +132,7 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/identity', identityRoutes);
+app.use('/api/trips', tripCommentRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -195,6 +197,11 @@ app.get('/api/my-data/export', requireAuth, async (req, res) => {
         `SELECT * FROM packing_items WHERE person_id = $1`, [personId]
       );
       result.packing_items = packingItems;
+
+      const { rows: tripComments } = await pool.query(
+        `SELECT * FROM trip_comments WHERE author_person_id = $1`, [personId]
+      );
+      result.trip_comments = tripComments;
     }
 
     res.json(result);

@@ -779,6 +779,45 @@ export async function runMigrations() {
       ALTER TABLE person_match_suggestions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS trip_comments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        author_person_id UUID REFERENCES people(id) ON DELETE SET NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_trip_comments_trip_id ON trip_comments(trip_id);
+      CREATE INDEX IF NOT EXISTS idx_trip_comments_created_at ON trip_comments(created_at);
+    `);
+
+    const { rows: textMoments } = await client.query(`
+      SELECT m.id, m.trip_id, m.author_person_id, m.content, m.created_date
+      FROM moments m
+      JOIN trips t ON t.id = m.trip_id
+      WHERE m.media_type = 'text' AND m.trip_id IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM trip_comments tc WHERE tc.id = m.id)
+    `);
+    if (textMoments.length > 0) {
+      const migratedIds = [];
+      for (const m of textMoments) {
+        await client.query(
+          `INSERT INTO trip_comments (id, trip_id, author_person_id, content, created_at)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (id) DO NOTHING`,
+          [m.id, m.trip_id, m.author_person_id, m.content || '', m.created_date]
+        );
+        migratedIds.push(m.id);
+      }
+      if (migratedIds.length > 0) {
+        await client.query(
+          `DELETE FROM moments WHERE id = ANY($1::uuid[])`,
+          [migratedIds]
+        );
+      }
+      console.log(`Migrated ${migratedIds.length} trip text-comments from moments to trip_comments`);
+    }
+
     await client.query('COMMIT');
     console.log('Database migrations completed successfully');
   } catch (error) {

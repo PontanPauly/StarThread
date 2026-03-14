@@ -268,6 +268,16 @@ CREATE TABLE shared_trip_items (
 );
 CREATE INDEX idx_shared_trip_items_trip_id ON shared_trip_items(trip_id);
 
+CREATE TABLE trip_comments (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  trip_id          UUID        NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  author_person_id UUID        REFERENCES people(id) ON DELETE SET NULL,
+  content          TEXT        NOT NULL,
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_trip_comments_trip_id    ON trip_comments(trip_id);
+CREATE INDEX idx_trip_comments_created_at ON trip_comments(created_at);
+
 -- ---------------------------------------------------------------------------
 -- Content / social
 -- ---------------------------------------------------------------------------

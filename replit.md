@@ -20,9 +20,9 @@ The application follows a client-server architecture. The backend is built with 
 3.  **Privacy & Visibility**: Granular controls for privacy levels and per-relationship visibility.
 4.  **Relationship Verification**: System for managing pending relationship requests.
 5.  **Memorial Flow**: Secure process for memorializing profiles with multi-factor confirmation.
-6.  **Trip Planning**: Tools for managing trip logistics (participants, accommodation, activities, budget).
+6.  **Trip Planning**: Tools for managing trip logistics (participants, accommodation, activities, budget). Trip comments are stored in a dedicated `trip_comments` table with API at `/api/trips/:tripId/comments`, separate from moments.
 7.  **Love Notes**: Feature for sending gratitude messages.
-8.  **Moments**: Sharing of photos and memories.
+8.  **Moments**: Sharing of photos and memories (trip comments are stored separately in `trip_comments`, not as text-type moments).
 9.  **Family Stories**: Platform for preserving narratives.
 10. **Traditions/Rituals**: Tracking and management of family traditions.
 11. **Calendar**: Privacy-aware shared family calendar with scope-based visibility, Google Calendar sync, and client-side recurring event expansion.
