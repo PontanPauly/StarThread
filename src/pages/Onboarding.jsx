@@ -210,6 +210,26 @@ export default function Onboarding() {
 
   const getFullName = (first, last) => [first, last].filter(Boolean).join(' ');
 
+  const firstNameSimilarity = (a, b) => {
+    if (!a || !b) return 0;
+    const la = a.toLowerCase().trim();
+    const lb = b.toLowerCase().trim();
+    if (la === lb) return 1;
+    const maxLen = Math.max(la.length, lb.length);
+    if (maxLen === 0) return 0;
+    const matrix = Array.from({ length: la.length + 1 }, (_, i) =>
+      Array.from({ length: lb.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    );
+    for (let i = 1; i <= la.length; i++) {
+      for (let j = 1; j <= lb.length; j++) {
+        matrix[i][j] = la[i - 1] === lb[j - 1]
+          ? matrix[i - 1][j - 1]
+          : 1 + Math.min(matrix[i - 1][j], matrix[i][j - 1], matrix[i - 1][j - 1]);
+      }
+    }
+    return Math.max(0, 1 - matrix[la.length][lb.length] / maxLen);
+  };
+
   const searchDuplicates = async (name, opts = {}) => {
     if (!name || name.trim().length < 2) return [];
     try {
@@ -227,9 +247,13 @@ export default function Onboarding() {
       const data = await response.json();
       const results = data.matches || data;
       const alreadyAdded = addedMembers.map((m) => m.existingId).filter(Boolean);
-      return results.filter(
-        (p) => p.id !== myPerson?.id && !alreadyAdded.includes(p.id)
-      );
+      const searchFirstName = name.trim().split(/\s+/)[0];
+      return results.filter((p) => {
+        if (p.id === myPerson?.id || alreadyAdded.includes(p.id)) return false;
+        if (p.score >= 75) return true;
+        const candidateFirst = p.first_name || (p.name ? p.name.split(' ')[0] : '');
+        return firstNameSimilarity(searchFirstName, candidateFirst) >= 0.5;
+      });
     } catch {
       return [];
     }

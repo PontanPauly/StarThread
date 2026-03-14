@@ -720,13 +720,16 @@ router.get('/Person/search', requireAuth, async (req, res) => {
     const scored = [];
     for (const candidate of candidates) {
       const result = await computeMatchScore(candidate, signals);
-      if (result.score < 30) continue;
-
       if (signals.first_name && signals.first_name.length >= 2) {
         const candidateFirst = candidate.first_name || (candidate.name ? candidate.name.split(' ')[0] : '');
         const firstSim = nameSimilarity(signals.first_name, candidateFirst);
         const nickSim = candidate.nickname ? nameSimilarity(signals.first_name, candidate.nickname) : 0;
-        if (Math.max(firstSim, nickSim) < 0.5 && result.score < 75) continue;
+        const bestFirstSim = Math.max(firstSim, nickSim);
+        if (bestFirstSim < 0.5 && result.score < 75) continue;
+        if (bestFirstSim >= 0.7 && result.score >= 30) { /* allow strong first-name matches at lower threshold */ }
+        else if (result.score < 45) continue;
+      } else {
+        if (result.score < 45) continue;
       }
 
       scored.push({
