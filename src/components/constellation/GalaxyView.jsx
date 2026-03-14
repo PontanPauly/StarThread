@@ -5756,13 +5756,7 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
       <VignetteOverlay />
       <WarpOverlay active={isTransitioning} direction={warpDirection} />
       
-      <TopBar
-        level={level}
-        selectedHousehold={selectedHousehold}
-        cameraPosRef={cameraPosRef}
-        onBackToGalaxy={handleBackToGalaxy}
-        starCount={people.length}
-      />
+      
 
       {level === 'galaxy' && (
         <FilterToggles

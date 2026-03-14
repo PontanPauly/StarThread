@@ -249,8 +249,8 @@ export default function Family() {
           </WebGLErrorBoundary>
           {/* Floating Controls */}
           <div className="fixed top-[4.5rem] lg:top-4 left-3 sm:left-4 lg:left-68 right-3 sm:right-4 z-50 pointer-events-none">
-            <div className="flex items-center justify-between gap-2">
-              <div className="glass-card rounded-xl px-3 py-1.5 border border-slate-700/50 pointer-events-auto flex-shrink-0 lg:hidden">
+            <div className="flex items-center justify-end gap-2">
+              <div className="glass-card rounded-xl px-3 py-1.5 border border-slate-700/50 pointer-events-auto flex-shrink-0 lg:hidden mr-auto">
                 <h1 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
                   <Star className="w-4 h-4 text-amber-400 flex-shrink-0" />
                   Universe
@@ -258,7 +258,7 @@ export default function Family() {
                 <p className="text-[10px] text-slate-500 mt-0.5">{people.length} stars · {relationships.length} connections</p>
               </div>
 
-              <div className="flex gap-1 pointer-events-auto items-center flex-shrink-0 ml-auto">
+              <div className="flex gap-1 pointer-events-auto items-center flex-shrink min-w-0">
                 <Button
                   onClick={() => setMobileSearchOpen(true)}
                   className="lg:hidden bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 backdrop-blur-md h-8 w-8 p-0"
@@ -272,7 +272,7 @@ export default function Family() {
                     placeholder="Find a star..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-44 bg-slate-800/90 border-slate-600 text-slate-200 placeholder:text-slate-500 backdrop-blur-md h-8"
+                    className="pl-9 w-32 xl:w-44 bg-slate-800/90 border-slate-600 text-slate-200 placeholder:text-slate-500 backdrop-blur-md h-8"
                   />
                   {searchQuery && (
                     <div className="absolute top-full right-0 mt-2 w-72 glass-card rounded-xl border border-slate-700/50 pointer-events-auto max-h-64 overflow-y-auto z-[60]">
@@ -330,7 +330,7 @@ export default function Family() {
                 </Button>
                 <Button 
                   onClick={() => { setAddingChild(true); setShowPersonForm(true); }}
-                  className="hidden lg:flex bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold backdrop-blur-md h-8 px-3"
+                  className="hidden xl:flex bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold backdrop-blur-md h-8 px-3"
                   size="sm"
                 >
                   <Baby className="w-3.5 h-3.5 mr-1.5" />
