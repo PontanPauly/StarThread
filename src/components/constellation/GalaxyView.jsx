@@ -834,6 +834,8 @@ function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualit
   const cameraSway = useRef({ x: 0, y: 0, phase: 0 });
   const touchState = useRef({ active: false, lastX: 0, lastY: 0, startX: 0, startY: 0, pinchDist: 0, isPinching: false, hasDragged: false });
   const _pinchForward = useMemo(() => new THREE.Vector3(), []);
+  const onTouchInteractionRef = useRef(onTouchInteraction);
+  onTouchInteractionRef.current = onTouchInteraction;
 
   const baseSpeed = 140;
   const acceleration = 4.0;
@@ -915,7 +917,7 @@ function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualit
 
     const onTouchStart = (e) => {
       if (!enabled) return;
-      if (onTouchInteraction) onTouchInteraction();
+      if (onTouchInteractionRef.current) onTouchInteractionRef.current();
       if (e.touches.length === 1) {
         touchState.current.active = true;
         touchState.current.isPinching = false;
