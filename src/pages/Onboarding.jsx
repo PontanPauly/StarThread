@@ -661,12 +661,22 @@ export default function Onboarding() {
                   </div>
                   <div>
                     <Label className="text-slate-300 text-xs">State</Label>
-                    <Input
+                    <select
                       value={profileData.state}
                       onChange={(e) => setProfileData((p) => ({ ...p, state: e.target.value }))}
-                      placeholder="Your state"
-                      className="bg-slate-800/50 border-slate-700 text-slate-100 mt-1 text-sm"
-                    />
+                      className="flex h-9 w-full rounded-md border bg-slate-800/50 border-slate-700 text-slate-100 text-sm px-2 py-1 mt-1 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    >
+                      <option value="" className="bg-slate-800">Your state</option>
+                      {[
+                        "AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL",
+                        "GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
+                        "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH",
+                        "NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI",
+                        "SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"
+                      ].map((s) => (
+                        <option key={s} value={s} className="bg-slate-800">{s}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -819,12 +829,22 @@ export default function Onboarding() {
                         placeholder="City"
                         className="bg-slate-800/50 border-slate-700 text-slate-100 text-sm"
                       />
-                      <Input
+                      <select
                         value={addFormState}
                         onChange={(e) => setAddFormState(e.target.value)}
-                        placeholder="State"
-                        className="bg-slate-800/50 border-slate-700 text-slate-100 text-sm"
-                      />
+                        className="flex h-9 w-full rounded-md border bg-slate-800/50 border-slate-700 text-slate-100 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                      >
+                        <option value="" className="bg-slate-800">State</option>
+                        {[
+                          "AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL",
+                          "GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
+                          "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH",
+                          "NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI",
+                          "SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"
+                        ].map((s) => (
+                          <option key={s} value={s} className="bg-slate-800">{s}</option>
+                        ))}
+                      </select>
                     </div>
                     <Button
                       onClick={handleAddMember}

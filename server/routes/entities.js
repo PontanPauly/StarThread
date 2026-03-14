@@ -973,7 +973,7 @@ router.post('/:type', requireAuth, async (req, res) => {
 
     let query;
     if (config.table === 'relationships') {
-      query = `INSERT INTO ${config.table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) ON CONFLICT (person_id, related_person_id, relationship_type) DO UPDATE SET status = COALESCE(EXCLUDED.status, relationships.status), updated_at = NOW() RETURNING *`;
+      query = `INSERT INTO ${config.table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) ON CONFLICT (person_id, related_person_id, relationship_type) DO UPDATE SET status_from_person = COALESCE(EXCLUDED.status_from_person, relationships.status_from_person), status_from_related = COALESCE(EXCLUDED.status_from_related, relationships.status_from_related), updated_at = NOW() RETURNING *`;
     } else {
       query = `INSERT INTO ${config.table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
     }
