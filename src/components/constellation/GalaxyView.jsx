@@ -2109,11 +2109,13 @@ function TransitionController({
   onProgress 
 }) {
   const startTime = useRef(null);
+  const lastReportedRef = useRef(0);
   const duration = 1.6;
   
   useFrame((state) => {
     if (!isTransitioning) {
       startTime.current = null;
+      lastReportedRef.current = 0;
       return;
     }
     
@@ -2127,7 +2129,10 @@ function TransitionController({
       ? 4 * progress * progress * progress 
       : 1 - Math.pow(-2 * progress + 2, 3) / 2;
     
-    onProgress(eased, progress >= 1);
+    if (Math.abs(eased - lastReportedRef.current) > 0.03 || progress >= 1) {
+      lastReportedRef.current = eased;
+      onProgress(eased, progress >= 1);
+    }
   });
   
   return null;
@@ -2137,8 +2142,11 @@ function FadeInGroup({ children, duration = 1.4, delay = 0.3 }) {
   const groupRef = useRef();
   const startTime = useRef(null);
   const [opacity, setOpacity] = useState(0);
+  const lastOpacityRef = useRef(0);
+  const doneRef = useRef(false);
   
   useFrame((state) => {
+    if (doneRef.current) return;
     if (startTime.current === null) {
       startTime.current = state.clock.elapsedTime;
     }
@@ -2156,7 +2164,11 @@ function FadeInGroup({ children, duration = 1.4, delay = 0.3 }) {
         }
       });
     }
-    setOpacity(eased);
+    if (Math.abs(eased - lastOpacityRef.current) > 0.05 || progress >= 1) {
+      lastOpacityRef.current = eased;
+      setOpacity(eased);
+      if (progress >= 1) doneRef.current = true;
+    }
   });
   
   return (
@@ -2495,6 +2507,8 @@ function AnimatedHouseholdGroup({
   });
   const [renderOpacity, setRenderOpacity] = useState(1.0);
   const [starRenderOpacity, setStarRenderOpacity] = useState(1);
+  const lastRenderOpacityRef = useRef(1.0);
+  const lastStarRenderOpacityRef = useRef(1);
   
   const localStars = useMemo(() => {
     return stars.map(star => ({
@@ -2578,10 +2592,12 @@ function AnimatedHouseholdGroup({
       householdGroupRefs.current.set(household.id, groupRef.current);
     }
     
-    if (Math.abs(curr.opacity - renderOpacity) > 0.01) {
+    if (Math.abs(curr.opacity - lastRenderOpacityRef.current) > 0.05) {
+      lastRenderOpacityRef.current = curr.opacity;
       setRenderOpacity(curr.opacity);
     }
-    if (Math.abs(curr.starOpacity - starRenderOpacity) > 0.01) {
+    if (Math.abs(curr.starOpacity - lastStarRenderOpacityRef.current) > 0.05) {
+      lastStarRenderOpacityRef.current = curr.starOpacity;
       setStarRenderOpacity(curr.starOpacity);
     }
   });
@@ -4927,8 +4943,10 @@ function CornerBrackets({ children, className = '' }) {
   );
 }
 
-function HoverTooltip({ household, memberCount, starClass, mousePos, generation = 0, members = [], colorIndex = 0, hasChildren = false, hasParents = false }) {
-  if (!household || !mousePos) return null;
+const HoverTooltip = React.forwardRef(function HoverTooltip({ household, memberCount, starClass, mousePosRef, generation = 0, members = [], colorIndex = 0, hasChildren = false, hasParents = false }, ref) {
+  if (!household) return null;
+
+  const initialPos = mousePosRef?.current;
 
   const householdColor = HOUSEHOLD_COLORS[Math.abs(colorIndex) % HOUSEHOLD_COLORS.length];
   const accentColor = householdColor?.primary || '#8B5CF6';
@@ -4941,8 +4959,9 @@ function HoverTooltip({ household, memberCount, starClass, mousePos, generation 
 
   return (
     <div
+      ref={ref}
       className="fixed z-[60] pointer-events-none"
-      style={{ left: mousePos.x + 20, top: mousePos.y - 8 }}
+      style={{ left: initialPos ? initialPos.x + 20 : -9999, top: initialPos ? initialPos.y - 8 : -9999 }}
     >
       <div
         className="rounded-xl min-w-[190px] overflow-hidden"
@@ -4995,7 +5014,7 @@ function HoverTooltip({ household, memberCount, starClass, mousePos, generation 
       </div>
     </div>
   );
-}
+});
 
 function SystemInfoPanel({ household, memberCount, starClass, people, onClose }) {
   if (!household) return null;
@@ -5355,7 +5374,7 @@ function personHasOwnGalaxy(personId, relationships) {
   });
 }
 
-export default function GalaxyView({ people = [], relationships = [], households = [], galaxyData = null, onPersonClick, onRecenterGalaxy, onNavigateToStar, onNavigateToGalaxy, myPerson = null, initialGalaxyId = null, navigateToPersonId = null }) {
+const GalaxyView = React.memo(function GalaxyView({ people = [], relationships = [], households = [], galaxyData = null, onPersonClick, onRecenterGalaxy, onNavigateToStar, onNavigateToGalaxy, myPerson = null, initialGalaxyId = null, navigateToPersonId = null }) {
   const [level, setLevel] = useState('galaxy');
   const [selectedHousehold, setSelectedHousehold] = useState(null);
   const [hoveredHouseholdId, setHoveredHouseholdId] = useState(null);
@@ -5368,7 +5387,8 @@ export default function GalaxyView({ people = [], relationships = [], households
   const [transitioningHousehold, setTransitioningHousehold] = useState(null);
   const [warpDirection, setWarpDirection] = useState(null);
   const [viewMode, setViewMode] = useState('nebula');
-  const [mousePos, setMousePos] = useState(null);
+  const mousePosRef = useRef(null);
+  const tooltipRef = useRef(null);
   const [filters, setFilters] = useState({
     showLines: true,
     showLabels: true,
@@ -5528,10 +5548,12 @@ export default function GalaxyView({ people = [], relationships = [], households
   }, []);
 
   const handleMouseMove = useCallback((e) => {
-    if (hoveredHouseholdId) {
-      setMousePos({ x: e.clientX, y: e.clientY });
+    mousePosRef.current = { x: e.clientX, y: e.clientY };
+    if (tooltipRef.current) {
+      tooltipRef.current.style.left = (e.clientX + 20) + 'px';
+      tooltipRef.current.style.top = (e.clientY - 8) + 'px';
     }
-  }, [hoveredHouseholdId]);
+  }, []);
 
   const hoveredHousehold = useMemo(() => {
     if (!hoveredHouseholdId) return null;
@@ -5833,10 +5855,11 @@ export default function GalaxyView({ people = [], relationships = [], households
 
       {level === 'galaxy' && hoveredHousehold && hoveredHouseholdInfo && (
         <HoverTooltip
+          ref={tooltipRef}
           household={hoveredHousehold}
           memberCount={hoveredHouseholdInfo.memberCount}
           starClass={hoveredHouseholdInfo.starClass}
-          mousePos={mousePos}
+          mousePosRef={mousePosRef}
           generation={hoveredHouseholdInfo.generation}
           members={hoveredHouseholdInfo.members}
           colorIndex={hoveredHouseholdInfo.colorIndex}
@@ -5858,5 +5881,6 @@ export default function GalaxyView({ people = [], relationships = [], households
       
     </div>
   );
-}
+});
 
+export default GalaxyView;
