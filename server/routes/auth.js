@@ -565,6 +565,18 @@ router.delete('/account', requireAuth, async (req, res) => {
 
     await client.query('BEGIN');
 
+    await client.query('DELETE FROM support_access_tokens WHERE user_id = $1', [userId]);
+    await client.query('UPDATE support_access_tokens SET used_by_admin_id = NULL WHERE used_by_admin_id = $1', [userId]);
+    await client.query('DELETE FROM relationship_visibility WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM person_match_suggestions WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM family_plan_members WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM family_plans WHERE owner_user_id = $1', [userId]);
+    await client.query('UPDATE invite_links SET used_by_user_id = NULL WHERE used_by_user_id = $1', [userId]);
+    await client.query('UPDATE merge_conflicts SET reported_by_user_id = NULL WHERE reported_by_user_id = $1', [userId]);
+    await client.query('UPDATE merge_history SET merged_by_user_id = NULL WHERE merged_by_user_id = $1', [userId]);
+    await client.query('UPDATE people SET created_by_user_id = NULL WHERE created_by_user_id = $1', [userId]);
+
     if (person) {
       await client.query(
         'UPDATE people SET user_id = NULL, linked_user_email = NULL WHERE user_id = $1',

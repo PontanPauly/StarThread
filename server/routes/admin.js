@@ -270,6 +270,16 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
     }
 
     await pool.query(`DELETE FROM support_access_tokens WHERE user_id = $1`, [id]);
+    await pool.query(`UPDATE support_access_tokens SET used_by_admin_id = NULL WHERE used_by_admin_id = $1`, [id]);
+    await pool.query(`DELETE FROM relationship_visibility WHERE user_id = $1`, [id]);
+    await pool.query(`DELETE FROM person_match_suggestions WHERE user_id = $1`, [id]);
+    await pool.query(`DELETE FROM password_reset_tokens WHERE user_id = $1`, [id]);
+    await pool.query(`DELETE FROM family_plan_members WHERE user_id = $1`, [id]);
+    await pool.query(`DELETE FROM family_plans WHERE owner_user_id = $1`, [id]);
+    await pool.query(`UPDATE invite_links SET used_by_user_id = NULL WHERE used_by_user_id = $1`, [id]);
+    await pool.query(`UPDATE merge_conflicts SET reported_by_user_id = NULL WHERE reported_by_user_id = $1`, [id]);
+    await pool.query(`UPDATE merge_history SET merged_by_user_id = NULL WHERE merged_by_user_id = $1`, [id]);
+    await pool.query(`UPDATE people SET created_by_user_id = NULL WHERE created_by_user_id = $1`, [id]);
     await pool.query(`DELETE FROM users WHERE id = $1`, [id]);
     res.json({ success: true });
   } catch (err) {
