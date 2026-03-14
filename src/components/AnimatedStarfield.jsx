@@ -24,7 +24,7 @@ export default function AnimatedStarfield({ canvasRef }) {
         radius: Math.random() * 1.8 + 0.3,
         alpha: Math.random() * 0.6 + 0.2,
         phase: Math.random() * Math.PI * 2,
-        speed: 0.3 + Math.random() * 1.2,
+        speed: 0.05 + Math.random() * 0.15,
         color: Math.random() > 0.7
           ? `rgba(251,191,36,` 
           : Math.random() > 0.5
@@ -50,7 +50,7 @@ export default function AnimatedStarfield({ canvasRef }) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (const s of stars) {
-        const twinkle = Math.sin(time * 0.001 * s.speed + s.phase) * 0.3 + 0.7;
+        const twinkle = Math.sin(time * 0.0004 * s.speed + s.phase) * 0.15 + 0.85;
         const a = s.alpha * twinkle;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
