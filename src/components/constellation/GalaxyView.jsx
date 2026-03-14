@@ -5146,7 +5146,7 @@ function FilterToggles({
 
 function ZoomControls({ onZoomIn, onZoomOut, onResetView }) {
   return (
-    <div className="absolute right-3 sm:right-6 z-[60] flex lg:flex-col gap-1 sm:gap-1.5 bottom-[5.5rem] lg:bottom-24" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <div className="absolute right-3 sm:right-6 z-[60] flex flex-col gap-1 sm:gap-1.5 bottom-[5.5rem] lg:bottom-24" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <button
         onClick={onZoomIn}
         className="p-2 bg-slate-950/80 border border-amber-500/20 text-slate-400 hover:text-amber-300 hover:border-amber-500/40 active:bg-amber-500/20 transition-colors rounded"
