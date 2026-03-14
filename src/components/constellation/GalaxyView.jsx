@@ -244,7 +244,7 @@ function useQualityTier() {
     return () => cancelAnimationFrame(animId);
   }, [downgrade]);
 
-  return { ...qualityTier, setTier };
+  return useMemo(() => ({ ...qualityTier, setTier }), [qualityTier, setTier]);
 }
 
 const NEBULA_COLORS = {
