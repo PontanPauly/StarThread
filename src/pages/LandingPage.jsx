@@ -180,6 +180,188 @@ function ConstellationLines({ containerRef }) {
   );
 }
 
+function MobileConstellationLines({ containerRef }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const ctx = canvas.getContext("2d");
+    let animId;
+    const NODE_RADIUS = 36;
+
+    const nodes = container.querySelectorAll("[data-step-node]");
+    if (nodes.length < 2) return;
+
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + "px";
+      canvas.style.height = rect.height + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    function buildCurvePath(from, to, bendDir, containerW) {
+      const midY = (from.y + to.y) / 2;
+      const bendAmount = containerW * 0.28;
+      const offsetX = bendDir === "right" ? bendAmount : -bendAmount;
+      const cx = from.x + offsetX;
+      const cp1 = { x: cx, y: from.y + (midY - from.y) * 0.5 };
+      const cp2 = { x: cx, y: midY + (to.y - midY) * 0.5 };
+      const points = [];
+      const segments = 120;
+      for (let s = 0; s <= segments; s++) {
+        const t = s / segments;
+        const u = 1 - t;
+        const x = u*u*u*from.x + 3*u*u*t*cp1.x + 3*u*t*t*cp2.x + t*t*t*to.x;
+        const y = u*u*u*from.y + 3*u*u*t*cp1.y + 3*u*t*t*cp2.y + t*t*t*to.y;
+        points.push({ x, y });
+      }
+      return points;
+    }
+
+    const draw = (time) => {
+      const dpr = window.devicePixelRatio || 1;
+      const containerRect = container.getBoundingClientRect();
+      const w = containerRect.width;
+      const h = containerRect.height;
+
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      ctx.clearRect(0, 0, w, h);
+
+      const centers = Array.from(nodes).map(node => {
+        const r = node.getBoundingClientRect();
+        return {
+          x: r.left - containerRect.left + r.width / 2,
+          y: r.top - containerRect.top + r.height / 2,
+        };
+      });
+
+      const curves = [];
+      const directions = ["right", "left"];
+      for (let i = 0; i < centers.length - 1; i++) {
+        const startY = centers[i].y + NODE_RADIUS;
+        const endY = centers[i + 1].y - NODE_RADIUS;
+        const from = { x: centers[i].x, y: startY };
+        const to = { x: centers[i + 1].x, y: endY };
+        const pts = buildCurvePath(from, to, directions[i % 2], w);
+        curves.push(pts);
+      }
+
+      for (const pts of curves) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let j = 1; j < pts.length; j++) {
+          ctx.lineTo(pts[j].x, pts[j].y);
+        }
+        ctx.strokeStyle = "rgba(56, 189, 186, 0.25)";
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+
+      const speed = 0.0001;
+      const rawT = ((time * speed) % 1 + 1) % 1;
+      const pauseStart = 0.08;
+      const pauseEnd = 0.08;
+      const travelRange = 1 - pauseStart - pauseEnd;
+      let energyPos;
+      let fade = 1;
+      if (rawT < pauseStart) {
+        energyPos = 0;
+        const ft = rawT / pauseStart;
+        fade = ft * ft * (3 - 2 * ft);
+      } else if (rawT > 1 - pauseEnd) {
+        energyPos = 1;
+        const ft = (1 - rawT) / pauseEnd;
+        fade = ft * ft * (3 - 2 * ft);
+      } else {
+        energyPos = (rawT - pauseStart) / travelRange;
+      }
+
+      const nodePos = centers.map((_, i) => i / (centers.length - 1));
+      const glowR = 0.08;
+      const pw = 0.14;
+
+      for (let i = 0; i < centers.length; i++) {
+        const dist = Math.abs(energyPos - nodePos[i]);
+        if (dist >= glowR) continue;
+        const s = 1 - dist / glowR;
+        const sm = s * s * (3 - 2 * s) * fade;
+        if (sm < 0.01) continue;
+        const cx = centers[i].x;
+        const cy = centers[i].y;
+        const maxExpand = 12;
+        const r = NODE_RADIUS + sm * maxExpand;
+        const grad = ctx.createRadialGradient(cx, cy, NODE_RADIUS - 2, cx, cy, r);
+        grad.addColorStop(0, `rgba(56, 189, 186, 0)`);
+        grad.addColorStop(0.3, `rgba(56, 189, 186, ${sm * 0.2})`);
+        grad.addColorStop(0.6, `rgba(160, 235, 230, ${sm * 0.12})`);
+        grad.addColorStop(1, `rgba(56, 189, 186, 0)`);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, NODE_RADIUS + 1, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(160, 235, 230, ${sm * 0.35})`;
+        ctx.lineWidth = 1.5 + sm * 1;
+        ctx.stroke();
+      }
+
+      for (let c = 0; c < curves.length; c++) {
+        const pts = curves[c];
+        const eStart = nodePos[c] + 0.04;
+        const eEnd = nodePos[c + 1] - 0.04;
+        const eLen = eEnd - eStart;
+
+        for (let j = 1; j < pts.length; j++) {
+          const segT = (j - 0.5) / (pts.length - 1);
+          const lineNorm = eStart + segT * eLen;
+          const d = Math.abs(energyPos - lineNorm);
+          const p = Math.max(0, 1 - d / pw);
+          if (p < 0.01) continue;
+          const sm = p * p * (3 - 2 * p) * fade;
+          ctx.beginPath();
+          ctx.moveTo(pts[j-1].x, pts[j-1].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.strokeStyle = `rgba(160, 235, 230, ${sm * 0.6})`;
+          ctx.lineWidth = 1.5 + sm * 2;
+          ctx.lineCap = "butt";
+          ctx.stroke();
+        }
+      }
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    animId = requestAnimationFrame(draw);
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+    };
+  }, [containerRef]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="md:hidden absolute inset-0 w-full h-full z-0 pointer-events-none"
+    />
+  );
+}
+
 const features = [
   {
     icon: Users,
@@ -357,6 +539,7 @@ export default function LandingPage() {
 
           <div className="relative pt-6 pb-2" ref={stepsContainerRef}>
             <ConstellationLines containerRef={stepsContainerRef} />
+            <MobileConstellationLines containerRef={stepsContainerRef} />
 
             <div className="grid md:grid-cols-3 gap-8 relative z-10">
               {steps.map((step, i) => (
