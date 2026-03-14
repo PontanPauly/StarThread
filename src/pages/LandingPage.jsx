@@ -373,38 +373,38 @@ function MobileConstellationLines({ containerRef }) {
 const features = [
   {
     icon: Users,
-    title: "Family Galaxy",
-    description: "Map your entire family tree as a constellation of stars. See how everyone connects across generations.",
+    title: "Your Family, Mapped",
+    description: "See your whole family as a living constellation. Every person a star, every connection a thread between them.",
     gradient: "from-amber-500 to-orange-500",
   },
   {
     icon: MapPin,
-    title: "Trip Planning",
-    description: "Plan family adventures together. Coordinate trips, share itineraries, and build anticipation for your next journey.",
+    title: "Adventures On Deck",
+    description: "Dream up the next trip together. Build itineraries, share ideas, and watch the countdown as a family.",
     gradient: "from-blue-500 to-cyan-500",
   },
   {
     icon: Camera,
-    title: "Moments",
-    description: "Capture and preserve precious family moments. Photos, milestones, and everyday memories all in one place.",
+    title: "Moments That Stay",
+    description: "The first steps, the family dinners, the random Tuesday that turned into a core memory. All kept here.",
     gradient: "from-purple-500 to-pink-500",
   },
   {
     icon: Heart,
     title: "Love Notes",
-    description: "Send heartfelt notes of gratitude to family members. Strengthen bonds with words of appreciation.",
+    description: "Tell your people what they mean to you. A real note from someone who loves you is worth more than a thousand texts.",
     gradient: "from-pink-500 to-rose-500",
   },
   {
     icon: BookOpen,
-    title: "Family Stories",
-    description: "Record and share the stories that define your family. Preserve traditions, recipes, and wisdom for generations.",
+    title: "Stories Worth Keeping",
+    description: "Grandma's recipe. Dad's road trip story. The things that make your family yours, written down before they fade.",
     gradient: "from-emerald-500 to-teal-500",
   },
   {
     icon: Lightbulb,
-    title: "Smart Insights",
-    description: "Get personalized insights about your family. Birthday reminders, relationship suggestions, and more.",
+    title: "Nothing Slips Through",
+    description: "Birthdays, anniversaries, the things you always mean to remember. StarThread keeps track so you never miss one.",
     gradient: "from-violet-500 to-purple-500",
   },
 ];
@@ -412,18 +412,18 @@ const features = [
 const steps = [
   {
     number: "01",
-    title: "Create Your Star",
-    description: "Sign up and create your star. Your family galaxy already exists, and you're stepping into it.",
+    title: "Light Your Star",
+    description: "Sign up and take your place. Your family is already out there. Now they can find you.",
   },
   {
     number: "02",
-    title: "Connect & Map",
-    description: "Define relationships and watch your family tree come alive as an interactive star map.",
+    title: "Draw the Lines",
+    description: "Add your people and watch your family take shape. Parents, siblings, partners, kids, all connected.",
   },
   {
     number: "03",
-    title: "Grow Together",
-    description: "Plan trips, capture moments, share stories, and send love notes to keep your family close.",
+    title: "Live In It",
+    description: "This is where your family happens now. Trips planned, stories told, moments kept, love sent.",
   },
 ];
 
@@ -470,18 +470,17 @@ export default function LandingPage() {
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-amber-200 via-slate-100 to-purple-200 bg-clip-text text-transparent">
-              Every Family Is a
+              Your Family Has a Story.
             </span>
             <br />
             <span className="bg-gradient-to-r from-purple-300 via-amber-200 to-amber-400 bg-clip-text text-transparent">
-              Galaxy of Stars
+              This Is Where It Lives.
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Map your family tree as a constellation. Plan trips, capture moments,
-            share stories, and send love notes, all woven together in one
-            beautiful space.
+            One place for everything that makes your family yours. The relationships,
+            the memories, the plans, the things you never want to forget.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -502,11 +501,11 @@ export default function LandingPage() {
         <section className="px-6 md:px-12 py-20 max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-amber-200 to-slate-100 bg-clip-text text-transparent">
-              Built for Families Like Yours
+              Everything Your Family Needs, Nothing It Doesn't
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto">
-              From mapping your family tree to preserving precious memories,
-              StarThread brings your family closer together.
+              No ads, no algorithms, no strangers. Just your people and the
+              tools to stay close.
             </p>
           </div>
 
@@ -541,7 +540,7 @@ export default function LandingPage() {
               How It Works
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto">
-              Get started in minutes. Your family galaxy is waiting for you.
+              Three steps. A few minutes. Then your family has a home.
             </p>
           </div>
 
@@ -581,14 +580,16 @@ export default function LandingPage() {
             <div className="absolute bottom-4 left-4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl" />
             <div className="relative">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-amber-200 via-slate-100 to-purple-200 bg-clip-text text-transparent">
-                Step Into Your Family Galaxy
+                Your Family Is Already Connected.
+                <br className="hidden sm:block" />
+                Now You Can See It.
               </h2>
               <p className="text-slate-400 max-w-lg mx-auto mb-8">
-                Create your star, map your stories, plan adventures, and grow closer, one star at a time.
+                It takes two minutes to light your first star. Everything after that is just your family, being a family.
               </p>
               <Link to="/login?signup=true">
                 <button className="px-10 py-4 text-base font-semibold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 rounded-xl shadow-lg shadow-amber-500/25 transition-all inline-flex items-center gap-2">
-                  Create Your Free Account
+                  Light Your First Star
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </Link>
