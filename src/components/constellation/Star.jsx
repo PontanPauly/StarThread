@@ -236,6 +236,7 @@ export default function Star({
   isFocused = false,
   isMemorial = false,
   globalOpacity = 1,
+  globalOpacityRef,
   globalScale = 1,
   animated = true,
   onClick,
@@ -333,7 +334,7 @@ export default function Star({
       const opacityBreath = computeOpacityBreath(state.clock.elapsedTime, uniqueOffset, animMode);
       material.uniforms.opacityBreath.value = opacityBreath;
     }
-    material.uniforms.globalOpacity.value = globalOpacity;
+    material.uniforms.globalOpacity.value = globalOpacityRef ? globalOpacityRef.current : globalOpacity;
 
     const hoverTarget = (isHovered || isFocused) ? 1.0 : 0.0;
     const hoverSpeed = hoverTarget > hoverRef.current ? 8.0 : 5.0;
@@ -412,7 +413,7 @@ export default function Star({
   );
 }
 
-export function StarInstanced({ stars, onStarClick, onStarHover, hoveredId, focusedId, globalOpacity = 1, globalScale = 1, animated = true }) {
+export function StarInstanced({ stars, onStarClick, onStarHover, hoveredId, focusedId, globalOpacity = 1, globalOpacityRef, globalScale = 1, animated = true }) {
   return (
     <group>
       {stars.map((star) => (
@@ -426,6 +427,7 @@ export function StarInstanced({ stars, onStarClick, onStarHover, hoveredId, focu
           isFocused={focusedId === star.id}
           isMemorial={!!star.person?.is_memorial}
           globalOpacity={globalOpacity}
+          globalOpacityRef={globalOpacityRef}
           globalScale={globalScale}
           animated={animated}
           onClick={(e) => {

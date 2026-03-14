@@ -1570,6 +1570,7 @@ function CameraController({
   const elapsedTime = useRef(0);
   const arcOffset = useRef(new THREE.Vector3());
   const originalDpr = useRef(1);
+  const lastReportedProgress = useRef(-1);
   const hasInitialized = useRef(false);
   const isFirstMount = useRef(true);
   const savedUniversePos = useRef(null);
@@ -1676,7 +1677,10 @@ function CameraController({
       
       const eased = easeInOutCubic(progress);
       
-      onProgressUpdate?.(eased, animationPhase.current);
+      if (Math.abs(eased - lastReportedProgress.current) > 0.03) {
+        lastReportedProgress.current = eased;
+        onProgressUpdate?.(eased, animationPhase.current);
+      }
       
       const arcStrength = 4 * eased * (1 - eased);
       
@@ -1690,6 +1694,7 @@ function CameraController({
         isAnimating.current = false;
         gl.setPixelRatio(originalDpr.current);
         
+        lastReportedProgress.current = -1;
         onProgressUpdate?.(1, 'idle');
         animationPhase.current = 'idle';
         
@@ -2188,7 +2193,7 @@ function getStarPrimaryColor(starProfile) {
   return '#ffffff';
 }
 
-function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff', intensity = 1.0 }) {
+function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff', intensity: intensityProp = 1.0, intensityRef }) {
   const streamAtoB = useRef();
   const streamBtoA = useRef();
 
@@ -2235,6 +2240,7 @@ function UnionLightBridge({ starA, starB, colorA = '#ffffff', colorB = '#ffffff'
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
+    const intensity = intensityRef ? intensityRef.current : intensityProp;
 
     if (streamAtoB.current) {
       const children = streamAtoB.current.children;
@@ -2505,10 +2511,8 @@ function AnimatedHouseholdGroup({
     offsetX: 0, offsetY: 0, offsetZ: 0,
     scale: 1, opacity: 1.0, starOpacity: 1
   });
-  const [renderOpacity, setRenderOpacity] = useState(1.0);
-  const [starRenderOpacity, setStarRenderOpacity] = useState(1);
-  const lastRenderOpacityRef = useRef(1.0);
-  const lastStarRenderOpacityRef = useRef(1);
+  const renderOpacityRef = useRef(1.0);
+  const starRenderOpacityRef = useRef(1);
   
   const localStars = useMemo(() => {
     return stars.map(star => ({
@@ -2592,14 +2596,8 @@ function AnimatedHouseholdGroup({
       householdGroupRefs.current.set(household.id, groupRef.current);
     }
     
-    if (Math.abs(curr.opacity - lastRenderOpacityRef.current) > 0.05) {
-      lastRenderOpacityRef.current = curr.opacity;
-      setRenderOpacity(curr.opacity);
-    }
-    if (Math.abs(curr.starOpacity - lastStarRenderOpacityRef.current) > 0.05) {
-      lastStarRenderOpacityRef.current = curr.starOpacity;
-      setStarRenderOpacity(curr.starOpacity);
-    }
+    renderOpacityRef.current = curr.opacity;
+    starRenderOpacityRef.current = curr.starOpacity;
   });
   
   const isOtherFocused = focusedHouseholdId && !isFocused;
@@ -2634,10 +2632,9 @@ function AnimatedHouseholdGroup({
         onPointerOut={onPointerOut}
         showLabels={showLabels}
         householdColor={householdColor}
-        globalOpacity={renderOpacity}
       />
       {showLabels && !focusedHouseholdId && !isHovered && (
-        <GalaxyLabel household={household} householdColor={householdColor} opacity={renderOpacity} />
+        <GalaxyLabel household={household} householdColor={householdColor} opacityRef={renderOpacityRef} />
       
       )}
       {!focusedHouseholdId && galaxyCoupleRing && (
@@ -2645,7 +2642,8 @@ function AnimatedHouseholdGroup({
           center={galaxyCoupleRing.center}
           radius={GALAXY_RING_RADIUS}
           colorIndex={colorIndex}
-          opacity={renderOpacity * 0.5}
+          opacityRef={renderOpacityRef}
+          opacityScale={0.5}
         />
       )}
       {!focusedHouseholdId && coupleStarPair && (
@@ -2654,7 +2652,7 @@ function AnimatedHouseholdGroup({
           starB={coupleStarPair[1].position}
           colorA={getStarPrimaryColor(coupleStarPair[0].starProfile)}
           colorB={getStarPrimaryColor(coupleStarPair[1].starProfile)}
-          intensity={renderOpacity}
+          intensityRef={renderOpacityRef}
         />
       )}
       {!focusedHouseholdId && isHovered && galaxyCoupleRing && (
@@ -2668,7 +2666,8 @@ function AnimatedHouseholdGroup({
           stars={localStars}
           relationships={relationships}
           colorIndex={colorIndex}
-          opacity={starRenderOpacity * 0.8}
+          opacityRef={starRenderOpacityRef}
+          opacityScale={0.8}
         />
       )}
       {!isOtherFocused && (
@@ -2678,7 +2677,7 @@ function AnimatedHouseholdGroup({
           onStarHover={focusedHouseholdId ? onStarHover : () => {}}
           hoveredId={focusedHouseholdId ? hoveredStarId : null}
           focusedId={focusedHouseholdId ? focusedStarId : null}
-          globalOpacity={starRenderOpacity}
+          globalOpacityRef={starRenderOpacityRef}
           globalScale={1}
           animated={isFocused}
         />
@@ -2689,7 +2688,7 @@ function AnimatedHouseholdGroup({
 
 const GALAXY_RING_RADIUS = 3.5;
 
-function GalaxyLabel({ household, householdColor, opacity: externalOpacity = 1 }) {
+function GalaxyLabel({ household, householdColor, opacityRef }) {
   const divRef = useRef();
   const groupRef = useRef();
   const { camera, size } = useThree();
@@ -2708,6 +2707,7 @@ function GalaxyLabel({ household, householdColor, opacity: externalOpacity = 1 }
     }
     divRef.current.style.display = '';
 
+    const externalOpacity = opacityRef ? opacityRef.current : 1;
     const minFont = isMobile ? 11 : 12;
     const maxFont = isMobile ? 18 : 22;
     const fontSize = Math.max(minFont, Math.min(maxFont, 500 / dist));
@@ -2929,7 +2929,7 @@ function HoverSphere({ colorIndex, radius = 3.0 }) {
   );
 }
 
-function CoupleRing({ center, radius, colorIndex, opacity = 0.6 }) {
+function CoupleRing({ center, radius, colorIndex, opacity: opacityProp = 0.6, opacityRef, opacityScale = 1 }) {
   const mainMatRef = useRef();
   const outerGlowMatRef = useRef();
   const innerFillMatRef = useRef();
@@ -2977,6 +2977,7 @@ function CoupleRing({ center, radius, colorIndex, opacity = 0.6 }) {
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
+    const opacity = opacityRef ? opacityRef.current * opacityScale : opacityProp;
     const breathe = 0.65 + Math.sin(t * 0.9) * 0.2 + Math.sin(t * 1.7) * 0.1;
     const pulseWave = Math.max(0, Math.sin(t * 0.6));
     const pulseScale = 1.05 + pulseWave * 0.12;
@@ -3051,7 +3052,7 @@ function CoupleRing({ center, radius, colorIndex, opacity = 0.6 }) {
               ref={li === 1 ? mainMatRef : (li === 3 ? outerGlowMatRef : undefined)}
               color={li === 0 ? glowColor : ringColor}
               transparent
-              opacity={opacity * layer.opacity}
+              opacity={opacityProp * layer.opacity}
               blending={THREE.AdditiveBlending}
               depthWrite={false}
             />
@@ -3064,7 +3065,7 @@ function CoupleRing({ center, radius, colorIndex, opacity = 0.6 }) {
             ref={innerFillMatRef}
             color={ringColor}
             transparent
-            opacity={opacity * 0.02}
+            opacity={opacityProp * 0.02}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
             side={THREE.DoubleSide}
@@ -3248,7 +3249,7 @@ function SystemMeshLines({ lines, colorIndex, opacity = 0.6, coupleCenter, coupl
   );
 }
 
-function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 }) {
+function ConstellationLines({ stars, relationships, colorIndex, opacity: opacityProp = 0.6, opacityRef, opacityScale = 1 }) {
   const { lines_data, coupleCenter, coupleRadius, hasCouple } = useMemo(() => {
     if (!stars || stars.length < 2) {
       return { lines_data: [], coupleCenter: [0,0,0], coupleRadius: 0, hasCouple: false };
@@ -3326,14 +3327,16 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity = 0.6 })
           center={coupleCenter}
           radius={coupleRadius}
           colorIndex={colorIndex}
-          opacity={opacity * 0.85}
+          opacityRef={opacityRef}
+          opacityScale={opacityScale * 0.85}
+          opacity={opacityProp * 0.85}
         />
       )}
       {lines_data.length > 0 && (
         <SystemMeshLines
           lines={lines_data}
           colorIndex={colorIndex}
-          opacity={opacity}
+          opacity={opacityProp}
           coupleCenter={hasCouple ? coupleCenter : null}
           coupleRadius={hasCouple ? coupleRadius : 0}
         />
