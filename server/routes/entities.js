@@ -1138,11 +1138,15 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
           return res.status(404).json({ error: 'Person not found' });
         }
         const target = targetRows[0];
-        const guardianIds = target.guardian_ids || [];
-        const isGuardian = myPersonId && guardianIds.includes(myPersonId);
         const isMinor = target.role_type === 'teen' || target.role_type === 'child';
-        if (!(isGuardian && isMinor)) {
-          return res.status(403).json({ error: 'Only guardians can modify parental controls' });
+        if (!isMinor) {
+          for (const f of GUARDIAN_ONLY_FIELDS) delete data[f];
+        } else {
+          const guardianIds = target.guardian_ids || [];
+          const isGuardian = myPersonId && guardianIds.includes(myPersonId);
+          if (!isGuardian) {
+            return res.status(403).json({ error: 'Only guardians can modify parental controls' });
+          }
         }
       }
 
@@ -1152,7 +1156,7 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
           `SELECT role_type FROM people WHERE id = $1`, [myPersonId2]
         );
         const callerRole = callerRows[0]?.role_type;
-        if ((callerRole === 'teen' || callerRole === 'child') && hasGuardianFields) {
+        if ((callerRole === 'teen' || callerRole === 'child') && GUARDIAN_ONLY_FIELDS.some(f => f in data)) {
           return res.status(403).json({ error: 'Minors cannot modify parental controls' });
         }
       }
