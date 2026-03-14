@@ -220,23 +220,26 @@ function MobileConstellationLines({ containerRef }) {
       return pts;
     }
 
-    function buildPath(fromCenter, toCenter, bendDir) {
+    function buildPath(fromCenter, toCenter, bendDir, containerW) {
       const dir = bendDir === "right" ? 1 : -1;
 
-      const exitAngle = dir > 0 ? Math.PI * 0.3 : Math.PI * 0.7;
-      const enterAngle = dir > 0 ? -Math.PI * 0.3 : -Math.PI * 0.7;
-
-      const startX = fromCenter.x + Math.cos(exitAngle) * NODE_RADIUS;
-      const startY = fromCenter.y + Math.sin(exitAngle) * NODE_RADIUS;
-      const endX = toCenter.x + Math.cos(enterAngle) * NODE_RADIUS;
-      const endY = toCenter.y + Math.sin(enterAngle) * NODE_RADIUS;
+      const startX = fromCenter.x + dir * NODE_RADIUS;
+      const startY = fromCenter.y;
+      const endX = toCenter.x + dir * NODE_RADIUS;
+      const endY = toCenter.y;
 
       const totalDY = endY - startY;
-      const bulge = 45 * dir;
+
+      const edgeDist = dir > 0
+        ? containerW - fromCenter.x
+        : fromCenter.x;
+      const swingOut = edgeDist * 0.75;
+
+      const farX = fromCenter.x + dir * swingOut;
 
       const p0 = { x: startX, y: startY };
-      const p1 = { x: startX + bulge, y: startY + totalDY * 0.25 };
-      const p2 = { x: endX + bulge, y: endY - totalDY * 0.25 };
+      const p1 = { x: farX, y: startY + totalDY * 0.15 };
+      const p2 = { x: farX, y: endY - totalDY * 0.15 };
       const p3 = { x: endX, y: endY };
 
       return sampleCubic(p0, p1, p2, p3, 100);
@@ -268,7 +271,7 @@ function MobileConstellationLines({ containerRef }) {
       const curves = [];
       const directions = ["right", "left"];
       for (let i = 0; i < centers.length - 1; i++) {
-        curves.push(buildPath(centers[i], centers[i + 1], directions[i % 2]));
+        curves.push(buildPath(centers[i], centers[i + 1], directions[i % 2], w));
       }
 
       for (const pts of curves) {
