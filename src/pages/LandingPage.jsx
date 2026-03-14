@@ -225,7 +225,7 @@ function MobileConstellationLines({ containerRef }) {
 
       const sx = goRight ? fromCenter.x + NODE_RADIUS : fromCenter.x - NODE_RADIUS;
       const sy = fromCenter.y;
-      const ex = goRight ? toCenter.x - NODE_RADIUS : toCenter.x + NODE_RADIUS;
+      const ex = goRight ? toCenter.x + NODE_RADIUS : toCenter.x - NODE_RADIUS;
       const ey = toCenter.y;
 
       const pad = 10;
