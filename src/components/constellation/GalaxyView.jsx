@@ -4582,10 +4582,10 @@ function BackgroundStarField({ qualityTier, universeExtent = 200 }) {
         varying float vAlpha;
 
         void main() {
-          float twinkle = sin(time * (0.8 + brightness * 2.0) + phase) * 0.5 + 0.5;
-          float twinkle2 = sin(time * (0.3 + brightness * 0.7) + phase * 2.3) * 0.5 + 0.5;
+          float twinkle = sin(time * (0.15 + brightness * 0.35) + phase) * 0.5 + 0.5;
+          float twinkle2 = sin(time * (0.06 + brightness * 0.12) + phase * 2.3) * 0.5 + 0.5;
           twinkle = mix(twinkle, twinkle2, 0.3);
-          twinkle = twinkle * 0.7 + 0.3;
+          twinkle = twinkle * 0.4 + 0.6;
           vAlpha = brightness * twinkle * 0.7;
 
           vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
