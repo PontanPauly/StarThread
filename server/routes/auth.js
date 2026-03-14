@@ -39,6 +39,7 @@ const RECIPROCAL_TYPES = {
   child: 'parent',
   sibling: 'sibling',
   partner: 'partner',
+  spouse: 'spouse',
   grandparent: 'grandchild',
   grandchild: 'grandparent',
   aunt_uncle: 'niece_nephew',

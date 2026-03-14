@@ -115,7 +115,7 @@ function ParentControls({ person, personId, age, people, households, queryClient
     setSavingEmail(true);
     try {
       await base44.entities.Person.update(personId, { linked_user_email: childEmail });
-      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ['galaxy', personId] });
       toast({ title: 'Email saved' });
     } catch (e) {
       toast({ title: 'Failed to save email', variant: 'destructive' });
@@ -127,7 +127,7 @@ function ParentControls({ person, personId, age, people, households, queryClient
     try {
       const updated = { ...controls, [featureKey]: enabled };
       await base44.entities.Person.update(personId, { parental_controls: updated });
-      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ['galaxy', personId] });
       toast({ title: `${featureKey.replace('_', ' ')} ${enabled ? 'enabled' : 'disabled'}` });
     } catch (e) {
       toast({ title: 'Failed to update controls', variant: 'destructive' });
@@ -160,7 +160,7 @@ function ParentControls({ person, personId, age, people, households, queryClient
                 onClick={async () => {
                   try {
                     await base44.entities.Person.update(personId, { privacy_level: opt.value });
-                    queryClient.invalidateQueries({ queryKey: ['people'] });
+                    queryClient.invalidateQueries({ queryKey: ['galaxy', personId] });
                     toast({ title: `Privacy set to ${opt.label}` });
                   } catch (e) {
                     toast({ title: 'Failed to update privacy', variant: 'destructive' });
@@ -271,7 +271,7 @@ function ParentControls({ person, personId, age, people, households, queryClient
             people={people}
             onSuccess={() => {
               setShowEditDialog(false);
-              queryClient.invalidateQueries({ queryKey: ['people'] });
+              queryClient.invalidateQueries({ queryKey: ['galaxy', personId] });
             }}
             onCancel={() => setShowEditDialog(false)}
           />

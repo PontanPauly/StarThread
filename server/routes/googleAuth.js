@@ -123,7 +123,7 @@ router.get('/google/callback', async (req, res) => {
     const { id: googleId, email, name, picture } = profile;
 
     const RECIPROCAL_TYPES = {
-      parent: 'child', child: 'parent', sibling: 'sibling', partner: 'partner',
+      parent: 'child', child: 'parent', sibling: 'sibling', partner: 'partner', spouse: 'spouse',
       grandparent: 'grandchild', grandchild: 'grandparent', aunt_uncle: 'niece_nephew',
       niece_nephew: 'aunt_uncle', cousin: 'cousin', in_law: 'in_law',
       step_parent: 'step_child', step_child: 'step_parent', step_sibling: 'step_sibling',

@@ -34,34 +34,18 @@ export default function Home() {
     queryFn: () => base44.entities.Trip.list('-start_date', 10),
   });
 
-  const { data: people = [] } = useQuery({
-    queryKey: ['people'],
-    queryFn: () => base44.entities.Person.list(),
+  const { data: universeData } = useQuery({
+    queryKey: ['universe-members'],
+    queryFn: async () => {
+      const response = await fetch('/api/family/universe-members', { credentials: 'include' });
+      if (!response.ok) return { people: [], relationships: [], households: [] };
+      return response.json();
+    },
+    staleTime: 30000,
   });
 
-  const { data: relationships = [] } = useQuery({
-    queryKey: ['relationships'],
-    queryFn: () => base44.entities.Relationship.list(),
-  });
-
-  const familyStarCount = useMemo(() => {
-    if (!personProfile || people.length === 0) return 0;
-    const myId = personProfile.id;
-    const validPeopleIds = new Set(people.map(p => p.id));
-    const familyIds = new Set([myId]);
-    relationships.forEach(rel => {
-      const idA = rel.person_id || rel.person1_id;
-      const idB = rel.related_person_id || rel.person2_id;
-      if (idA === myId && idB && validPeopleIds.has(idB)) familyIds.add(idB);
-      if (idB === myId && idA && validPeopleIds.has(idA)) familyIds.add(idA);
-    });
-    if (personProfile.household_id) {
-      people.forEach(p => {
-        if (p.household_id === personProfile.household_id) familyIds.add(p.id);
-      });
-    }
-    return familyIds.size;
-  }, [personProfile, people, relationships]);
+  const universeMembers = universeData?.people || [];
+  const familyStarCount = universeMembers.length;
 
   const { data: moments = [] } = useQuery({
     queryKey: ['recent-moments'],
@@ -89,12 +73,11 @@ export default function Home() {
   ).slice(0, 3);
 
   const getPersonName = (personId) => {
-    const person = people.find(p => p.id === personId);
+    const person = universeMembers.find(p => p.id === personId);
     return person?.name || "Someone";
   };
 
-  // Calculate next birthday
-  const upcomingBirthdays = people
+  const upcomingBirthdays = universeMembers
     .filter(p => p.birth_date)
     .map(person => {
       const birthDate = new Date(person.birth_date);

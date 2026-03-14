@@ -8,8 +8,10 @@ const router = express.Router();
 
 const RING_MAP = {
   partner: 1, spouse: 1, parent: 1, child: 1,
-  sibling: 2, grandparent: 2, grandchild: 2,
+  sibling: 2, grandparent: 2, grandchild: 2, half_sibling: 2,
   aunt_uncle: 3, niece_nephew: 3, cousin: 3, in_law: 3,
+  step_parent: 2, step_child: 2, step_sibling: 2,
+  guardian: 1, ward: 1, godparent: 2, godchild: 2,
   chosen_family: 4, extended: 4
 };
 
@@ -46,7 +48,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
              r.status_from_person, r.status_from_related
       FROM relationships r
       WHERE r.status_from_person IN ('confirmed', 'claimed')
-         OR r.status_from_related IN ('confirmed', 'claimed')
+        AND r.status_from_related IN ('confirmed', 'claimed')
     `);
 
     const visibleRels = allRels.filter(r => !hiddenRelIds.has(r.id));
@@ -241,6 +243,10 @@ const RECIPROCAL_TYPES = {
   grandparent: 'grandchild', grandchild: 'grandparent',
   aunt_uncle: 'niece_nephew', niece_nephew: 'aunt_uncle',
   cousin: 'cousin', in_law: 'in_law',
+  step_parent: 'step_child', step_child: 'step_parent',
+  step_sibling: 'step_sibling', half_sibling: 'half_sibling',
+  guardian: 'ward', ward: 'guardian',
+  godparent: 'godchild', godchild: 'godparent',
   chosen_family: 'chosen_family', extended: 'extended'
 };
 
