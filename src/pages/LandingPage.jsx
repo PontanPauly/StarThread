@@ -221,25 +221,22 @@ function MobileConstellationLines({ containerRef }) {
     }
 
     function buildPath(fromCenter, toCenter, bendDir, containerW) {
-      const dir = bendDir === "right" ? 1 : -1;
+      const goRight = bendDir === "right";
 
-      const exitAngle = dir > 0 ? -Math.PI * 0.15 : Math.PI + Math.PI * 0.15;
-      const enterAngle = dir > 0 ? Math.PI + Math.PI * 0.15 : -Math.PI * 0.15;
+      const sx = goRight ? fromCenter.x + NODE_RADIUS : fromCenter.x - NODE_RADIUS;
+      const sy = fromCenter.y;
+      const ex = goRight ? toCenter.x - NODE_RADIUS : toCenter.x + NODE_RADIUS;
+      const ey = toCenter.y;
 
-      const startX = fromCenter.x + Math.cos(exitAngle) * NODE_RADIUS;
-      const startY = fromCenter.y + Math.sin(exitAngle) * NODE_RADIUS;
-      const endX = toCenter.x + Math.cos(enterAngle) * NODE_RADIUS;
-      const endY = toCenter.y + Math.sin(enterAngle) * NODE_RADIUS;
+      const pad = 10;
+      const farX = goRight ? containerW - pad : pad;
 
-      const totalDY = endY - startY;
+      const dy = ey - sy;
 
-      const edgePad = 8;
-      const farX = dir > 0 ? containerW - edgePad : edgePad;
-
-      const p0 = { x: startX, y: startY };
-      const p1 = { x: farX, y: startY + totalDY * 0.12 };
-      const p2 = { x: farX, y: endY - totalDY * 0.12 };
-      const p3 = { x: endX, y: endY };
+      const p0 = { x: sx, y: sy };
+      const p1 = { x: farX, y: sy + dy * 0.15 };
+      const p2 = { x: farX, y: ey - dy * 0.15 };
+      const p3 = { x: ex, y: ey };
 
       return sampleCubic(p0, p1, p2, p3, 120);
     }
