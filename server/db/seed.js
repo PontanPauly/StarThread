@@ -70,12 +70,12 @@ export async function seedFamilyData({ force = false } = {}) {
 
     async function createRelationship(personKey, relatedKey, type, subtype = 'biological') {
       await client.query(
-        `INSERT INTO relationships (person_id, related_person_id, relationship_type, subtype, status_from_person, status_from_related) VALUES ($1, $2, $3, $4, 'confirmed', 'confirmed')`,
+        `INSERT INTO relationships (person_id, related_person_id, relationship_type, subtype, status_from_person, status_from_related) VALUES ($1, $2, $3, $4, 'confirmed', 'confirmed') ON CONFLICT DO NOTHING`,
         [pIds[personKey], pIds[relatedKey], type, subtype]
       );
       const reciprocal = RECIPROCAL_TYPES[type] || type;
       await client.query(
-        `INSERT INTO relationships (person_id, related_person_id, relationship_type, subtype, status_from_person, status_from_related) VALUES ($1, $2, $3, $4, 'confirmed', 'confirmed')`,
+        `INSERT INTO relationships (person_id, related_person_id, relationship_type, subtype, status_from_person, status_from_related) VALUES ($1, $2, $3, $4, 'confirmed', 'confirmed') ON CONFLICT DO NOTHING`,
         [pIds[relatedKey], pIds[personKey], reciprocal, subtype]
       );
     }
