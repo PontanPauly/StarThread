@@ -220,32 +220,26 @@ function MobileConstellationLines({ containerRef }) {
       return pts;
     }
 
-    function buildPath(fromCenter, toCenter, bendDir, containerW) {
+    function buildPath(fromCenter, toCenter, bendDir) {
       const dir = bendDir === "right" ? 1 : -1;
-      const sideMax = Math.min(containerW * 0.22, 80);
 
-      const startX = fromCenter.x + dir * NODE_RADIUS;
-      const startY = fromCenter.y;
-      const endX = toCenter.x - dir * NODE_RADIUS;
-      const endY = toCenter.y;
+      const exitAngle = dir > 0 ? Math.PI * 0.3 : Math.PI * 0.7;
+      const enterAngle = dir > 0 ? -Math.PI * 0.3 : -Math.PI * 0.7;
+
+      const startX = fromCenter.x + Math.cos(exitAngle) * NODE_RADIUS;
+      const startY = fromCenter.y + Math.sin(exitAngle) * NODE_RADIUS;
+      const endX = toCenter.x + Math.cos(enterAngle) * NODE_RADIUS;
+      const endY = toCenter.y + Math.sin(enterAngle) * NODE_RADIUS;
 
       const totalDY = endY - startY;
-      const peakX = fromCenter.x + dir * sideMax;
-      const midY = (startY + endY) / 2;
+      const bulge = 45 * dir;
 
       const p0 = { x: startX, y: startY };
-      const p1 = { x: startX + dir * sideMax * 0.6, y: startY + totalDY * 0.1 };
-      const pMid = { x: peakX, y: midY };
-      const p2 = { x: peakX, y: midY - totalDY * 0.15 };
+      const p1 = { x: startX + bulge, y: startY + totalDY * 0.25 };
+      const p2 = { x: endX + bulge, y: endY - totalDY * 0.25 };
+      const p3 = { x: endX, y: endY };
 
-      const p3 = { x: peakX, y: midY + totalDY * 0.15 };
-      const p4 = { x: endX - dir * sideMax * 0.6, y: endY - totalDY * 0.1 };
-      const p5 = { x: endX, y: endY };
-
-      const seg1 = sampleCubic(p0, p1, p2, pMid, 60);
-      const seg2 = sampleCubic(pMid, p3, p4, p5, 60);
-      seg2.shift();
-      return seg1.concat(seg2);
+      return sampleCubic(p0, p1, p2, p3, 100);
     }
 
     const draw = (time) => {
@@ -274,7 +268,7 @@ function MobileConstellationLines({ containerRef }) {
       const curves = [];
       const directions = ["right", "left"];
       for (let i = 0; i < centers.length - 1; i++) {
-        curves.push(buildPath(centers[i], centers[i + 1], directions[i % 2], w));
+        curves.push(buildPath(centers[i], centers[i + 1], directions[i % 2]));
       }
 
       for (const pts of curves) {
