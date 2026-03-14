@@ -36,6 +36,36 @@ import {
 
 const PUBLIC_PROFILE_MIN_AGE = 13;
 
+const STAR_BG_DOTS = Array.from({ length: 50 }).map((_, i) => ({
+  width: `${((i * 7 + 3) % 3) + 1}px`,
+  height: `${((i * 7 + 3) % 3) + 1}px`,
+  left: `${((i * 37 + 13) % 100)}%`,
+  top: `${((i * 53 + 7) % 100)}%`,
+  opacity: ((i * 11 + 5) % 5) * 0.1 + 0.1,
+  animation: `twinkle-bg ${3 + ((i * 3) % 4)}s ease-in-out infinite`,
+  animationDelay: `${(i * 7) % 5}s`,
+}));
+
+const StarViewBackground = React.memo(function StarViewBackground({ primaryColor }) {
+  return (
+    <div className="fixed inset-0 pointer-events-none">
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse at center, ${primaryColor}08 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, #1e1b4b15 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, #0f172a 0%, #000 100%)`,
+        }}
+      />
+      {STAR_BG_DOTS.map((dotStyle, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full bg-white"
+          style={dotStyle}
+        />
+      ))}
+    </div>
+  );
+});
+
 function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
   React.useEffect(() => {
@@ -895,35 +925,7 @@ export default function StarView() {
   return (
     <div className="min-h-screen bg-slate-900 relative overflow-x-clip">
 
-      <div className="fixed inset-0 pointer-events-none">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `radial-gradient(ellipse at center, ${primaryColor}08 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, #1e1b4b15 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, #0f172a 0%, #000 100%)`,
-          }}
-        />
-        {Array.from({ length: 50 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-white"
-            style={{
-              width: `${((i * 7 + 3) % 3) + 1}px`,
-              height: `${((i * 7 + 3) % 3) + 1}px`,
-              left: `${((i * 37 + 13) % 100)}%`,
-              top: `${((i * 53 + 7) % 100)}%`,
-              opacity: ((i * 11 + 5) % 5) * 0.1 + 0.1,
-              animation: `twinkle-bg ${3 + ((i * 3) % 4)}s ease-in-out infinite`,
-              animationDelay: `${(i * 7) % 5}s`,
-            }}
-          />
-        ))}
-        <style>{`
-          @keyframes twinkle-bg {
-            0%, 100% { opacity: 0.1; }
-            50% { opacity: 0.6; }
-          }
-        `}</style>
-      </div>
+      <StarViewBackground primaryColor={primaryColor} />
 
       <div className="relative z-10">
         <div className="absolute top-0 left-0 right-0 z-50">
