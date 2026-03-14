@@ -39,12 +39,45 @@ if (isProduction && !process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
-const allowedOrigins = isProduction
-  ? [process.env.FRONTEND_URL, `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`].filter(Boolean)
-  : true;
+const allowedOrigins = (() => {
+  if (!isProduction) return true;
+  const origins = [];
+  if (process.env.FRONTEND_URL) origins.push(process.env.FRONTEND_URL);
+  if (process.env.REPLIT_DEV_DOMAIN) origins.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+  if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+    origins.push(`https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+    origins.push(`https://${process.env.REPL_SLUG}-${process.env.REPL_OWNER}.replit.app`);
+  }
+  if (process.env.REPLIT_DEPLOYMENT_URL) {
+    const depUrl = process.env.REPLIT_DEPLOYMENT_URL;
+    origins.push(depUrl.startsWith('http') ? depUrl : `https://${depUrl}`);
+  }
+  const filtered = origins.filter(Boolean);
+  console.log('Production allowed origins:', filtered);
+  return filtered;
+})();
+
+function isAllowedOrigin(origin) {
+  if (!isProduction) return true;
+  if (!Array.isArray(allowedOrigins) || allowedOrigins.length === 0) return false;
+  try {
+    const parsed = new URL(origin);
+    const normalizedOrigin = parsed.origin;
+    return allowedOrigins.some(o => {
+      try {
+        return new URL(o).origin === normalizedOrigin;
+      } catch { return false; }
+    });
+  } catch {}
+  return false;
+}
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (requestOrigin, callback) => {
+    if (!requestOrigin || !isProduction) return callback(null, true);
+    if (isAllowedOrigin(requestOrigin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
@@ -108,8 +141,7 @@ if (isProduction) {
     if (!origin) {
       return res.status(403).json({ error: 'Missing Origin header' });
     }
-    const allowed = allowedOrigins.some(o => o && origin.startsWith(o));
-    if (!allowed) {
+    if (!isAllowedOrigin(origin)) {
       return res.status(403).json({ error: 'Invalid Origin' });
     }
     next();
