@@ -18,7 +18,8 @@ import {
   Cake,
   BookOpen,
   Lightbulb,
-  Image
+  Image,
+  UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +61,16 @@ export default function Home() {
   const { data: stories = [], isLoading: storiesLoading } = useQuery({
     queryKey: ['stories'],
     queryFn: () => base44.entities.FamilyStory.list('-created_date', 3),
+  });
+
+  const { data: pendingRelationships = [] } = useQuery({
+    queryKey: ['pending-relationships'],
+    queryFn: async () => {
+      const res = await fetch('/api/relationships/pending', { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 30000,
   });
 
   const [aiInsight, setAiInsight] = useState(null);
@@ -180,6 +191,25 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {pendingRelationships.length > 0 && (
+        <Link to="/profile" className="block">
+          <div className="rounded-2xl p-4 bg-cyan-500/10 border border-cyan-500/30 flex items-center gap-4 hover:bg-cyan-500/15 transition-colors">
+            <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
+              <UserPlus className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-cyan-200">
+                {pendingRelationships.length === 1
+                  ? `${pendingRelationships[0].from_person_name || pendingRelationships[0].person_name || 'Someone'} wants to connect as your ${pendingRelationships[0].relationship_type?.replace(/_/g, ' ') || 'relation'}`
+                  : `You have ${pendingRelationships.length} pending relationship confirmations`}
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">Tap to review on your profile</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-cyan-400 shrink-0" />
+          </div>
+        </Link>
+      )}
 
       <SuggestedMatches />
 

@@ -160,7 +160,7 @@ router.post('/register', authLimiter, async (req, res) => {
           if (existingPerson.rows.length > 0 && !existingPerson.rows[0].user_id) {
             await pool.query('DELETE FROM people WHERE id = $1', [newPersonId]);
             await pool.query(
-              'UPDATE people SET user_id = $1, linked_user_email = $2, first_name = COALESCE(first_name, $3), last_name = COALESCE(last_name, $4) WHERE id = $5',
+              'UPDATE people SET user_id = $1, linked_user_email = $2, first_name = COALESCE(first_name, $3), last_name = COALESCE(last_name, $4), onboarding_complete = false WHERE id = $5',
               [user.id, email, regFirstName, regLastName, invite.for_person_id]
             );
             newPersonId = invite.for_person_id;

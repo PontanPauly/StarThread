@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { useMyPerson } from "@/hooks/useMyPerson";
@@ -368,7 +368,7 @@ export default function Onboarding() {
     setShowDuplicatePrompt(false);
   };
 
-  const persistStagedMembers = () => {
+  const persistStagedMembers = useCallback(() => {
     if (!myPerson || addedMembers.length === 0) return Promise.resolve({});
 
     if (persistStagedMembersRef.current) return persistStagedMembersRef.current;
@@ -426,7 +426,7 @@ export default function Onboarding() {
 
     persistStagedMembersRef.current = promise;
     return promise;
-  };
+  }, [myPerson, addedMembers]);
 
   const toggleTrustedContact = (memberId) => {
     setTrustedContacts((prev) =>
@@ -501,7 +501,7 @@ export default function Onboarding() {
     );
   };
 
-  const generateInviteLinks = async (persistedIds) => {
+  const generateInviteLinks = useCallback(async (persistedIds) => {
     if (!myPerson) return;
     setGeneratingLink(true);
     try {
@@ -539,14 +539,16 @@ export default function Onboarding() {
     } finally {
       setGeneratingLink(false);
     }
-  };
+  }, [myPerson, addedMembers, persistStagedMembers, toast]);
+
+  const inviteGenerationAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (step === 5 && inviteLinks.length === 0 && !generatingLink && addedMembers.length > 0) {
+    if (step === 5 && inviteLinks.length === 0 && !generatingLink && addedMembers.length > 0 && !inviteGenerationAttemptedRef.current) {
+      inviteGenerationAttemptedRef.current = true;
       generateInviteLinks();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, [step, inviteLinks.length, generatingLink, addedMembers.length, generateInviteLinks]);
 
   const copyInviteLink = async (url, idx) => {
     try {
@@ -641,6 +643,13 @@ export default function Onboarding() {
                 <div className="text-center mb-6">
                   <h2 className="text-xl font-semibold text-slate-100">Set Up Your Profile</h2>
                   <p className="text-sm text-slate-400 mt-1">Tell your family a bit about yourself</p>
+                  {myPerson && !myPerson.birth_date && (
+                    <div className="mt-3 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+                      <p className="text-sm text-cyan-300">
+                        Welcome to the family! Please complete your profile by adding a photo and your birthday to get started.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-center">

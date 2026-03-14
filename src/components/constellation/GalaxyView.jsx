@@ -489,6 +489,91 @@ function useOrganicClusterLayout(households, people, viewMode = 'nebula', relati
       });
     });
     
+    const partnerPairs = [];
+    relationships.forEach(rel => {
+      const type = rel.relationship_type;
+      if (type === 'partner' || type === 'spouse') {
+        const idA = rel.person_id || rel.person1_id;
+        const idB = rel.related_person_id || rel.person2_id;
+        const hhA = personToHousehold.get(idA);
+        const hhB = personToHousehold.get(idB);
+        if (hhA && hhB && hhA !== hhB) {
+          const already = partnerPairs.some(p =>
+            (p[0] === hhA && p[1] === hhB) || (p[0] === hhB && p[1] === hhA)
+          );
+          if (!already) partnerPairs.push([hhA, hhB]);
+        }
+      }
+    });
+
+    if (partnerPairs.length > 0) {
+      const PARTNER_SEPARATION = minSeparation * 1.1;
+      partnerPairs.forEach(([hhA, hhB]) => {
+        const posA = positions.get(hhA);
+        const posB = positions.get(hhB);
+        if (!posA || !posB) return;
+        const mx = (posA.x + posB.x) / 2;
+        const my = (posA.y + posB.y) / 2;
+        const mz = (posA.z + posB.z) / 2;
+        const dx = posB.x - posA.x;
+        const dy = posB.y - posA.y;
+        const dz = posB.z - posA.z;
+        let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < 0.01) {
+          dist = 1;
+          posB.x = mx + 1;
+        }
+        const halfSep = PARTNER_SEPARATION / 2;
+        const fdx = posB.x - posA.x;
+        const fdy = posB.y - posA.y;
+        const fdz = posB.z - posA.z;
+        const fdist = Math.sqrt(fdx * fdx + fdy * fdy + fdz * fdz) || 1;
+        const nx = fdx / fdist;
+        const ny = fdy / fdist;
+        const nz = fdz / fdist;
+        posA.x = mx - nx * halfSep;
+        posA.y = my - ny * halfSep;
+        posA.z = mz - nz * halfSep;
+        posB.x = mx + nx * halfSep;
+        posB.y = my + ny * halfSep;
+        posB.z = mz + nz * halfSep;
+      });
+
+      const allPos = [...positions.values()];
+      for (let iter = 0; iter < 20; iter++) {
+        let moved = false;
+        for (let i = 0; i < allPos.length; i++) {
+          for (let j = i + 1; j < allPos.length; j++) {
+            const a = allPos[i];
+            const b = allPos[j];
+            const isPair = partnerPairs.some(([hhA, hhB]) =>
+              (positions.get(hhA) === a && positions.get(hhB) === b) ||
+              (positions.get(hhA) === b && positions.get(hhB) === a)
+            );
+            if (isPair) continue;
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dz = b.z - a.z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist < minSeparation && dist > 0) {
+              const push = (minSeparation - dist) / 2 + 0.5;
+              const nx = dx / dist;
+              const ny = dy / dist;
+              const nz = dz / dist;
+              a.x -= nx * push;
+              a.y -= ny * push;
+              a.z -= nz * push;
+              b.x += nx * push;
+              b.y += ny * push;
+              b.z += nz * push;
+              moved = true;
+            }
+          }
+        }
+        if (!moved) break;
+      }
+    }
+    
     return positions;
   }, [households, people, viewMode, relationships]);
 }
