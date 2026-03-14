@@ -4353,7 +4353,7 @@ function SpeedDust({ qualityTier }) {
         varying float vAlpha;
 
         void main() {
-          float flicker = sin(time * 2.0 + phase) * 0.3 + 0.7;
+          float flicker = sin(time * 0.3 + phase) * 0.15 + 0.85;
           vAlpha = speed * flicker * 0.6;
 
           vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
