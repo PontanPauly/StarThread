@@ -215,8 +215,10 @@ export default function Profile() {
 
   const isMemorial = myProfile?.is_memorial;
 
+  const [linkError, setLinkError] = useState(null);
   const linkProfile = useMutation({
     mutationFn: async (personId) => {
+      setLinkError(null);
       await base44.entities.Person.update(personId, {
         user_id: user.id
       });
@@ -224,6 +226,9 @@ export default function Profile() {
     onSuccess: () => {
       queryClient.invalidateQueries(['people']);
       queryClient.invalidateQueries(['my-person']);
+    },
+    onError: (err) => {
+      setLinkError(err.message || 'Failed to link profile. Please try again.');
     }
   });
 
@@ -244,12 +249,18 @@ export default function Profile() {
           <p className="text-slate-400 mb-6">
             Select which family member profile belongs to you
           </p>
+          {linkError && (
+            <div className="mb-4 px-4 py-3 bg-red-900/30 border border-red-800/50 rounded-lg text-sm text-red-300">
+              {linkError}
+            </div>
+          )}
           <div className="space-y-3">
             {people.filter(p => !p.user_id).map(person => (
               <Button
                 key={person.id}
                 onClick={() => linkProfile.mutate(person.id)}
-                className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-slate-100"
+                disabled={linkProfile.isPending}
+                className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-slate-100 disabled:opacity-50"
               >
                 <User className="w-4 h-4 mr-3" />
                 {person.name} {person.nickname && `"${person.nickname}"`}

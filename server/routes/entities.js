@@ -196,9 +196,9 @@ async function buildRlsClause(table, userId, existingParamCount = 0) {
   }
 }
 
-async function verifyWriteOwnership(table, recordId, userId) {
+async function verifyWriteOwnership(table, recordId, userId, updates = null) {
   const myPersonId = await getMyPersonId(userId);
-  if (!myPersonId) return false;
+  if (!myPersonId && table !== 'people') return false;
 
   switch (table) {
     case 'messages': {
@@ -323,6 +323,13 @@ async function verifyWriteOwnership(table, recordId, userId) {
         [recordId, userId]
       );
       if (userRows.length > 0) return true;
+      if (!myPersonId && updates && String(updates.user_id) === String(userId)) {
+        const { rows: unlinkedRows } = await pool.query(
+          `SELECT id FROM people WHERE id = $1 AND user_id IS NULL`,
+          [recordId]
+        );
+        if (unlinkedRows.length > 0) return true;
+      }
       const { rows: guardianRows } = await pool.query(
         `SELECT id FROM people WHERE id = $1 AND $2 = ANY(guardian_ids)`,
         [recordId, myPersonId]
@@ -1085,7 +1092,7 @@ router.patch('/:type/:id', requireAuth, async (req, res) => {
     }
 
     if (!userIsSystemAdmin && RLS_WRITE_TABLES.includes(config.table)) {
-      const allowed = await verifyWriteOwnership(config.table, id, req.session.userId);
+      const allowed = await verifyWriteOwnership(config.table, id, req.session.userId, req.body);
       if (!allowed) {
         return res.status(403).json({ error: 'Access denied' });
       }
