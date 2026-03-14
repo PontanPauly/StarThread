@@ -531,9 +531,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="px-6 md:px-12 py-20 max-w-7xl mx-auto">
+        <section className="px-6 md:px-12 py-20 max-w-7xl mx-auto overflow-visible">
           <div ref={reveal} className="scroll-reveal text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-amber-200 to-slate-100 bg-clip-text text-transparent">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 pb-1 bg-gradient-to-r from-amber-200 to-slate-100 bg-clip-text text-transparent">
               Everything You Need to Stay Close
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto">
@@ -571,7 +571,7 @@ export default function LandingPage() {
 
         <section className="px-6 md:px-12 py-20 max-w-5xl mx-auto">
           <div ref={reveal} className="scroll-reveal text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-200 to-slate-100 bg-clip-text text-transparent">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 pb-1 bg-gradient-to-r from-purple-200 to-slate-100 bg-clip-text text-transparent">
               How It Works
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto">
@@ -614,7 +614,7 @@ export default function LandingPage() {
             <div className="absolute top-4 right-4 w-40 h-40 bg-amber-400/10 rounded-full blur-3xl" />
             <div className="absolute bottom-4 left-4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl" />
             <div className="relative">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-amber-200 via-slate-100 to-purple-200 bg-clip-text text-transparent">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 pb-1 bg-gradient-to-r from-amber-200 via-slate-100 to-purple-200 bg-clip-text text-transparent">
                 Your People Are Waiting.
               </h2>
               <p className="text-slate-400 max-w-lg mx-auto mb-8">
