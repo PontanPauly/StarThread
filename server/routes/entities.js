@@ -715,26 +715,35 @@ router.get('/Person/search', requireAuth, async (req, res) => {
 
     const candidates = await findCandidates(signals, { excludeIds: [], limit: 25 });
 
+    const { nameSimilarity } = await import('../identityScoring.js');
+
     const scored = [];
     for (const candidate of candidates) {
       const result = await computeMatchScore(candidate, signals);
-      if (result.score >= 20) {
-        scored.push({
-          id: candidate.id,
-          name: candidate.name,
-          first_name: candidate.first_name,
-          last_name: candidate.last_name,
-          role_type: candidate.role_type,
-          photo_url: candidate.photo_url,
-          birth_year: candidate.birth_year,
-          city: candidate.city,
-          state: candidate.state,
-          score: result.score,
-          confidence: result.confidence,
-          breakdown: result.breakdown,
-          explanations: result.explanations,
-        });
+      if (result.score < 30) continue;
+
+      if (signals.first_name && signals.first_name.length >= 2) {
+        const candidateFirst = candidate.first_name || (candidate.name ? candidate.name.split(' ')[0] : '');
+        const firstSim = nameSimilarity(signals.first_name, candidateFirst);
+        const nickSim = candidate.nickname ? nameSimilarity(signals.first_name, candidate.nickname) : 0;
+        if (Math.max(firstSim, nickSim) < 0.5 && result.score < 75) continue;
       }
+
+      scored.push({
+        id: candidate.id,
+        name: candidate.name,
+        first_name: candidate.first_name,
+        last_name: candidate.last_name,
+        role_type: candidate.role_type,
+        photo_url: candidate.photo_url,
+        birth_year: candidate.birth_year,
+        city: candidate.city,
+        state: candidate.state,
+        score: result.score,
+        confidence: result.confidence,
+        breakdown: result.breakdown,
+        explanations: result.explanations,
+      });
     }
 
     scored.sort((a, b) => b.score - a.score);

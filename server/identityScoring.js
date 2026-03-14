@@ -15,7 +15,7 @@ function levenshteinDistance(a, b) {
   return matrix[a.length][b.length];
 }
 
-function nameSimilarity(a, b) {
+export function nameSimilarity(a, b) {
   if (!a || !b) return 0;
   const la = a.toLowerCase().trim();
   const lb = b.toLowerCase().trim();
