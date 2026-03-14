@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -222,6 +222,11 @@ export default function Family() {
     );
   }
 
+  const handlePersonClick = useCallback((person) => navigate(`/star/${person.id}`), [navigate]);
+  const handleRecenterGalaxy = useCallback((personId) => setGalaxyCenterId(personId), []);
+  const handleNavigateToStar = useCallback((person, householdId) => navigate(`/star/${person.id}${householdId ? `?from=galaxy&household=${householdId}` : ''}`), [navigate]);
+  const handleNavigateToGalaxy = useCallback((person) => setGalaxyCenterId(person.id), []);
+
   return (
     <>
       {/* Galaxy View - 3D WebGL Universe */}
@@ -233,10 +238,10 @@ export default function Family() {
               households={households}
               relationships={relationships}
               galaxyData={galaxyData}
-              onPersonClick={(person) => navigate(`/star/${person.id}`)}
-              onRecenterGalaxy={(personId) => setGalaxyCenterId(personId)}
-              onNavigateToStar={(person, householdId) => navigate(`/star/${person.id}${householdId ? `?from=galaxy&household=${householdId}` : ''}`)}
-              onNavigateToGalaxy={(person) => { setGalaxyCenterId(person.id); }}
+              onPersonClick={handlePersonClick}
+              onRecenterGalaxy={handleRecenterGalaxy}
+              onNavigateToStar={handleNavigateToStar}
+              onNavigateToGalaxy={handleNavigateToGalaxy}
               myPerson={myPerson}
               initialGalaxyId={initialGalaxyId}
               navigateToPersonId={navigateToPersonId}

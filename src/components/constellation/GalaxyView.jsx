@@ -5047,10 +5047,18 @@ function SystemInfoPanel({ household, memberCount, starClass, people, onClose })
   );
 }
 
-function TopBar({ level, selectedHousehold, cameraPos, onBackToGalaxy, starCount = 0 }) {
-  const coordStr = cameraPos
-    ? `${cameraPos.x.toFixed(1)} · ${cameraPos.y.toFixed(1)} · ${cameraPos.z.toFixed(1)}`
-    : '0.0 · 0.0 · 0.0';
+function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCount = 0 }) {
+  const coordRef = useRef(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (coordRef.current && cameraPosRef.current) {
+        const p = cameraPosRef.current;
+        coordRef.current.textContent = `${p.x.toFixed(1)} · ${p.y.toFixed(1)} · ${p.z.toFixed(1)}`;
+      }
+    }, 200);
+    return () => clearInterval(interval);
+  }, [cameraPosRef]);
 
   return (
     <div className="absolute top-3 left-4 z-40 pointer-events-none hidden lg:block">
@@ -5084,8 +5092,8 @@ function TopBar({ level, selectedHousehold, cameraPos, onBackToGalaxy, starCount
               {starCount} {starCount === 1 ? 'star' : 'stars'}
             </span>
           )}
-          <span className="text-[10px] font-mono text-slate-600">
-            {coordStr}
+          <span ref={coordRef} className="text-[10px] font-mono text-slate-600">
+            0.0 · 0.0 · 0.0
           </span>
         </div>
       </div>
@@ -5360,7 +5368,6 @@ export default function GalaxyView({ people = [], relationships = [], households
   const [transitioningHousehold, setTransitioningHousehold] = useState(null);
   const [warpDirection, setWarpDirection] = useState(null);
   const [viewMode, setViewMode] = useState('nebula');
-  const [cameraPos, setCameraPos] = useState(null);
   const [mousePos, setMousePos] = useState(null);
   const [filters, setFilters] = useState({
     showLines: true,
@@ -5498,14 +5505,6 @@ export default function GalaxyView({ people = [], relationships = [], households
     cameraPosRef.current = pos;
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (cameraPosRef.current) {
-        setCameraPos({ ...cameraPosRef.current });
-      }
-    }, 200);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleToggleFilter = useCallback((type, value) => {
     if (type === 'relationshipType') {
@@ -5808,7 +5807,7 @@ export default function GalaxyView({ people = [], relationships = [], households
       <TopBar
         level={level}
         selectedHousehold={selectedHousehold}
-        cameraPos={cameraPos}
+        cameraPosRef={cameraPosRef}
         onBackToGalaxy={handleBackToGalaxy}
         starCount={people.length}
       />
