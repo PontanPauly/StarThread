@@ -1052,7 +1052,7 @@ export default function Onboarding() {
                     onClick={() => setStep(4)}
                     className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white font-semibold"
                   >
-                    {reviewMatches.length === 0 ? "Continue" : "Skip Suggestions"}
+                    {reviewMatches.length === 0 ? "Continue" : `Create New (${reviewMatches.reduce((n, r) => n + r.matches.length, 0)} unresolved)`}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
