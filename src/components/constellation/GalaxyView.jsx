@@ -4995,16 +4995,16 @@ function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCo
   }, [cameraPosRef]);
 
   return (
-    <div className="absolute top-3 left-4 z-40 pointer-events-none hidden lg:block">
-      <div className="pointer-events-auto glass-card rounded-xl px-3 py-1.5 border border-slate-700/50">
-        <div className="flex items-center gap-2 min-w-0">
+    <div className="absolute top-[7.5rem] lg:top-3 left-3 lg:left-4 z-40 pointer-events-none">
+      <div className="pointer-events-auto glass-card rounded-xl px-2.5 lg:px-3 py-1 lg:py-1.5 border border-slate-700/50">
+        <div className="flex items-center gap-1.5 lg:gap-2 min-w-0">
           <button
             onClick={onBackToGalaxy}
-            className="flex items-center gap-1.5 group flex-shrink-0"
+            className="flex items-center gap-1 lg:gap-1.5 group flex-shrink-0 min-h-[40px] lg:min-h-0 px-1 lg:px-0"
           >
-            <Home className="w-4 h-4 text-amber-400/70 group-hover:text-amber-300 transition-colors" />
+            <Home className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-amber-400/70 group-hover:text-amber-300 transition-colors" />
             <span
-              className={`text-sm font-bold transition-colors ${
+              className={`text-xs lg:text-sm font-bold transition-colors ${
                 level === 'galaxy' ? 'text-slate-100' : 'text-slate-400 group-hover:text-slate-200'
               }`}
             >
@@ -5014,7 +5014,7 @@ function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCo
           {level === 'system' && selectedHousehold && (
             <>
               <ChevronRight className="w-3 h-3 text-slate-500 flex-shrink-0" />
-              <span className="text-sm font-bold text-slate-100 truncate max-w-[200px]">
+              <span className="text-xs lg:text-sm font-bold text-slate-100 truncate max-w-[140px] lg:max-w-[200px]">
                 {selectedHousehold.name}
               </span>
             </>
@@ -5047,52 +5047,53 @@ function FilterToggles({
   const activeRelCount = (filters.relationshipTypes || []).length;
 
   return (
-    <div className="absolute top-[4.5rem] left-4 z-40 hidden lg:block">
-      <CornerBrackets className="bg-slate-950/80 backdrop-blur-md p-2.5 space-y-2.5">
+    <div className="absolute top-[10rem] lg:top-[4.5rem] left-3 lg:left-4 z-40">
+      {/* Mobile: compact filter icon button */}
+      <div className="lg:hidden">
         <button
           onClick={() => setExpanded(prev => !prev)}
-          className="flex items-center justify-between w-full"
+          className={`glass-card rounded-lg px-3 py-2.5 border border-slate-700/50 flex items-center gap-1.5 min-h-[40px] transition-colors ${
+            expanded ? 'text-amber-400 border-amber-400/40' : 'text-slate-400'
+          }`}
         >
-          <div className="text-[9px] uppercase tracking-[0.2em] text-slate-500 px-1">Filters</div>
-          <ChevronRight className={`w-3 h-3 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+          <Filter className="w-4 h-4" />
+          <span className="text-xs uppercase tracking-wider font-medium">Filters</span>
+          <ChevronRight className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`} />
         </button>
-
         {expanded && (
-          <>
+          <div className="mt-1.5 glass-card rounded-xl border border-slate-700/50 p-2.5 space-y-2 min-w-[160px]">
             <div className="space-y-1">
               <button
                 onClick={() => onToggleFilter('showLines')}
-                className={`flex items-center gap-2 text-[10px] uppercase tracking-wider px-1 py-0.5 w-full rounded transition-colors ${
+                className={`flex items-center gap-2 text-xs uppercase tracking-wider px-2 py-2 min-h-[36px] w-full rounded transition-colors ${
                   filters.showLines ? 'text-amber-400' : 'text-slate-600'
                 }`}
               >
-                {filters.showLines ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                {filters.showLines ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 Lines
               </button>
               <button
                 onClick={() => onToggleFilter('showLabels')}
-                className={`flex items-center gap-2 text-[10px] uppercase tracking-wider px-1 py-0.5 w-full rounded transition-colors ${
+                className={`flex items-center gap-2 text-xs uppercase tracking-wider px-2 py-2 min-h-[36px] w-full rounded transition-colors ${
                   filters.showLabels ? 'text-amber-400' : 'text-slate-600'
                 }`}
               >
-                {filters.showLabels ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                {filters.showLabels ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 Labels
               </button>
             </div>
-
             <div className="h-px bg-slate-700/50" />
-
             <div>
               <button
                 onClick={() => setShowRelFilters(prev => !prev)}
-                className={`flex items-center gap-2 px-1 py-0.5 text-[10px] uppercase tracking-wider w-full rounded transition-colors ${
+                className={`flex items-center gap-2 px-2 py-2 min-h-[36px] text-xs uppercase tracking-wider w-full rounded transition-colors ${
                   activeRelCount > 0 ? 'text-amber-400' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <Filter className="w-3 h-3" />
+                <Filter className="w-4 h-4" />
                 Relationships
                 {activeRelCount > 0 && (
-                  <span className="ml-auto text-[8px] bg-amber-400/20 text-amber-400 px-1 rounded">{activeRelCount}</span>
+                  <span className="ml-auto text-[9px] bg-amber-400/20 text-amber-400 px-1.5 rounded">{activeRelCount}</span>
                 )}
               </button>
               {showRelFilters && (
@@ -5103,7 +5104,7 @@ function FilterToggles({
                       <button
                         key={key}
                         onClick={() => onToggleFilter('relationshipType', key)}
-                        className={`flex items-center gap-1.5 text-[9px] uppercase tracking-wider px-1.5 py-0.5 w-full rounded transition-colors ${
+                        className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2 py-1.5 min-h-[32px] w-full rounded transition-colors ${
                           isActive ? 'text-amber-400 bg-amber-400/10' : 'text-slate-500 hover:text-slate-300'
                         }`}
                       >
@@ -5115,7 +5116,6 @@ function FilterToggles({
                 </div>
               )}
             </div>
-
             {onSetQuality && (
               <>
                 <div className="h-px bg-slate-700/50" />
@@ -5137,9 +5137,104 @@ function FilterToggles({
                 </div>
               </>
             )}
-          </>
+          </div>
         )}
-      </CornerBrackets>
+      </div>
+      {/* Desktop: existing layout */}
+      <div className="hidden lg:block">
+        <CornerBrackets className="bg-slate-950/80 backdrop-blur-md p-2.5 space-y-2.5">
+          <button
+            onClick={() => setExpanded(prev => !prev)}
+            className="flex items-center justify-between w-full"
+          >
+            <div className="text-[9px] uppercase tracking-[0.2em] text-slate-500 px-1">Filters</div>
+            <ChevronRight className={`w-3 h-3 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+          </button>
+
+          {expanded && (
+            <>
+              <div className="space-y-1">
+                <button
+                  onClick={() => onToggleFilter('showLines')}
+                  className={`flex items-center gap-2 text-[10px] uppercase tracking-wider px-1 py-0.5 w-full rounded transition-colors ${
+                    filters.showLines ? 'text-amber-400' : 'text-slate-600'
+                  }`}
+                >
+                  {filters.showLines ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  Lines
+                </button>
+                <button
+                  onClick={() => onToggleFilter('showLabels')}
+                  className={`flex items-center gap-2 text-[10px] uppercase tracking-wider px-1 py-0.5 w-full rounded transition-colors ${
+                    filters.showLabels ? 'text-amber-400' : 'text-slate-600'
+                  }`}
+                >
+                  {filters.showLabels ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  Labels
+                </button>
+              </div>
+
+              <div className="h-px bg-slate-700/50" />
+
+              <div>
+                <button
+                  onClick={() => setShowRelFilters(prev => !prev)}
+                  className={`flex items-center gap-2 px-1 py-0.5 text-[10px] uppercase tracking-wider w-full rounded transition-colors ${
+                    activeRelCount > 0 ? 'text-amber-400' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Filter className="w-3 h-3" />
+                  Relationships
+                  {activeRelCount > 0 && (
+                    <span className="ml-auto text-[8px] bg-amber-400/20 text-amber-400 px-1 rounded">{activeRelCount}</span>
+                  )}
+                </button>
+                {showRelFilters && (
+                  <div className="mt-1 space-y-0.5 pl-1">
+                    {Object.entries(RELATIONSHIP_FILTER_CATEGORIES).map(([key, cat]) => {
+                      const isActive = (filters.relationshipTypes || []).includes(key);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => onToggleFilter('relationshipType', key)}
+                          className={`flex items-center gap-1.5 text-[9px] uppercase tracking-wider px-1.5 py-0.5 w-full rounded transition-colors ${
+                            isActive ? 'text-amber-400 bg-amber-400/10' : 'text-slate-500 hover:text-slate-300'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-amber-400' : 'bg-slate-600'}`} />
+                          {cat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {onSetQuality && (
+                <>
+                  <div className="h-px bg-slate-700/50" />
+                  <div className="text-[9px] uppercase tracking-[0.2em] text-slate-500 px-1">Quality</div>
+                  <div className="flex gap-1">
+                    {['low', 'medium', 'high', 'ultra'].map(t => (
+                      <button
+                        key={t}
+                        onClick={() => onSetQuality(t)}
+                        className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider transition-all ${
+                          qualityTier?.tier === t
+                            ? 'text-amber-400 border border-amber-400/40 bg-amber-400/10'
+                            : 'text-slate-600 hover:text-slate-400'
+                        }`}
+                      >
+                        {t[0].toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </CornerBrackets>
+      </div>
     </div>
   );
 }
@@ -5775,8 +5870,14 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
       
       <VignetteOverlay />
       <WarpOverlay active={isTransitioning} direction={warpDirection} />
-      
-      
+
+      <TopBar
+        level={level}
+        selectedHousehold={selectedHousehold}
+        cameraPosRef={cameraPosRef}
+        onBackToGalaxy={handleBackToGalaxy}
+        starCount={households.length}
+      />
 
       {level === 'galaxy' && (
         <FilterToggles
