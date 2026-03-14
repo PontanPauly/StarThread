@@ -228,14 +228,14 @@ function MobileConstellationLines({ containerRef }) {
       const ex = goRight ? toCenter.x + NODE_RADIUS : toCenter.x - NODE_RADIUS;
       const ey = toCenter.y;
 
-      const pad = 10;
-      const farX = goRight ? containerW - pad : pad;
+      const edgeX = goRight ? containerW - 10 : 10;
+      const overshoot = (edgeX - (sx + ex) / 2) / 0.75 + (sx + ex) / 2;
 
-      const midY = (sy + ey) / 2;
+      const dy = ey - sy;
 
       const p0 = { x: sx, y: sy };
-      const p1 = { x: farX, y: midY };
-      const p2 = { x: farX, y: midY };
+      const p1 = { x: overshoot, y: sy + dy * 0.33 };
+      const p2 = { x: overshoot, y: sy + dy * 0.67 };
       const p3 = { x: ex, y: ey };
 
       return sampleCubic(p0, p1, p2, p3, 120);
