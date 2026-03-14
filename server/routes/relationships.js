@@ -61,30 +61,12 @@ router.get('/universe-members', requireAuth, async (req, res) => {
       adjacency[rel.related_person_id].push(rel.person_id);
     }
 
-    const { rows: householdCoMembers } = await pool.query(`
-      SELECT id, household_id FROM people
-      WHERE household_id IS NOT NULL AND merged_into_id IS NULL
-    `);
-    const hhMembers = {};
-    for (const row of householdCoMembers) {
-      if (!hhMembers[row.household_id]) hhMembers[row.household_id] = [];
-      hhMembers[row.household_id].push(row.id);
-    }
-    for (const members of Object.values(hhMembers)) {
-      for (let i = 0; i < members.length; i++) {
-        for (let j = i + 1; j < members.length; j++) {
-          if (!adjacency[members[i]]) adjacency[members[i]] = [];
-          if (!adjacency[members[j]]) adjacency[members[j]] = [];
-          adjacency[members[i]].push(members[j]);
-          adjacency[members[j]].push(members[i]);
-        }
-      }
-    }
-
+    const MAX_HOPS = 3;
     const visited = new Set([rootPersonId]);
     let frontier = [rootPersonId];
+    let hops = 0;
 
-    while (frontier.length > 0) {
+    while (frontier.length > 0 && hops < MAX_HOPS) {
       const nextFrontier = [];
       for (const personId of frontier) {
         const neighbors = adjacency[personId] || [];
@@ -96,6 +78,7 @@ router.get('/universe-members', requireAuth, async (req, res) => {
         }
       }
       frontier = nextFrontier;
+      hops++;
     }
 
     const personIds = Array.from(visited);
@@ -155,9 +138,10 @@ router.get('/galaxy/:personId', requireAuth, async (req, res) => {
         p.star_profile, p.star_pattern, p.star_intensity, p.star_flare_count,
         p.privacy_level, p.about, p.household_id, p.user_id
       FROM relationships r
-      JOIN people p ON p.id = r.related_person_id
-      WHERE r.person_id = $1
-        AND r.status_from_person IN ('confirmed', 'claimed')
+      JOIN people p ON p.id = CASE WHEN r.person_id = $1 THEN r.related_person_id ELSE r.person_id END
+      WHERE (r.person_id = $1 OR r.related_person_id = $1)
+        AND (CASE WHEN r.person_id = $1 THEN r.status_from_person ELSE r.status_from_related END) IN ('confirmed', 'claimed')
+      ORDER BY CASE WHEN r.person_id = $1 THEN 0 ELSE 1 END
     `, [personId]);
 
     const hiddenResult = await pool.query(
@@ -174,9 +158,12 @@ router.get('/galaxy/:personId', requireAuth, async (req, res) => {
     ];
 
     const edges = [];
+    const seenPersonIds = new Set();
 
     for (const row of relResult.rows) {
       if (hiddenRelIds.has(row.id)) continue;
+      if (seenPersonIds.has(row.related_id)) continue;
+      seenPersonIds.add(row.related_id);
 
       const ring = getRing(row.relationship_type);
 

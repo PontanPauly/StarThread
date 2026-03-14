@@ -400,14 +400,14 @@ export default function Onboarding() {
         related_person_id: relatedPersonId,
         relationship_type: reciprocal,
         status_from_person: "confirmed",
-        status_from_related: matchedExisting ? "pending" : "unaware",
+        status_from_related: "pending",
       });
 
       await base44.entities.Relationship.create({
         person_id: relatedPersonId,
         related_person_id: myPerson.id,
         relationship_type: member.type,
-        status_from_person: matchedExisting ? "pending" : "unaware",
+        status_from_person: "pending",
         status_from_related: "confirmed",
       });
     }
@@ -527,6 +527,12 @@ export default function Onboarding() {
       setGeneratingLink(false);
     }
   };
+
+  useEffect(() => {
+    if (step === 5 && inviteLinks.length === 0 && !generatingLink && addedMembers.length > 0) {
+      generateInviteLinks();
+    }
+  }, [step]);
 
   const copyInviteLink = async (url, idx) => {
     try {
