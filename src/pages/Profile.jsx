@@ -84,10 +84,28 @@ function PrivacyVisibilitySection({ myProfile, people, queryClient, userId }) {
     return row ? row.is_visible : true;
   };
 
+  const RECIPROCAL_LABELS = {
+    parent: 'child',
+    child: 'parent',
+    sibling: 'sibling',
+    partner: 'partner',
+    spouse: 'spouse',
+    grandparent: 'grandchild',
+    grandchild: 'grandparent',
+    in_law: 'in-law',
+  };
+
   const getRelatedPersonName = (rel) => {
     const relatedId = rel.person_id === myProfile.id ? rel.related_person_id : rel.person_id;
     const person = people.find(p => p.id === relatedId);
     return person?.name || 'Unknown';
+  };
+
+  const getRelationshipLabel = (rel) => {
+    if (rel.person_id === myProfile.id) {
+      return RECIPROCAL_LABELS[rel.relationship_type] || rel.relationship_type;
+    }
+    return rel.relationship_type;
   };
 
   return (
@@ -140,7 +158,7 @@ function PrivacyVisibilitySection({ myProfile, people, queryClient, userId }) {
                     <User className="w-4 h-4 text-slate-500" />
                     <div>
                       <span className="text-sm text-slate-200">{getRelatedPersonName(rel)}</span>
-                      <span className="text-xs text-slate-500 ml-2 capitalize">{rel.relationship_type}</span>
+                      <span className="text-xs text-slate-500 ml-2 capitalize">{getRelationshipLabel(rel)}</span>
                     </div>
                   </div>
                   <Button
