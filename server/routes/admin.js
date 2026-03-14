@@ -15,6 +15,7 @@ const supportActivateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many attempts. Please try again later.' },
+  validate: { xForwardedForHeader: false },
 });
 
 async function requireAdmin(req, res, next) {
@@ -472,6 +473,7 @@ const wipeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: { error: 'Too many attempts. Please try again later.' },
+  validate: { xForwardedForHeader: false },
 });
 
 router.post('/database-wipe/request-code', requireAuth, requireAdmin, wipeLimiter, async (req, res) => {

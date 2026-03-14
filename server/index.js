@@ -31,7 +31,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPL_DEPLOYMENT || !!process.env.REPLIT_DEPLOYMENT;
 const PORT = process.env.PORT || (isProduction ? 5000 : 3001);
 
 if (isProduction && !process.env.SESSION_SECRET) {

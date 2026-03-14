@@ -520,6 +520,25 @@ function sanitizeResponse(row, tableName) {
   return sanitized;
 }
 
+const TYPED_COLUMNS = {
+  uuid: ['household_id', 'user_id', 'person_id', 'related_person_id', 'trip_id', 'room_id', 'activity_id', 'paid_by_person_id', 'assigned_to_person_id', 'from_person_id', 'to_person_id', 'conversation_id', 'author_person_id', 'confirmed_by_person_id', 'created_by_person_id', 'created_by_user_id', 'used_by_user_id', 'relationship_id', 'trusted_person_id', 'family_plan_id', 'owner_user_id'],
+  date: ['birth_date', 'death_date', 'memorial_date', 'start_date', 'end_date', 'date', 'captured_date', 'created_date', 'next_occurrence', 'reviewed_at'],
+  integer: ['birth_year', 'star_intensity', 'star_flare_count', 'capacity', 'current_host_index', 'max_seats'],
+  boolean: ['is_deceased', 'is_memorial', 'onboarding_complete', 'is_packed', 'is_confirmed', 'is_visible', 'is_read'],
+  numeric: ['amount'],
+};
+
+function sanitizeTypedValues(data) {
+  for (const [key, value] of Object.entries(data)) {
+    if (value === '') {
+      if (TYPED_COLUMNS.uuid.includes(key) || TYPED_COLUMNS.date.includes(key) || TYPED_COLUMNS.integer.includes(key) || TYPED_COLUMNS.boolean.includes(key) || TYPED_COLUMNS.numeric.includes(key)) {
+        data[key] = null;
+      }
+    }
+  }
+  return data;
+}
+
 function filterColumns(data, allowedColumns, tableName) {
   const writeOnly = WRITE_ONLY_COLUMNS[tableName] || [];
   const filtered = {};
@@ -528,7 +547,7 @@ function filterColumns(data, allowedColumns, tableName) {
       filtered[key] = value;
     }
   }
-  return filtered;
+  return sanitizeTypedValues(filtered);
 }
 
 // ---------------------------------------------------------------------------

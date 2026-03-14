@@ -45,7 +45,9 @@ class EntityProxy {
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to create ${this.entityType}`);
+      let message = `Failed to create ${this.entityType}`;
+      try { const body = await response.json(); if (body.error) message = body.error; } catch {}
+      throw new Error(message);
     }
     return response.json();
   }
@@ -59,7 +61,9 @@ class EntityProxy {
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to update ${this.entityType}`);
+      let message = `Failed to update ${this.entityType}`;
+      try { const body = await response.json(); if (body.error) message = body.error; } catch {}
+      throw new Error(message);
     }
     return response.json();
   }
@@ -71,7 +75,9 @@ class EntityProxy {
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to delete ${this.entityType}`);
+      let message = `Failed to delete ${this.entityType}`;
+      try { const body = await response.json(); if (body.error) message = body.error; } catch {}
+      throw new Error(message);
     }
     return response.json();
   }
