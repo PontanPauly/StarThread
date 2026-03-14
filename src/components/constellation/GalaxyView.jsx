@@ -821,7 +821,7 @@ function TieredNebulaBackdrop({ qualityTier }) {
 
 
 
-function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualityTier }) {
+function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualityTier, onTouchInteraction }) {
   const { camera, gl } = useThree();
   const internalKeysPressed = useRef({});
   const keysPressed = externalKeysPressed || internalKeysPressed;
@@ -832,6 +832,8 @@ function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualit
   const baseFov = useRef(55);
   const currentFov = useRef(55);
   const cameraSway = useRef({ x: 0, y: 0, phase: 0 });
+  const touchState = useRef({ active: false, lastX: 0, lastY: 0, startX: 0, startY: 0, pinchDist: 0, isPinching: false, hasDragged: false });
+  const _pinchForward = useMemo(() => new THREE.Vector3(), []);
 
   const baseSpeed = 140;
   const acceleration = 4.0;
@@ -839,6 +841,7 @@ function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualit
   const maxSpeedMult = 5.0;
   const minSpeedMult = 0.2;
   const mouseSensitivity = 0.002;
+  const touchSensitivity = 0.004;
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -902,6 +905,83 @@ function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualit
       if (enabled) e.preventDefault();
     };
 
+    const getPinchDistance = (touches) => {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const touchDragThreshold = 8;
+
+    const onTouchStart = (e) => {
+      if (!enabled) return;
+      if (onTouchInteraction) onTouchInteraction();
+      if (e.touches.length === 1) {
+        touchState.current.active = true;
+        touchState.current.isPinching = false;
+        touchState.current.hasDragged = false;
+        touchState.current.lastX = e.touches[0].clientX;
+        touchState.current.lastY = e.touches[0].clientY;
+        touchState.current.startX = e.touches[0].clientX;
+        touchState.current.startY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        touchState.current.isPinching = true;
+        touchState.current.hasDragged = true;
+        touchState.current.active = false;
+        touchState.current.pinchDist = getPinchDistance(e.touches);
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (!enabled) return;
+      e.preventDefault();
+
+      if (e.touches.length === 1 && touchState.current.active && !touchState.current.isPinching) {
+        const deltaX = e.touches[0].clientX - touchState.current.lastX;
+        const deltaY = e.touches[0].clientY - touchState.current.lastY;
+
+        if (!touchState.current.hasDragged) {
+          const totalDx = Math.abs(e.touches[0].clientX - touchState.current.startX);
+          const totalDy = Math.abs(e.touches[0].clientY - touchState.current.startY);
+          if (totalDx > touchDragThreshold || totalDy > touchDragThreshold) {
+            touchState.current.hasDragged = true;
+          } else {
+            return;
+          }
+        }
+
+        touchState.current.lastX = e.touches[0].clientX;
+        touchState.current.lastY = e.touches[0].clientY;
+
+        euler.current.setFromQuaternion(camera.quaternion);
+        euler.current.y -= deltaX * touchSensitivity;
+        euler.current.x -= deltaY * touchSensitivity;
+        euler.current.x = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, euler.current.x));
+        camera.quaternion.setFromEuler(euler.current);
+      } else if (e.touches.length === 2 && touchState.current.isPinching) {
+        const newDist = getPinchDistance(e.touches);
+        const delta = (newDist - touchState.current.pinchDist) * 0.005;
+        speedMultiplier.current = Math.max(minSpeedMult, Math.min(maxSpeedMult, speedMultiplier.current + delta));
+        touchState.current.pinchDist = newDist;
+
+        _pinchForward.set(0, 0, -1).applyQuaternion(camera.quaternion);
+        camera.position.addScaledVector(_pinchForward, delta * 30);
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      if (e.touches.length === 0) {
+        touchState.current.active = false;
+        touchState.current.isPinching = false;
+      } else if (e.touches.length === 1) {
+        touchState.current.isPinching = false;
+        touchState.current.active = true;
+        touchState.current.hasDragged = true;
+        touchState.current.lastX = e.touches[0].clientX;
+        touchState.current.lastY = e.touches[0].clientY;
+      }
+    };
+
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     const canvas = gl.domElement;
@@ -910,6 +990,10 @@ function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualit
     canvas.addEventListener('mouseup', onMouseUp);
     canvas.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('contextmenu', onContextMenu);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+    canvas.addEventListener('touchcancel', onTouchEnd, { passive: true });
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
@@ -918,6 +1002,10 @@ function FreeFlightControls({ enabled = true, externalKeysPressed = null, qualit
       canvas.removeEventListener('mouseup', onMouseUp);
       canvas.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('contextmenu', onContextMenu);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      canvas.removeEventListener('touchcancel', onTouchEnd);
       camera.fov = baseFov.current;
       camera.updateProjectionMatrix();
       velocity.current.set(0, 0, 0);
@@ -4633,6 +4721,7 @@ function NebulaScene({
   onRecenterGalaxy,
   initialHomePosition = null,
   wasdKeysPressed = null,
+  onTouchInteraction = null,
 }) {
   const [transitionProgress, setTransitionProgress] = useState(0);
   const [transitionDirection, setTransitionDirection] = useState(null);
@@ -4729,6 +4818,7 @@ function NebulaScene({
           enabled={true}
           externalKeysPressed={wasdKeysPressed}
           qualityTier={qualityTier}
+          onTouchInteraction={onTouchInteraction}
         />
       )}
       
@@ -5274,6 +5364,64 @@ function ZoomControls({ onZoomIn, onZoomOut, onResetView }) {
   );
 }
 
+function TouchGestureHint({ visible, onDismiss }) {
+  const [show, setShow] = useState(visible);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setShow(true);
+      setFading(false);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible && show) {
+      setFading(true);
+      const timer = setTimeout(() => setShow(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, show]);
+
+  if (!show) return null;
+
+  return (
+    <div
+      className="absolute inset-0 z-[55] flex items-center justify-center pointer-events-none"
+      style={{
+        opacity: fading ? 0 : 1,
+        transition: 'opacity 0.5s ease-out',
+      }}
+    >
+      <div
+        className="pointer-events-auto px-6 py-4 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-amber-500/20 text-center max-w-[280px]"
+        onClick={onDismiss}
+      >
+        <div className="flex justify-center gap-6 mb-3">
+          <div className="flex flex-col items-center gap-1">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="10" stroke="#FBBF24" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.5"/>
+              <circle cx="16" cy="16" r="3" fill="#FBBF24" opacity="0.8"/>
+              <path d="M16 6V10M16 22V26M6 16H10M22 16H26" stroke="#FBBF24" strokeWidth="1" opacity="0.4"/>
+            </svg>
+            <span className="text-xs text-amber-300/70">Drag</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <circle cx="12" cy="16" r="3" fill="#FBBF24" opacity="0.8"/>
+              <circle cx="20" cy="16" r="3" fill="#FBBF24" opacity="0.8"/>
+              <path d="M8 16H4M24 16H28" stroke="#FBBF24" strokeWidth="1.5" opacity="0.5" strokeLinecap="round"/>
+            </svg>
+            <span className="text-xs text-amber-300/70">Pinch</span>
+          </div>
+        </div>
+        <p className="text-sm text-slate-300">Drag to explore, pinch to zoom</p>
+        <p className="text-xs text-slate-500 mt-1.5">Tap to dismiss</p>
+      </div>
+    </div>
+  );
+}
+
 function PersonDetailPanel({ person, household, onClose }) {
   if (!person) return null;
   
@@ -5359,7 +5507,24 @@ export default function GalaxyView({ people = [], relationships = [], households
   const cameraRef = useRef(null);
   const cameraPosRef = useRef(null);
   const wasdKeysPressed = useRef({ w: false, a: false, s: false, d: false });
-  
+  const [showGestureHint, setShowGestureHint] = useState(() => {
+    const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    if (!isTouchDevice) return false;
+    try { return !localStorage.getItem('starthread_gesture_hint_seen'); } catch (e) { return true; }
+  });
+
+  const handleTouchInteraction = useCallback(() => {
+    if (showGestureHint) {
+      setShowGestureHint(false);
+      try { localStorage.setItem('starthread_gesture_hint_seen', '1'); } catch (e) {}
+    }
+  }, [showGestureHint]);
+
+  const dismissGestureHint = useCallback(() => {
+    setShowGestureHint(false);
+    try { localStorage.setItem('starthread_gesture_hint_seen', '1'); } catch (e) {}
+  }, []);
+
   const qualityTier = useQualityTier();
   const rawHouseholdPositions = useOrganicClusterLayout(households, people, viewMode, relationships);
 
@@ -5767,6 +5932,7 @@ export default function GalaxyView({ people = [], relationships = [], households
           onRecenterGalaxy={onRecenterGalaxy}
           initialHomePosition={myHomePosition}
           wasdKeysPressed={wasdKeysPressed}
+          onTouchInteraction={handleTouchInteraction}
         />
       </Canvas>
       
@@ -5796,8 +5962,8 @@ export default function GalaxyView({ people = [], relationships = [], households
         onResetView={handleResetView}
       />
 
-      {level !== 'system' && !isTransitioning && (
-        <MobileDpad keysRef={wasdKeysPressed} />
+      {level === 'galaxy' && !isTransitioning && showGestureHint && (
+        <TouchGestureHint visible={showGestureHint} onDismiss={dismissGestureHint} />
       )}
 
       {level === 'galaxy' && hoveredHousehold && hoveredHouseholdInfo && (
