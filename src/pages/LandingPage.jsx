@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import AnimatedStarfield from "@/components/AnimatedStarfield";
 import {
@@ -10,6 +10,38 @@ import {
   Lightbulb,
   ArrowRight,
 } from "lucide-react";
+
+function useScrollReveal() {
+  const refs = useRef([]);
+
+  const addRef = useCallback((el) => {
+    if (el && !refs.current.includes(el)) {
+      refs.current.push(el);
+    }
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const delay = entry.target.dataset.delay || 0;
+            setTimeout(() => {
+              entry.target.classList.add("scroll-revealed");
+            }, Number(delay));
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    refs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  return addRef;
+}
 
 function ConstellationLines({ containerRef }) {
   const canvasRef = useRef(null);
@@ -430,6 +462,7 @@ const steps = [
 export default function LandingPage() {
   const canvasRef = useRef(null);
   const stepsContainerRef = useRef(null);
+  const reveal = useScrollReveal();
 
   return (
     <div className="login-page min-h-screen relative overflow-x-hidden">
@@ -463,12 +496,12 @@ export default function LandingPage() {
         </nav>
 
         <section className="px-6 md:px-12 pt-16 pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto text-center">
-          <div className="inline-flex flex-col items-center gap-2 mb-10">
+          <div ref={reveal} className="scroll-reveal inline-flex flex-col items-center gap-2 mb-10">
             <img src="/logo.png" alt="StarThread" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain drop-shadow-[0_0_16px_rgba(0,200,255,0.5)]" />
             <span className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent tracking-wide">StarThread</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          <h1 ref={reveal} data-delay="150" className="scroll-reveal text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-amber-200 via-slate-100 to-purple-200 bg-clip-text text-transparent">
               Everyone You Love
             </span>
@@ -478,12 +511,12 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p ref={reveal} data-delay="300" className="scroll-reveal text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
             One place for the people who matter most. The connections,
             the memories, the plans, the things you never want to forget.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div ref={reveal} data-delay="450" className="scroll-reveal flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/login?signup=true">
               <button className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center justify-center gap-2">
                 Get Started Free
@@ -499,7 +532,7 @@ export default function LandingPage() {
         </section>
 
         <section className="px-6 md:px-12 py-20 max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div ref={reveal} className="scroll-reveal text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-amber-200 to-slate-100 bg-clip-text text-transparent">
               Everything You Need to Stay Close
             </h2>
@@ -510,10 +543,12 @@ export default function LandingPage() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature) => (
+            {features.map((feature, i) => (
               <div
+                ref={reveal}
+                data-delay={i * 100}
                 key={feature.title}
-                className="group relative rounded-2xl p-6 border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm hover:border-slate-600/50 transition-all"
+                className="scroll-reveal group relative rounded-2xl p-6 border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm hover:border-slate-600/50 transition-all"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative">
@@ -535,7 +570,7 @@ export default function LandingPage() {
         </section>
 
         <section className="px-6 md:px-12 py-20 max-w-5xl mx-auto">
-          <div className="text-center mb-16">
+          <div ref={reveal} className="scroll-reveal text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-200 to-slate-100 bg-clip-text text-transparent">
               How It Works
             </h2>
@@ -550,7 +585,7 @@ export default function LandingPage() {
 
             <div className="grid md:grid-cols-3 gap-8 relative z-10">
               {steps.map((step, i) => (
-                <div key={step.number} className="relative text-center flex flex-col items-center">
+                <div ref={reveal} data-delay={i * 150} key={step.number} className="scroll-reveal relative text-center flex flex-col items-center">
                   <div className="relative mb-6">
                     <div
                       data-step-node
@@ -575,7 +610,7 @@ export default function LandingPage() {
         </section>
 
         <section className="px-6 md:px-12 py-20 max-w-4xl mx-auto">
-          <div className="relative rounded-3xl p-10 md:p-16 text-center border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-slate-800/40 to-purple-500/5 backdrop-blur-sm overflow-hidden">
+          <div ref={reveal} className="scroll-reveal-scale relative rounded-3xl p-10 md:p-16 text-center border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-slate-800/40 to-purple-500/5 backdrop-blur-sm overflow-hidden">
             <div className="absolute top-4 right-4 w-40 h-40 bg-amber-400/10 rounded-full blur-3xl" />
             <div className="absolute bottom-4 left-4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl" />
             <div className="relative">
