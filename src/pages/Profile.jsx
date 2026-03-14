@@ -35,10 +35,17 @@ function PrivacyVisibilitySection({ myProfile, people, queryClient, userId }) {
     enabled: !!myProfile.id,
   });
 
-  const allRelationships = [
+  const allRelationshipsMerged = [
     ...relationships,
     ...reverseRelationships.filter(rr => !relationships.some(r => r.id === rr.id)),
   ];
+  const seenPersonIds = new Set();
+  const allRelationships = allRelationshipsMerged.filter((rel) => {
+    const otherId = rel.person_id === myProfile.id ? rel.related_person_id : rel.person_id;
+    if (seenPersonIds.has(otherId)) return false;
+    seenPersonIds.add(otherId);
+    return true;
+  });
 
   const { data: visibilityRows = [] } = useQuery({
     queryKey: ['relationship-visibility', userId],
