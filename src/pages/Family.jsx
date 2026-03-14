@@ -36,6 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import PersonForm from "@/components/family/PersonForm";
+import AddPersonDialog from "@/components/family/AddPersonDialog";
 import HouseholdForm from "@/components/family/HouseholdForm";
 import LineageView from "@/components/family/LineageView";
 import GalaxyView from "@/components/constellation/GalaxyView";
@@ -771,39 +772,43 @@ export default function Family() {
       )}
 
       {/* Person Form Dialog - Only admins can edit */}
-      <Dialog open={showPersonForm || !!editingPerson} onOpenChange={(open) => {
-        if (!open) {
-          setShowPersonForm(false);
-          setAddingChild(false);
-          setEditingPerson(null);
-        }
-      }}>
-        <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-slate-100">
-              {editingPerson ? 'View Person' : addingChild ? 'Add Child' : 'Add New Person'}
-            </DialogTitle>
-          </DialogHeader>
-          <PersonForm 
-            person={editingPerson}
-            households={households}
-            people={people}
-            defaultAsChild={addingChild}
-            parentPersonId={addingChild ? myPerson?.id : null}
-            onSuccess={() => {
-              setShowPersonForm(false);
-              setAddingChild(false);
-              setEditingPerson(null);
-              queryClient.invalidateQueries(['universe-members']);
-            }}
-            onCancel={() => {
-              setShowPersonForm(false);
-              setAddingChild(false);
-              setEditingPerson(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      <AddPersonDialog
+        open={showPersonForm}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowPersonForm(false);
+            setAddingChild(false);
+          }
+        }}
+        households={households}
+        defaultRelType={addingChild ? "child" : null}
+        onSuccess={() => {
+          queryClient.invalidateQueries(['universe-members']);
+          queryClient.invalidateQueries(['galaxy']);
+        }}
+      />
+
+      {editingPerson && (
+        <Dialog open={!!editingPerson} onOpenChange={(open) => {
+          if (!open) setEditingPerson(null);
+        }}>
+          <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-slate-100">View Person</DialogTitle>
+            </DialogHeader>
+            <PersonForm
+              person={editingPerson}
+              households={households}
+              people={people}
+              onSuccess={() => {
+                setEditingPerson(null);
+                queryClient.invalidateQueries(['universe-members']);
+              }}
+              onCancel={() => setEditingPerson(null)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Household Form Dialog */}
       <Dialog open={showHouseholdForm || !!editingHousehold} onOpenChange={(open) => {
