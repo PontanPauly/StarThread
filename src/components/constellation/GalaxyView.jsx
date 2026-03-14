@@ -2081,110 +2081,6 @@ function TransitioningNebula({ household, householdPositions, households, opacit
   );
 }
 
-function BloomingStars({ children, duration = 1.6 }) {
-  const startTime = useRef(null);
-  const [progress, setProgress] = useState(0);
-  
-  useFrame((state) => {
-    if (startTime.current === null) {
-      startTime.current = state.clock.elapsedTime;
-    }
-    
-    const elapsed = state.clock.elapsedTime - startTime.current;
-    const rawProgress = Math.min(elapsed / duration, 1);
-    const eased = 1 - Math.pow(1 - rawProgress, 3);
-    setProgress(eased);
-  });
-  
-  return (
-    <>
-      {React.Children.map(children, child => 
-        React.cloneElement(child, { 
-          fadeOpacity: progress,
-          bloomScale: 0.15 + progress * 0.85
-        })
-      )}
-    </>
-  );
-}
-
-function TransitionController({ 
-  isTransitioning, 
-  transitionDirection,
-  onProgress 
-}) {
-  const startTime = useRef(null);
-  const lastReportedRef = useRef(0);
-  const duration = 1.6;
-  
-  useFrame((state) => {
-    if (!isTransitioning) {
-      startTime.current = null;
-      lastReportedRef.current = 0;
-      return;
-    }
-    
-    if (startTime.current === null) {
-      startTime.current = state.clock.elapsedTime;
-    }
-    
-    const elapsed = state.clock.elapsedTime - startTime.current;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = progress < 0.5 
-      ? 4 * progress * progress * progress 
-      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-    
-    if (Math.abs(eased - lastReportedRef.current) > 0.03 || progress >= 1) {
-      lastReportedRef.current = eased;
-      onProgress(eased, progress >= 1);
-    }
-  });
-  
-  return null;
-}
-
-function FadeInGroup({ children, duration = 1.4, delay = 0.3 }) {
-  const groupRef = useRef();
-  const startTime = useRef(null);
-  const [opacity, setOpacity] = useState(0);
-  const lastOpacityRef = useRef(0);
-  const doneRef = useRef(false);
-  
-  useFrame((state) => {
-    if (doneRef.current) return;
-    if (startTime.current === null) {
-      startTime.current = state.clock.elapsedTime;
-    }
-    
-    const elapsed = state.clock.elapsedTime - startTime.current;
-    const delayedElapsed = Math.max(0, elapsed - delay);
-    const progress = Math.min(delayedElapsed / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    
-    if (groupRef.current) {
-      groupRef.current.traverse((child) => {
-        if (child.material) {
-          child.material.opacity = eased;
-          child.material.transparent = true;
-        }
-      });
-    }
-    if (Math.abs(eased - lastOpacityRef.current) > 0.05 || progress >= 1) {
-      lastOpacityRef.current = eased;
-      setOpacity(eased);
-      if (progress >= 1) doneRef.current = true;
-    }
-  });
-  
-  return (
-    <group ref={groupRef}>
-      {React.Children.map(children, child => 
-        React.cloneElement(child, { fadeOpacity: opacity })
-      )}
-    </group>
-  );
-}
-
 function getStarPrimaryColor(starProfile) {
   if (!starProfile) return '#ffffff';
   const palette = COLOR_PALETTES[starProfile.colorPalette];
@@ -2485,7 +2381,9 @@ function AnimatedHouseholdGroup({
   isHovered, 
   isFocused,
   isConnectedToHovered = false,
-  focusProgress,
+  transitionProgressRef,
+  transitionDirectionRef,
+  level,
   focusedHouseholdId,
   hoveredPos,
   stars,
@@ -2527,6 +2425,19 @@ function AnimatedHouseholdGroup({
   
   useFrame((state, delta) => {
     if (!groupRef.current) return;
+    
+    const dir = transitionDirectionRef ? transitionDirectionRef.current : null;
+    const tp = transitionProgressRef ? transitionProgressRef.current : 0;
+    let focusProgress;
+    if (dir === 'zoom-in') {
+      focusProgress = tp;
+    } else if (dir === 'zoom-out') {
+      focusProgress = 1 - tp;
+    } else if (dir === 'idle' || dir === null) {
+      focusProgress = level === 'system' ? 1 : 0;
+    } else {
+      focusProgress = 0;
+    }
     
     const cameraForward = new THREE.Vector3();
     camera.getWorldDirection(cameraForward);
@@ -3903,7 +3814,9 @@ function UnifiedGalaxyScene({
   onHouseholdHover,
   onStarClick,
   onStarHover,
-  focusProgress = 0,
+  transitionProgressRef,
+  transitionDirectionRef,
+  level,
   viewMode = 'nebula',
   filters = {},
   isTransitioning = false,
@@ -4053,7 +3966,9 @@ function UnifiedGalaxyScene({
             isHovered={isHovered}
             isFocused={isFocused}
             isConnectedToHovered={isConnectedToHovered}
-            focusProgress={focusProgress}
+            transitionProgressRef={transitionProgressRef}
+            transitionDirectionRef={transitionDirectionRef}
+            level={level}
             focusedHouseholdId={focusedHouseholdId}
             hoveredPos={hoveredPos}
             stars={householdStars}
@@ -4744,12 +4659,16 @@ function NebulaScene({
   wasdKeysPressed = null,
   onTouchInteraction = null,
 }) {
-  const [transitionProgress, setTransitionProgress] = useState(0);
+  const transitionProgressRef = useRef(0);
   const [transitionDirection, setTransitionDirection] = useState(null);
+  const transitionDirectionRef = useRef(null);
   
   const handleProgressUpdate = useCallback((progress, direction) => {
-    setTransitionProgress(progress);
-    setTransitionDirection(direction);
+    transitionProgressRef.current = progress;
+    if (direction !== transitionDirectionRef.current) {
+      transitionDirectionRef.current = direction;
+      setTransitionDirection(direction);
+    }
   }, []);
   
   const selectedHouseholdPosition = useMemo(() => {
@@ -4769,32 +4688,6 @@ function NebulaScene({
     if (!selectedHousehold) return 0;
     return households.findIndex(h => h.id === selectedHousehold.id);
   }, [selectedHousehold, households]);
-  
-  const effectiveFocusProgress = useMemo(() => {
-    if (transitionDirection === 'zoom-in') {
-      return transitionProgress;
-    } else if (transitionDirection === 'zoom-out') {
-      return 1 - transitionProgress;
-    } else if (transitionDirection === 'idle' || transitionDirection === null) {
-      return level === 'system' ? 1 : 0;
-    }
-    return 0;
-  }, [transitionProgress, transitionDirection, level]);
-  
-  const nebulaOpacity = useMemo(() => {
-    if (transitionDirection === 'zoom-in') {
-      return Math.max(0, 1 - transitionProgress * 1.2);
-    }
-    return 1;
-  }, [transitionProgress, transitionDirection]);
-  
-  const starBloom = useMemo(() => {
-    if (transitionDirection === 'zoom-in') {
-      const delayed = Math.max(0, (transitionProgress - 0.15) / 0.85);
-      return 0.1 + delayed * 0.9;
-    }
-    return 1;
-  }, [transitionProgress, transitionDirection]);
   
   const effectiveFocusedId = useMemo(() => {
     if (transitionDirection === 'zoom-out') {
@@ -4866,7 +4759,9 @@ function NebulaScene({
           onHouseholdHover={onHouseholdHover}
           onStarClick={onStarClick}
           onStarHover={onStarHover}
-          focusProgress={effectiveFocusProgress}
+          transitionProgressRef={transitionProgressRef}
+          transitionDirectionRef={transitionDirectionRef}
+          level={level}
           viewMode={viewMode}
           filters={filters}
           isTransitioning={isTransitioning}
