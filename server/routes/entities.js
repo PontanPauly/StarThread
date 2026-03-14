@@ -83,6 +83,28 @@ async function autoCreateGalaxyIfNeeded(person) {
   if (!needsOwnGalaxy) return person;
 
   try {
+    const { rows: partnerRels } = await pool.query(
+      `SELECT p.household_id FROM relationships r
+       JOIN people p ON p.id = CASE WHEN r.person_id = $1 THEN r.related_person_id ELSE r.person_id END
+       WHERE (r.person_id = $1 OR r.related_person_id = $1)
+         AND r.relationship_type IN ('partner', 'spouse')
+         AND r.status_from_person = 'confirmed'
+         AND r.status_from_related = 'confirmed'
+         AND p.household_id IS NOT NULL
+       LIMIT 1`,
+      [person.id]
+    );
+    if (partnerRels.length > 0) {
+      const partnerHouseholdId = partnerRels[0].household_id;
+      await pool.query(
+        'UPDATE people SET household_id = $1 WHERE id = $2',
+        [partnerHouseholdId, person.id]
+      );
+      person.household_id = partnerHouseholdId;
+      console.log(`Joined ${person.name} to partner's household ${partnerHouseholdId}`);
+      return person;
+    }
+
     const householdName = `${person.name} Galaxy`;
     const { rows: newH } = await pool.query(
       `INSERT INTO households (name) VALUES ($1) RETURNING id`,

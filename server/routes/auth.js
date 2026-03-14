@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { pool } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sendPasswordResetEmail } from '../email.js';
+import { mergeHouseholdsForPartners } from './relationships.js';
 
 const router = express.Router();
 
@@ -191,6 +192,14 @@ router.post('/register', authLimiter, async (req, res) => {
           'UPDATE invite_links SET used_by_user_id = $1, used_at = NOW() WHERE id = $2',
           [user.id, invite.id]
         );
+
+        if (['partner', 'spouse'].includes(relType)) {
+          try {
+            await mergeHouseholdsForPartners(invite.created_by_person_id, newPersonId);
+          } catch (mergeErr) {
+            console.error('Partner household merge during registration failed (non-fatal):', mergeErr.message);
+          }
+        }
       }
     }
 

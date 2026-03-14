@@ -6,6 +6,84 @@ import { rescoreNeighbors } from '../scoringTriggers.js';
 
 const router = express.Router();
 
+const PARTNER_TYPES = new Set(['partner', 'spouse']);
+
+async function mergeHouseholdsForPartners(personIdA, personIdB) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows } = await client.query(
+      'SELECT id, name, household_id, user_id FROM people WHERE id = ANY($1)',
+      [[personIdA, personIdB]]
+    );
+    if (rows.length < 2) { await client.query('ROLLBACK'); return; }
+    const personA = rows.find(r => r.id === personIdA);
+    const personB = rows.find(r => r.id === personIdB);
+    if (!personA || !personB) { await client.query('ROLLBACK'); return; }
+
+    if (personA.household_id && personB.household_id && personA.household_id === personB.household_id) {
+      await client.query('ROLLBACK');
+      return;
+    }
+
+    let keepHouseholdId, oldHouseholdId;
+    if (personA.household_id && !personB.household_id) {
+      keepHouseholdId = personA.household_id;
+    } else if (personB.household_id && !personA.household_id) {
+      keepHouseholdId = personB.household_id;
+    } else if (personA.household_id && personB.household_id) {
+      const { rows: countA } = await client.query(
+        'SELECT COUNT(*) as cnt FROM people WHERE household_id = $1',
+        [personA.household_id]
+      );
+      const { rows: countB } = await client.query(
+        'SELECT COUNT(*) as cnt FROM people WHERE household_id = $1',
+        [personB.household_id]
+      );
+      if (parseInt(countA[0].cnt) >= parseInt(countB[0].cnt)) {
+        keepHouseholdId = personA.household_id;
+        oldHouseholdId = personB.household_id;
+      } else {
+        keepHouseholdId = personB.household_id;
+        oldHouseholdId = personA.household_id;
+      }
+    } else {
+      await client.query('ROLLBACK');
+      return;
+    }
+
+    if (oldHouseholdId) {
+      await client.query(
+        'UPDATE people SET household_id = $1 WHERE household_id = $2',
+        [keepHouseholdId, oldHouseholdId]
+      );
+      await client.query('DELETE FROM households WHERE id = $1', [oldHouseholdId]);
+    } else {
+      const moveId = personA.household_id ? personB.id : personA.id;
+      await client.query(
+        'UPDATE people SET household_id = $1 WHERE id = $2',
+        [keepHouseholdId, moveId]
+      );
+    }
+
+    const nameA = personA.name?.split(' ')[0] || personA.name;
+    const nameB = personB.name?.split(' ')[0] || personB.name;
+    await client.query('UPDATE households SET name = $1 WHERE id = $2', [`${nameA} & ${nameB}`, keepHouseholdId]);
+
+    await client.query('COMMIT');
+    console.log(`Merged households for partners: ${personA.name} & ${personB.name} into household ${keepHouseholdId}`);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Household merge for partners failed:', err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export { mergeHouseholdsForPartners };
+
 const RING_MAP = {
   partner: 1, spouse: 1, parent: 1, child: 1,
   sibling: 2, grandparent: 2, grandchild: 2, half_sibling: 2,
@@ -313,6 +391,10 @@ router.post('/verify/:relationshipId', requireAuth, async (req, res) => {
     if (action === 'confirm') {
       rescoreNeighbors(rel.person_id).catch(err => console.error('[ScoringTrigger] rescoreNeighbors error:', err.message));
       rescoreNeighbors(rel.related_person_id).catch(err => console.error('[ScoringTrigger] rescoreNeighbors error:', err.message));
+
+      if (PARTNER_TYPES.has(rel.relationship_type)) {
+        await mergeHouseholdsForPartners(rel.person_id, rel.related_person_id);
+      }
     }
 
     res.json({ message: `Relationship ${action}ed successfully` });

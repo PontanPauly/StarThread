@@ -844,6 +844,36 @@ export async function runMigrations() {
       console.log(`Repaired ${pendingRepairCount} relationships with pending status (user-added, not invite-based)`);
     }
 
+    const { rows: splitPartners } = await client.query(`
+      SELECT r.person_id, r.related_person_id, pa.household_id AS h_a, pb.household_id AS h_b,
+             pa.name AS name_a, pb.name AS name_b,
+             (SELECT COUNT(*) FROM people WHERE household_id = pa.household_id) AS cnt_a,
+             (SELECT COUNT(*) FROM people WHERE household_id = pb.household_id) AS cnt_b
+      FROM relationships r
+      JOIN people pa ON pa.id = r.person_id
+      JOIN people pb ON pb.id = r.related_person_id
+      WHERE r.relationship_type IN ('partner', 'spouse')
+        AND r.status_from_person = 'confirmed'
+        AND r.status_from_related = 'confirmed'
+        AND pa.household_id IS NOT NULL
+        AND pb.household_id IS NOT NULL
+        AND pa.household_id != pb.household_id
+        AND r.person_id < r.related_person_id
+    `);
+    for (const sp of splitPartners) {
+      const keepH = parseInt(sp.cnt_a) >= parseInt(sp.cnt_b) ? sp.h_a : sp.h_b;
+      const oldH = keepH === sp.h_a ? sp.h_b : sp.h_a;
+      await client.query('UPDATE people SET household_id = $1 WHERE household_id = $2', [keepH, oldH]);
+      const nameA = sp.name_a?.split(' ')[0] || sp.name_a;
+      const nameB = sp.name_b?.split(' ')[0] || sp.name_b;
+      await client.query('UPDATE households SET name = $1 WHERE id = $2', [`${nameA} & ${nameB}`, keepH]);
+      const { rows: rem } = await client.query('SELECT COUNT(*) as cnt FROM people WHERE household_id = $1', [oldH]);
+      if (parseInt(rem[0].cnt) === 0) {
+        await client.query('DELETE FROM households WHERE id = $1', [oldH]);
+      }
+      console.log(`Migration: merged partner households for ${sp.name_a} & ${sp.name_b}`);
+    }
+
     await client.query('COMMIT');
     console.log('Database migrations completed successfully');
   } catch (error) {
