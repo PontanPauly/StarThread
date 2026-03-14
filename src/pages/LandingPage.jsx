@@ -221,29 +221,29 @@ function MobileConstellationLines({ containerRef }) {
     }
 
     function buildPath(fromCenter, toCenter, bendDir, containerW) {
-      const fromY = fromCenter.y + NODE_RADIUS;
-      const toY = toCenter.y - NODE_RADIUS;
-      const cx = fromCenter.x;
-      const totalDY = toY - fromY;
+      const dir = bendDir === "right" ? 1 : -1;
+      const sideMax = Math.min(containerW * 0.22, 80);
 
-      const sideOffset = bendDir === "right"
-        ? Math.min(containerW * 0.18, 70)
-        : -Math.min(containerW * 0.18, 70);
+      const startX = fromCenter.x + dir * NODE_RADIUS;
+      const startY = fromCenter.y;
+      const endX = toCenter.x - dir * NODE_RADIUS;
+      const endY = toCenter.y;
 
-      const exitLen = totalDY * 0.18;
-      const entryLen = totalDY * 0.18;
+      const totalDY = endY - startY;
+      const peakX = fromCenter.x + dir * sideMax;
+      const midY = (startY + endY) / 2;
 
-      const p0 = { x: cx, y: fromY };
-      const p1 = { x: cx, y: fromY + exitLen };
-      const midX = cx + sideOffset;
-      const midY = (fromY + toY) / 2;
-      const p2 = { x: midX, y: midY - totalDY * 0.12 };
-      const p3 = { x: midX, y: midY + totalDY * 0.12 };
-      const p4 = { x: cx, y: toY - entryLen };
-      const p5 = { x: cx, y: toY };
+      const p0 = { x: startX, y: startY };
+      const p1 = { x: startX + dir * sideMax * 0.6, y: startY + totalDY * 0.1 };
+      const pMid = { x: peakX, y: midY };
+      const p2 = { x: peakX, y: midY - totalDY * 0.15 };
 
-      const seg1 = sampleCubic(p0, p1, p2, { x: midX, y: midY }, 60);
-      const seg2 = sampleCubic({ x: midX, y: midY }, p3, p4, p5, 60);
+      const p3 = { x: peakX, y: midY + totalDY * 0.15 };
+      const p4 = { x: endX - dir * sideMax * 0.6, y: endY - totalDY * 0.1 };
+      const p5 = { x: endX, y: endY };
+
+      const seg1 = sampleCubic(p0, p1, p2, pMid, 60);
+      const seg2 = sampleCubic(pMid, p3, p4, p5, 60);
       seg2.shift();
       return seg1.concat(seg2);
     }
