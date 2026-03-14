@@ -5739,14 +5739,20 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
     };
   }, []);
   
+  const isTouchDevice = useRef('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
   const handleHouseholdClick = useCallback((household) => {
+    if (isTouchDevice.current && hoveredHouseholdIdRef.current !== household.id) {
+      setHoveredHouseholdId(household.id);
+      return;
+    }
     setTransitioningHousehold(household);
     setIsTransitioning(true);
     setTransitionProgress(0);
     setFocusedStarId(null);
     setAutoRotateEnabled(false);
     setWarpDirection('zoom-in');
-  }, []);
+  }, [setHoveredHouseholdId]);
   
   const handleBackToGalaxy = useCallback(() => {
     setIsTransitioning(true);
@@ -5794,7 +5800,10 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
   
   const handleBackgroundClick = useCallback(() => {
     setFocusedStarId(null);
-  }, []);
+    if (isTouchDevice.current) {
+      setHoveredHouseholdId(null);
+    }
+  }, [setHoveredHouseholdId]);
   
   const handleZoomIn = useCallback(() => {
     const cam = cameraRef.current;
