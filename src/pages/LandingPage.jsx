@@ -464,7 +464,7 @@ export default function LandingPage() {
 
         <section className="px-6 md:px-12 pt-16 pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto text-center">
           <div className="inline-flex flex-col items-center gap-2 mb-10">
-            <img src="/logo.png" alt="StarThread" className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain drop-shadow-[0_0_16px_rgba(0,200,255,0.5)]" />
+            <img src="/logo.png" alt="StarThread" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain drop-shadow-[0_0_16px_rgba(0,200,255,0.5)]" />
             <span className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent tracking-wide">StarThread</span>
           </div>
 
