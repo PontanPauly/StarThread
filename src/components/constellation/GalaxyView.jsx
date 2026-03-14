@@ -2401,6 +2401,7 @@ function AnimatedHouseholdGroup({
   showLabels = true,
   householdGroupRefs,
   isTransitioning = false,
+  hasMinorChildren = false,
 }) {
   const groupRef = useRef();
   const { camera } = useThree();
@@ -2411,6 +2412,7 @@ function AnimatedHouseholdGroup({
   });
   const renderOpacityRef = useRef(1.0);
   const starRenderOpacityRef = useRef(1);
+  const constellationHighlightRef = useRef(0.05);
   const [isHoveredSelf, setIsHoveredSelf] = useState(false);
   const prevIsHoveredSelf = useRef(false);
   
@@ -2514,6 +2516,8 @@ function AnimatedHouseholdGroup({
     starRenderOpacityRef.current = curr.starOpacity;
     
     const nowHovered = hoveredHouseholdIdRef.current != null && String(hoveredHouseholdIdRef.current) === String(household.id);
+    const targetHighlight = nowHovered ? 1.0 : 0.05;
+    constellationHighlightRef.current += (targetHighlight - constellationHighlightRef.current) * lerpSpeed;
     if (nowHovered !== prevIsHoveredSelf.current) {
       prevIsHoveredSelf.current = nowHovered;
       setIsHoveredSelf(nowHovered);
@@ -2588,6 +2592,16 @@ function AnimatedHouseholdGroup({
           colorIndex={colorIndex}
           opacityRef={starRenderOpacityRef}
           opacityScale={0.8}
+        />
+      )}
+      {!focusedHouseholdId && hasMinorChildren && (
+        <ConstellationLines
+          stars={localStars}
+          relationships={relationships}
+          colorIndex={colorIndex}
+          opacityRef={renderOpacityRef}
+          opacityScale={isHoveredSelf ? 0.7 : 0.25}
+          highlightRef={constellationHighlightRef}
         />
       )}
       {!isOtherFocused && (
@@ -3032,7 +3046,7 @@ const _sysRingRight = new THREE.Vector3();
 const _sysRingCorrUp = new THREE.Vector3();
 const _sysWorldCenter = new THREE.Vector3();
 
-function SystemMeshLines({ lines, colorIndex, opacity = 0.6, coupleCenter, coupleRadius }) {
+function SystemMeshLines({ lines, colorIndex, opacity = 0.6, coupleCenter, coupleRadius, highlightRef }) {
   const meshRef = useRef();
   const startAttrRef = useRef();
   const timeUniform = useRef({ value: 0 });
@@ -3136,6 +3150,17 @@ function SystemMeshLines({ lines, colorIndex, opacity = 0.6, coupleCenter, coupl
       }
       spAttr.needsUpdate = true;
     }
+
+    if (highlightRef && meshRef.current && lineCount > 0) {
+      const hlAttr = meshRef.current.geometry.getAttribute('aHighlight');
+      if (hlAttr) {
+        const hlVal = highlightRef.current;
+        for (let i = 0; i < lineCount * 4; i++) {
+          hlAttr.array[i] = hlVal;
+        }
+        hlAttr.needsUpdate = true;
+      }
+    }
   });
 
   if (totalVerts === 0) return null;
@@ -3169,7 +3194,7 @@ function SystemMeshLines({ lines, colorIndex, opacity = 0.6, coupleCenter, coupl
   );
 }
 
-function ConstellationLines({ stars, relationships, colorIndex, opacity: opacityProp = 0.6, opacityRef, opacityScale = 1 }) {
+function ConstellationLines({ stars, relationships, colorIndex, opacity: opacityProp = 0.6, opacityRef, opacityScale = 1, highlightRef }) {
   const { lines_data, coupleCenter, coupleRadius, hasCouple } = useMemo(() => {
     if (!stars || stars.length < 2) {
       return { lines_data: [], coupleCenter: [0,0,0], coupleRadius: 0, hasCouple: false };
@@ -3259,6 +3284,7 @@ function ConstellationLines({ stars, relationships, colorIndex, opacity: opacity
           opacity={opacityProp}
           coupleCenter={hasCouple ? coupleCenter : null}
           coupleRadius={hasCouple ? coupleRadius : 0}
+          highlightRef={highlightRef}
         />
       )}
     </group>
@@ -3925,6 +3951,28 @@ function UnifiedGalaxyScene({
     return set;
   }, [starsByHousehold]);
 
+  const householdsWithMinors = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const set = new Set();
+    for (const p of people) {
+      if (!p.household_id) continue;
+      let age = null;
+      if (p.birth_date) {
+        const bd = new Date(p.birth_date);
+        age = currentYear - bd.getFullYear() - (now < new Date(currentYear, bd.getMonth(), bd.getDate()) ? 1 : 0);
+      } else if (p.birth_year) {
+        age = currentYear - p.birth_year;
+      }
+      if (age !== null && age < 18) {
+        set.add(p.household_id);
+      } else if (age === null && (p.role_type || '').toLowerCase() === 'child') {
+        set.add(p.household_id);
+      }
+    }
+    return set;
+  }, [people]);
+
   const connectedToHoveredRef = useRef(null);
   const prevHoveredIdRef = useRef(null);
   const prevEdgesRef = useRef(null);
@@ -4003,6 +4051,7 @@ function UnifiedGalaxyScene({
             showLabels={filters.showLabels !== false}
             householdGroupRefs={householdGroupRefs}
             isTransitioning={isTransitioning}
+            hasMinorChildren={householdsWithMinors.has(household.id)}
           />
         );
       })}
