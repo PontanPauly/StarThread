@@ -48,6 +48,7 @@ The application follows a client-server architecture. The backend is built with 
 -   `medical_notes` are segregated to a private user-specific endpoint.
 -   API endpoints are categorized by functionality.
 -   Data seeding is restricted to development environments.
+-   PostgreSQL DATE type parser overridden (`types.setTypeParser(1082, val => val)`) to return plain `YYYY-MM-DD` strings instead of JS Date objects, ensuring correct date string comparisons in frontend components.
 -   Comprehensive database indexing on frequently queried columns and ON DELETE CASCADE for key foreign keys.
 -   Write ownership authorization (`verifyWriteOwnership()`) enforces ownership checks for all writable entities.
 -   Session invalidation on password change or reset.
