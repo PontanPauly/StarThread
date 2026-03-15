@@ -1,4 +1,4 @@
-const CACHE_NAME = 'starthread-v1';
+const CACHE_NAME = 'starthread-v2';
 const STATIC_ASSETS = [
   '/',
   '/favicon.png',
@@ -40,26 +40,25 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const fetchPromise = fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, clone);
-              });
-            }
-            return response;
-          })
-          .catch(() => {
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, clone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
             if (request.mode === 'navigate') {
               return caches.match('/');
             }
-            return cached;
+            return new Response('Offline', { status: 503 });
           });
-
-        return cached || fetchPromise;
-      })
+        })
     );
   }
 });
