@@ -5119,8 +5119,11 @@ function SystemInfoPanel({ household, memberCount, starClass, people, onClose })
   );
 }
 
-function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCount = 0 }) {
+function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCount = 0, showFilter = false, filters, onToggleFilter, qualityTier, onSetQuality }) {
   const coordRef = useRef(null);
+  const [filterExpanded, setFilterExpanded] = useState(false);
+  const [showRelFilters, setShowRelFilters] = useState(false);
+  const activeRelCount = (filters?.relationshipTypes || []).length;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -5157,6 +5160,17 @@ function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCo
               </span>
             </>
           )}
+          {showFilter && (
+            <button
+              onClick={() => setFilterExpanded(prev => !prev)}
+              className={`lg:hidden ml-auto flex items-center gap-1 px-1.5 py-1 rounded transition-colors ${
+                filterExpanded ? 'text-amber-400' : 'text-slate-500'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <ChevronRight className={`w-3 h-3 transition-transform ${filterExpanded ? 'rotate-90' : ''}`} />
+            </button>
+          )}
         </div>
         <div className="hidden lg:flex items-center gap-3 mt-0.5">
           {level === 'galaxy' && starCount > 0 && (
@@ -5169,6 +5183,85 @@ function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCo
           </span>
         </div>
       </div>
+      {showFilter && filterExpanded && (
+        <div className="lg:hidden pointer-events-auto mt-1.5 glass-card rounded-xl border border-slate-700/50 p-2.5 space-y-2 min-w-[160px]">
+          <div className="space-y-1">
+            <button
+              onClick={() => onToggleFilter('showLines')}
+              className={`flex items-center gap-2 text-xs uppercase tracking-wider px-2 py-2 min-h-[36px] w-full rounded transition-colors ${
+                filters?.showLines ? 'text-amber-400' : 'text-slate-600'
+              }`}
+            >
+              {filters?.showLines ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              Lines
+            </button>
+            <button
+              onClick={() => onToggleFilter('showLabels')}
+              className={`flex items-center gap-2 text-xs uppercase tracking-wider px-2 py-2 min-h-[36px] w-full rounded transition-colors ${
+                filters?.showLabels ? 'text-amber-400' : 'text-slate-600'
+              }`}
+            >
+              {filters?.showLabels ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              Labels
+            </button>
+          </div>
+          <div className="h-px bg-slate-700/50" />
+          <div>
+            <button
+              onClick={() => setShowRelFilters(prev => !prev)}
+              className={`flex items-center gap-2 px-2 py-2 min-h-[36px] text-xs uppercase tracking-wider w-full rounded transition-colors ${
+                activeRelCount > 0 ? 'text-amber-400' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              Relationships
+              {activeRelCount > 0 && (
+                <span className="ml-auto text-[9px] bg-amber-400/20 text-amber-400 px-1.5 rounded">{activeRelCount}</span>
+              )}
+            </button>
+            {showRelFilters && (
+              <div className="mt-1 space-y-0.5 pl-1">
+                {Object.entries(RELATIONSHIP_FILTER_CATEGORIES).map(([key, cat]) => {
+                  const isActive = (filters?.relationshipTypes || []).includes(key);
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => onToggleFilter('relationshipType', key)}
+                      className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2 py-1.5 min-h-[32px] w-full rounded transition-colors ${
+                        isActive ? 'text-amber-400 bg-amber-400/10' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-amber-400' : 'bg-slate-600'}`} />
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {onSetQuality && (
+            <>
+              <div className="h-px bg-slate-700/50" />
+              <div className="text-[9px] uppercase tracking-[0.2em] text-slate-500 px-1">Quality</div>
+              <div className="flex gap-1">
+                {['low', 'medium', 'high', 'ultra'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => onSetQuality(t)}
+                    className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider transition-all ${
+                      qualityTier?.tier === t
+                        ? 'text-amber-400 border border-amber-400/40 bg-amber-400/10'
+                        : 'text-slate-600 hover:text-slate-400'
+                    }`}
+                  >
+                    {t[0].toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -5185,101 +5278,8 @@ function FilterToggles({
   const activeRelCount = (filters.relationshipTypes || []).length;
 
   return (
-    <div className="absolute top-[11rem] lg:top-[4.5rem] left-3 lg:left-4 z-40">
-      {/* Mobile: compact filter icon button */}
-      <div className="lg:hidden">
-        <button
-          onClick={() => setExpanded(prev => !prev)}
-          className={`glass-card rounded-lg px-3 py-2.5 border border-slate-700/50 flex items-center gap-1.5 min-h-[40px] transition-colors ${
-            expanded ? 'text-amber-400 border-amber-400/40' : 'text-slate-400'
-          }`}
-        >
-          <Filter className="w-4 h-4" />
-          <span className="text-xs uppercase tracking-wider font-medium">Filters</span>
-          <ChevronRight className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-        </button>
-        {expanded && (
-          <div className="mt-1.5 glass-card rounded-xl border border-slate-700/50 p-2.5 space-y-2 min-w-[160px]">
-            <div className="space-y-1">
-              <button
-                onClick={() => onToggleFilter('showLines')}
-                className={`flex items-center gap-2 text-xs uppercase tracking-wider px-2 py-2 min-h-[36px] w-full rounded transition-colors ${
-                  filters.showLines ? 'text-amber-400' : 'text-slate-600'
-                }`}
-              >
-                {filters.showLines ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                Lines
-              </button>
-              <button
-                onClick={() => onToggleFilter('showLabels')}
-                className={`flex items-center gap-2 text-xs uppercase tracking-wider px-2 py-2 min-h-[36px] w-full rounded transition-colors ${
-                  filters.showLabels ? 'text-amber-400' : 'text-slate-600'
-                }`}
-              >
-                {filters.showLabels ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                Labels
-              </button>
-            </div>
-            <div className="h-px bg-slate-700/50" />
-            <div>
-              <button
-                onClick={() => setShowRelFilters(prev => !prev)}
-                className={`flex items-center gap-2 px-2 py-2 min-h-[36px] text-xs uppercase tracking-wider w-full rounded transition-colors ${
-                  activeRelCount > 0 ? 'text-amber-400' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Filter className="w-4 h-4" />
-                Relationships
-                {activeRelCount > 0 && (
-                  <span className="ml-auto text-[9px] bg-amber-400/20 text-amber-400 px-1.5 rounded">{activeRelCount}</span>
-                )}
-              </button>
-              {showRelFilters && (
-                <div className="mt-1 space-y-0.5 pl-1">
-                  {Object.entries(RELATIONSHIP_FILTER_CATEGORIES).map(([key, cat]) => {
-                    const isActive = (filters.relationshipTypes || []).includes(key);
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => onToggleFilter('relationshipType', key)}
-                        className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2 py-1.5 min-h-[32px] w-full rounded transition-colors ${
-                          isActive ? 'text-amber-400 bg-amber-400/10' : 'text-slate-500 hover:text-slate-300'
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-amber-400' : 'bg-slate-600'}`} />
-                        {cat.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            {onSetQuality && (
-              <>
-                <div className="h-px bg-slate-700/50" />
-                <div className="text-[9px] uppercase tracking-[0.2em] text-slate-500 px-1">Quality</div>
-                <div className="flex gap-1">
-                  {['low', 'medium', 'high', 'ultra'].map(t => (
-                    <button
-                      key={t}
-                      onClick={() => onSetQuality(t)}
-                      className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider transition-all ${
-                        qualityTier?.tier === t
-                          ? 'text-amber-400 border border-amber-400/40 bg-amber-400/10'
-                          : 'text-slate-600 hover:text-slate-400'
-                      }`}
-                    >
-                      {t[0].toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-      {/* Desktop: existing layout */}
-      <div className="hidden lg:block">
+    <div className="absolute top-[4.5rem] left-3 lg:left-4 z-40 hidden lg:block">
+      <div>
         <CornerBrackets className="bg-slate-950/80 backdrop-blur-md p-2.5 space-y-2.5">
           <button
             onClick={() => setExpanded(prev => !prev)}
@@ -6025,6 +6025,11 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
         cameraPosRef={cameraPosRef}
         onBackToGalaxy={handleBackToGalaxy}
         starCount={households.length}
+        showFilter={level === 'galaxy'}
+        filters={filters}
+        onToggleFilter={handleToggleFilter}
+        qualityTier={qualityTier}
+        onSetQuality={qualityTier.setTier}
       />
 
       {level === 'galaxy' && (
