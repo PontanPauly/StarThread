@@ -5136,7 +5136,7 @@ function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCo
   }, [cameraPosRef]);
 
   return (
-    <div className="absolute top-[4.5rem] lg:top-3 left-3 lg:left-4 z-40 pointer-events-none">
+    <div className="absolute top-2 lg:top-3 left-3 lg:left-4 z-40 pointer-events-none">
       <div className="pointer-events-auto glass-card rounded-xl px-2.5 lg:px-3 py-1 lg:py-1.5 border border-slate-700/50">
         <div className="flex items-center gap-1.5 lg:gap-2 min-w-0">
           <button
