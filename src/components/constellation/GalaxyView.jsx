@@ -5158,7 +5158,7 @@ function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCo
             </>
           )}
         </div>
-        <div className="flex items-center gap-3 mt-0.5">
+        <div className="hidden lg:flex items-center gap-3 mt-0.5">
           {level === 'galaxy' && starCount > 0 && (
             <span className="text-[10px] text-slate-500">
               {starCount} {starCount === 1 ? 'star' : 'stars'}
@@ -5185,7 +5185,7 @@ function FilterToggles({
   const activeRelCount = (filters.relationshipTypes || []).length;
 
   return (
-    <div className="absolute top-[10rem] lg:top-[4.5rem] left-3 lg:left-4 z-40">
+    <div className="absolute top-[11rem] lg:top-[4.5rem] left-3 lg:left-4 z-40">
       {/* Mobile: compact filter icon button */}
       <div className="lg:hidden">
         <button
