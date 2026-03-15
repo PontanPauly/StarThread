@@ -177,11 +177,41 @@ router.get('/google/callback', async (req, res) => {
     } else {
       gFirstName = gNameParts[0]; gLastName = gNameParts[gNameParts.length - 1]; gMiddleName = gNameParts.slice(1, -1).join(' ');
     }
-    const personResult = await pool.query(
-      'INSERT INTO people (name, first_name, middle_name, last_name, user_id, linked_user_email, role_type, photo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-      [formattedName, gFirstName, gMiddleName, gLastName, newUser.id, email, 'adult', picture || null]
+
+    let newPersonId = null;
+    const existingPersonByEmail = await pool.query(
+      'SELECT id FROM people WHERE linked_user_email = $1 AND user_id IS NULL LIMIT 1',
+      [email]
     );
-    let newPersonId = personResult.rows[0].id;
+    if (existingPersonByEmail.rows.length > 0) {
+      newPersonId = existingPersonByEmail.rows[0].id;
+      await pool.query(
+        'UPDATE people SET user_id = $1, linked_user_email = $2, first_name = COALESCE(first_name, $3), last_name = COALESCE(last_name, $4), photo_url = COALESCE(photo_url, $5) WHERE id = $6',
+        [newUser.id, email, gFirstName, gLastName, picture || null, newPersonId]
+      );
+    }
+
+    if (!newPersonId) {
+      const existingByName = await pool.query(
+        'SELECT id FROM people WHERE LOWER(name) = LOWER($1) AND user_id IS NULL LIMIT 1',
+        [formattedName]
+      );
+      if (existingByName.rows.length > 0) {
+        newPersonId = existingByName.rows[0].id;
+        await pool.query(
+          'UPDATE people SET user_id = $1, linked_user_email = $2, first_name = COALESCE(first_name, $3), last_name = COALESCE(last_name, $4), photo_url = COALESCE(photo_url, $5) WHERE id = $6',
+          [newUser.id, email, gFirstName, gLastName, picture || null, newPersonId]
+        );
+      }
+    }
+
+    if (!newPersonId) {
+      const personResult = await pool.query(
+        'INSERT INTO people (name, first_name, middle_name, last_name, user_id, linked_user_email, role_type, photo_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+        [formattedName, gFirstName, gMiddleName, gLastName, newUser.id, email, 'adult', picture || null]
+      );
+      newPersonId = personResult.rows[0].id;
+    }
 
     if (inviteCode) {
       const inviteResult = await pool.query(
