@@ -287,8 +287,10 @@ function useOrganicClusterLayout(households, people, viewMode = 'nebula', relati
     
     const householdMemberCounts = new Map();
     const householdMembers = new Map();
+    const seenPersonIds = new Set();
     people.forEach(person => {
-      if (person.household_id) {
+      if (person.household_id && !seenPersonIds.has(person.id)) {
+        seenPersonIds.add(person.id);
         householdMemberCounts.set(
           person.household_id,
           (householdMemberCounts.get(person.household_id) || 0) + 1
@@ -2393,8 +2395,9 @@ function SystemLevelScene({
     coreParentIds.forEach(id => childIds.delete(id));
 
     const familyIds = new Set([...coreParentIds, ...childIds]);
-    const coreParents = people.filter(p => coreParentIds.has(p.id));
-    const children = people.filter(p => childIds.has(p.id));
+    const seen = new Set();
+    const coreParents = people.filter(p => coreParentIds.has(p.id) && !seen.has(p.id) && seen.add(p.id));
+    const children = people.filter(p => childIds.has(p.id) && !seen.has(p.id) && seen.add(p.id));
     return [...coreParents, ...children];
   }, [people, household.id, relationships]);
   
@@ -5068,7 +5071,8 @@ const HoverTooltip = React.forwardRef(function HoverTooltip({ household, memberC
 function SystemInfoPanel({ household, memberCount, starClass, people, onClose }) {
   if (!household) return null;
 
-  const members = people.filter(p => p.household_id === household.id);
+  const members = people.filter(p => p.household_id === household.id)
+    .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
 
   return (
     <div className="absolute bottom-3 left-3 right-3 z-50 lg:bottom-6 lg:left-6 lg:right-auto lg:w-[320px]">
@@ -5750,7 +5754,8 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
     const pos = householdPositions.get(hoveredHouseholdId);
     const mc = pos?.memberCount || 0;
     const gen = pos?.generation ?? 0;
-    const members = people.filter(p => p.household_id === hoveredHouseholdId);
+    const members = people.filter(p => p.household_id === hoveredHouseholdId)
+      .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
     const colorIndex = households.findIndex(h => h.id === hoveredHouseholdId);
     const memberIds = new Set(members.map(m => m.id));
     const hasChildren = relationships.some(r =>
