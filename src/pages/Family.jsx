@@ -250,15 +250,7 @@ export default function Family() {
           {/* Floating Controls */}
           <div className="fixed top-[4.5rem] lg:top-4 left-3 sm:left-4 lg:left-68 right-3 sm:right-4 z-50 pointer-events-none">
             <div className="flex items-center justify-end gap-2">
-              <div className="glass-card rounded-xl px-3 py-1.5 border border-slate-700/50 pointer-events-auto flex-shrink-0 lg:hidden mr-auto">
-                <h1 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  Universe
-                </h1>
-                <p className="text-[10px] text-slate-500 mt-0.5">{people.length} stars · {relationships.length} connections</p>
-              </div>
-
-              <div className="flex gap-1 pointer-events-auto items-center flex-shrink min-w-0">
+              <div className="flex gap-1 pointer-events-auto items-center flex-shrink min-w-0 ml-auto">
                 <Button
                   onClick={() => setMobileSearchOpen(true)}
                   className="lg:hidden bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 backdrop-blur-md h-8 w-8 p-0"

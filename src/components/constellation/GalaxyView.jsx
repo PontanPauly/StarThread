@@ -5119,7 +5119,7 @@ function SystemInfoPanel({ household, memberCount, starClass, people, onClose })
   );
 }
 
-function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCount = 0, showFilter = false, filters, onToggleFilter, qualityTier, onSetQuality }) {
+function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCount = 0, connectionCount = 0, showFilter = false, filters, onToggleFilter, qualityTier, onSetQuality }) {
   const coordRef = useRef(null);
   const [filterExpanded, setFilterExpanded] = useState(false);
   const [showRelFilters, setShowRelFilters] = useState(false);
@@ -5136,7 +5136,7 @@ function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCo
   }, [cameraPosRef]);
 
   return (
-    <div className="absolute top-[7.5rem] lg:top-3 left-3 lg:left-4 z-40 pointer-events-none">
+    <div className="absolute top-[4.5rem] lg:top-3 left-3 lg:left-4 z-40 pointer-events-none">
       <div className="pointer-events-auto glass-card rounded-xl px-2.5 lg:px-3 py-1 lg:py-1.5 border border-slate-700/50">
         <div className="flex items-center gap-1.5 lg:gap-2 min-w-0">
           <button
@@ -5170,6 +5170,14 @@ function TopBar({ level, selectedHousehold, cameraPosRef, onBackToGalaxy, starCo
               <Filter className="w-3.5 h-3.5" />
               <ChevronRight className={`w-3 h-3 transition-transform ${filterExpanded ? 'rotate-90' : ''}`} />
             </button>
+          )}
+        </div>
+        <div className="lg:hidden flex items-center gap-1 mt-0.5 px-1">
+          {starCount > 0 && (
+            <span className="text-[10px] text-slate-500">
+              {starCount} {starCount === 1 ? 'star' : 'stars'}
+              {connectionCount > 0 && ` · ${connectionCount} connections`}
+            </span>
           )}
         </div>
         <div className="hidden lg:flex items-center gap-3 mt-0.5">
@@ -6024,7 +6032,8 @@ const GalaxyView = React.memo(function GalaxyView({ people = [], relationships =
         selectedHousehold={selectedHousehold}
         cameraPosRef={cameraPosRef}
         onBackToGalaxy={handleBackToGalaxy}
-        starCount={households.length}
+        starCount={people.length}
+        connectionCount={relationships.length}
         showFilter={level === 'galaxy'}
         filters={filters}
         onToggleFilter={handleToggleFilter}
