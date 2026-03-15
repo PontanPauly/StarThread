@@ -2362,11 +2362,13 @@ function SystemLevelScene({
   bloomScale = 1,
 }) {
   const householdPeople = useMemo(() => {
-    const householdMembers = people.filter(p => p.household_id === household.id);
+    const seen = new Set();
+    const householdMembers = people
+      .filter(p => p.household_id === household.id && !seen.has(p.id) && seen.add(p.id));
     if (householdMembers.length === 0) return [];
 
     const coupleTypes = ['partner', 'spouse'];
-    const parentTypes = ['parent'];
+    const memberIds = new Set(householdMembers.map(m => m.id));
 
     const coupleIds = new Set();
     householdMembers.forEach(member => {
@@ -2374,31 +2376,23 @@ function SystemLevelScene({
         const idA = rel.person_id || rel.person1_id;
         const idB = rel.related_person_id || rel.person2_id;
         const type = (rel.relationship_type || '').toLowerCase();
-        if (coupleTypes.includes(type)) {
-          if (idA === member.id) { coupleIds.add(member.id); coupleIds.add(idB); }
-          if (idB === member.id) { coupleIds.add(member.id); coupleIds.add(idA); }
+        if (coupleTypes.includes(type) && memberIds.has(idA) && memberIds.has(idB)) {
+          coupleIds.add(idA);
+          coupleIds.add(idB);
         }
       });
     });
 
-    const coreParentIds = coupleIds.size > 0 ? coupleIds : new Set(householdMembers.map(m => m.id));
+    const parents = householdMembers.filter(m => coupleIds.has(m.id));
+    const others = householdMembers.filter(m => !coupleIds.has(m.id));
 
-    const childIds = new Set();
-    relationships.forEach(rel => {
-      const idA = rel.person_id || rel.person1_id;
-      const idB = rel.related_person_id || rel.person2_id;
-      const type = (rel.relationship_type || '').toLowerCase();
-      if (parentTypes.includes(type) && coreParentIds.has(idA)) childIds.add(idB);
-      if (type === 'child' && coreParentIds.has(idB)) childIds.add(idA);
-    });
+    if (parents.length > 0) {
+      parents.forEach(p => { p.isParent = true; });
+      others.forEach(p => { p.isParent = false; });
+      return [...parents, ...others];
+    }
 
-    coreParentIds.forEach(id => childIds.delete(id));
-
-    const familyIds = new Set([...coreParentIds, ...childIds]);
-    const seen = new Set();
-    const coreParents = people.filter(p => coreParentIds.has(p.id) && !seen.has(p.id) && seen.add(p.id));
-    const children = people.filter(p => childIds.has(p.id) && !seen.has(p.id) && seen.add(p.id));
-    return [...coreParents, ...children];
+    return householdMembers;
   }, [people, household.id, relationships]);
   
   const centerX = householdPosition?.x || 0;
@@ -5083,7 +5077,7 @@ function SystemInfoPanel({ household, memberCount, starClass, people, onClose })
             <h3 className="text-sm lg:text-lg font-bold text-slate-100 tracking-wide truncate">{household.name}</h3>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-            <span className="lg:hidden text-[10px] font-mono text-slate-400">{memberCount} members</span>
+            <span className="lg:hidden text-[10px] font-mono text-slate-400">{members.length} members</span>
             <button
               onClick={onClose}
               className="p-1 text-slate-500 hover:text-white transition-colors"
@@ -5099,7 +5093,7 @@ function SystemInfoPanel({ household, memberCount, starClass, people, onClose })
           <div className="h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent mb-3" />
           <div className="bg-slate-800/40 rounded px-2 py-1.5 mb-3">
             <div className="text-[9px] uppercase tracking-widest text-slate-500">Members</div>
-            <div className="text-sm font-medium text-slate-200 mt-0.5">{memberCount}</div>
+            <div className="text-sm font-medium text-slate-200 mt-0.5">{members.length}</div>
           </div>
         </div>
 
